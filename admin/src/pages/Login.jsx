@@ -27,7 +27,7 @@ export default function Login() {
       const isAdmin = ['admin_super', 'admin_content', 'admin_emergency'].includes(role);
       if (!isAdmin) {
         useAuthStore.getState().logout();
-        setError('Access denied. Admin accounts only.');
+        setError(`Access denied. This account has role "${role || 'unknown'}". Use an admin account (superadmin@cebusafetour.ph).`);
         return;
       }
       toast.success('Welcome back!');
