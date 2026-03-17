@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +16,7 @@ import Reviews from './pages/Reviews';
 const ProtectedRoute = ({ children }) => {
   const { token, hydrate } = useAuthStore();
   useEffect(() => { hydrate(); }, []);
+  useRealtimeSync();
   if (!token) return <Navigate to="/login" replace />;
   return children;
 };

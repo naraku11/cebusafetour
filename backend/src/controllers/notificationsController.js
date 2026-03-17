@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { sendPushToAll, sendPushToUsers } = require('../services/fcmService');
+const socket = require('../services/socketService');
 
 exports.send = async (req, res, next) => {
   try {
@@ -15,6 +16,7 @@ exports.send = async (req, res, next) => {
 
     if (!scheduledAt) await dispatchNotification(notification);
 
+    socket.emitToAdmins('notification:new', { notification });
     res.status(201).json({
       notification,
       message: scheduledAt ? 'Notification scheduled' : 'Notification sent',

@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestAdvisory } = require('../services/aiService');
+const socket = require('../services/socketService');
 
 exports.list = async (req, res, next) => {
   try {
@@ -62,6 +63,7 @@ exports.create = async (req, res, next) => {
       data: { notificationSent: true },
     });
 
+    socket.emitToAll('advisory:new', { advisory });
     res.status(201).json({ advisory });
   } catch (err) { next(err); }
 };
@@ -95,6 +97,7 @@ exports.update = async (req, res, next) => {
       });
     }
 
+    socket.emitToAll('advisory:updated', { advisory });
     res.json({ advisory });
   } catch (err) { next(err); }
 };
@@ -119,7 +122,8 @@ exports.resolve = async (req, res, next) => {
   try {
     const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Advisory not found' });
-    await prisma.advisory.update({ where: { id: req.params.id }, data: { status: 'resolved' } });
+    const resolved = await prisma.advisory.update({ where: { id: req.params.id }, data: { status: 'resolved' } });
+    socket.emitToAll('advisory:updated', { advisory: resolved });
     res.json({ message: 'Advisory resolved' });
   } catch (err) { next(err); }
 };

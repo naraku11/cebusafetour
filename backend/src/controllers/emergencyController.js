@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { sendPushToAdmins } = require('../services/fcmService');
 const { getFirestore } = require('../config/firebase');
+const socket = require('../services/socketService');
 
 exports.reportIncident = async (req, res, next) => {
   try {
@@ -31,6 +32,7 @@ exports.reportIncident = async (req, res, next) => {
       data: { type: 'incident', incidentId: incident.id },
     });
 
+    socket.emitToAdmins('incident:new', { incident });
     res.status(201).json({ incident, message: 'Incident reported. Help is on the way.' });
   } catch (err) { next(err); }
 };
@@ -90,6 +92,7 @@ exports.updateIncident = async (req, res, next) => {
       assignedTo: incident.assignedTo,
     }, { merge: true });
 
+    socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident });
   } catch (err) { next(err); }
 };
