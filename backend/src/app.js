@@ -29,6 +29,7 @@ const reviewsRoutes       = require('./routes/reviews');
 const { errorHandler } = require('./middleware/errorHandler');
 const logger           = require('./utils/logger');
 const socket           = require('./services/socketService');
+const prisma           = require('./config/prisma');
 
 // Ensure upload directories exist
 fs.mkdirSync(path.join(__dirname, '..', 'uploads', 'avatars'), { recursive: true });
@@ -65,8 +66,26 @@ app.use(rateLimit({
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// Health check — tests live DB connection
+app.get('/health', async (req, res) => {
+  const start = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      db: 'connected',
+      dbLatencyMs: Date.now() - start,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(503).json({
+      status: 'error',
+      db: 'disconnected',
+      error: e.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
 // Routes
 app.use('/api/auth',          authRoutes);
@@ -83,8 +102,6 @@ app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 
 // Global error handler
 app.use(errorHandler);
-
-const prisma = require('./config/prisma');
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, async () => {
