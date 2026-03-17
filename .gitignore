@@ -5,6 +5,8 @@ backend/.env.local
 backend/dist/
 backend/logs/
 backend/*.log
+backend/uploads/avatars/*
+!backend/uploads/avatars/.gitkeep
 
 # React Admin
 admin/node_modules/
@@ -20,6 +22,8 @@ mobile/build/
 mobile/.packages
 mobile/pubspec.lock
 mobile/android/.gradle/
+mobile/android/.kotlin/
+mobile/android/app/.cxx/
 mobile/android/local.properties
 mobile/android/app/google-services.json
 mobile/ios/Pods/
