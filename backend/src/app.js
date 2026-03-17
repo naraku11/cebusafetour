@@ -20,7 +20,6 @@ const emergencyRoutes = require('./routes/emergency');
 const usersRoutes = require('./routes/users');
 const notificationsRoutes = require('./routes/notifications');
 const reportsRoutes = require('./routes/reports');
-const weatherRoutes = require('./routes/weather');
 const reviewsRoutes = require('./routes/reviews');
 
 const path = require('path');
@@ -71,7 +70,6 @@ app.use('/api/emergency', emergencyRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
-app.use('/api/weather', weatherRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
 // 404

@@ -4,7 +4,6 @@ const { authenticate, requireAdmin, requireRole } = require('../middleware/auth'
 
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.get);
-router.post('/:id/acknowledge', authenticate, ctrl.acknowledge);
 
 // Admin only
 router.post('/ai-suggest', authenticate, requireAdmin, ctrl.aiSuggest);

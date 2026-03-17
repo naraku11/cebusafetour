@@ -115,20 +115,6 @@ exports.aiSuggest = async (req, res) => {
   }
 };
 
-exports.acknowledge = async (req, res, next) => {
-  try {
-    const advisory = await prisma.advisory.findUnique({ where: { id: req.params.id } });
-    if (!advisory) return res.status(404).json({ error: 'Advisory not found' });
-
-    const acked = Array.isArray(advisory.acknowledgedBy) ? [...advisory.acknowledgedBy] : [];
-    if (!acked.includes(req.user.id)) {
-      acked.push(req.user.id);
-      await prisma.advisory.update({ where: { id: req.params.id }, data: { acknowledgedBy: acked } });
-    }
-    res.json({ message: 'Advisory acknowledged' });
-  } catch (err) { next(err); }
-};
-
 exports.resolve = async (req, res, next) => {
   try {
     const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
