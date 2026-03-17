@@ -1,0 +1,10 @@
+# Block direct Apache access to all backend files.
+# Hostinger routes requests to the Node.js app via hPanel — Apache should not
+# serve these files directly.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule .* - [F,L]
+</IfModule>
+
+# Deny access as a fallback
+Deny from all
