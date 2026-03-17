@@ -9,7 +9,7 @@ export const useAuthStore = create(
       token: null,
 
       login: async (email, password) => {
-        const { data } = await api.post('/auth/login', { email, password });
+        const { data } = await api.post('/auth/login', { email, password }, { headers: { 'x-admin-request': '1' } });
         set({ user: data.user, token: data.token });
         api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
         return data;
