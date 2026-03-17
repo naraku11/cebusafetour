@@ -19,7 +19,10 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ error: 'Invalid data provided' });
   }
 
-  if (err instanceof Prisma.PrismaClientInitializationError) {
+  if (
+    err instanceof Prisma.PrismaClientInitializationError ||
+    err instanceof Prisma.PrismaClientRustPanicError
+  ) {
     logger.error('Database connection failed:', err.message);
     return res.status(503).json({ error: 'Database unavailable. Please try again later.' });
   }

@@ -84,7 +84,26 @@ app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 // Global error handler
 app.use(errorHandler);
 
+const prisma = require('./config/prisma');
+
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => logger.info(`CebuSafeTour API running on port ${PORT}`));
+server.listen(PORT, async () => {
+  logger.info(`CebuSafeTour API running on port ${PORT}`);
+  // Verify DB connection at startup
+  try {
+    await prisma.$connect();
+    logger.info('MySQL database connected successfully');
+    // Auto-run migrations on first deploy
+    const { execSync } = require('child_process');
+    try {
+      execSync('npx prisma migrate deploy', { cwd: __dirname + '/..', stdio: 'inherit' });
+    } catch (e) {
+      logger.warn('Migration skipped or already up to date:', e.message);
+    }
+  } catch (e) {
+    logger.error(`Database connection FAILED: ${e.message}`);
+    logger.error(`DATABASE_URL host: ${(process.env.DATABASE_URL || '').replace(/:\/\/[^@]+@/, '://***@')}`);
+  }
+});
 
 module.exports = app;
