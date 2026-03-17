@@ -23,11 +23,16 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await login(email, password);
-      const role = data?.user?.role;
+      // Decode JWT to get role — more reliable than user object which may have enum issues
+      let role = data?.user?.role;
+      try {
+        const payload = JSON.parse(atob(data.token.split('.')[1]));
+        role = payload.role || role;
+      } catch {}
       const isAdmin = ['admin_super', 'admin_content', 'admin_emergency'].includes(role);
       if (!isAdmin) {
         useAuthStore.getState().logout();
-        setError(`Access denied. This account has role "${role || 'unknown'}". Use an admin account (superadmin@cebusafetour.ph).`);
+        setError(`Access denied. Role "${role || 'unknown'}" is not an admin. Use: superadmin@cebusafetour.ph`);
         return;
       }
       toast.success('Welcome back!');
