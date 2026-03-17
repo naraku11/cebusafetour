@@ -4,3 +4,6 @@ RewriteBase /
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.html [QSA,L]
+
+# Fallback: if mod_rewrite is restricted, treat all 404s as the SPA entry point
+ErrorDocument 404 /index.html
