@@ -9,7 +9,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- ─── USERS ────────────────────────────────────────────────────────────────────
 
-INSERT INTO `users`
+INSERT IGNORE INTO `users`
   (`id`,`name`,`email`,`password`,`nationality`,`contact_number`,`role`,`status`,`language`,`is_verified`,`emergency_contacts`,`created_at`,`updated_at`)
 VALUES
 
