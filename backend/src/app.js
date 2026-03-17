@@ -66,25 +66,46 @@ app.use(rateLimit({
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Health check — tests live DB connection
+// Health check — tests all critical services
 app.get('/health', async (req, res) => {
-  const start = Date.now();
+  const checks = {};
+
+  // 1. Database
   try {
+    const t = Date.now();
     await prisma.$queryRaw`SELECT 1`;
-    res.json({
-      status: 'ok',
-      db: 'connected',
-      dbLatencyMs: Date.now() - start,
-      timestamp: new Date().toISOString(),
-    });
+    checks.database = { status: 'ok', latencyMs: Date.now() - t };
   } catch (e) {
-    res.status(503).json({
-      status: 'error',
-      db: 'disconnected',
-      error: e.message,
-      timestamp: new Date().toISOString(),
-    });
+    checks.database = { status: 'error', error: e.message };
   }
+
+  // 2. SMTP config present
+  checks.smtp = process.env.SMTP_HOST && process.env.SMTP_USER
+    ? { status: 'configured', host: process.env.SMTP_HOST }
+    : { status: 'missing', error: 'SMTP_HOST or SMTP_USER not set' };
+
+  // 3. Firebase config present
+  checks.firebase = process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY
+    ? { status: 'configured', project: process.env.FIREBASE_PROJECT_ID }
+    : { status: 'missing', error: 'FIREBASE_PROJECT_ID or FIREBASE_PRIVATE_KEY not set' };
+
+  // 4. JWT secret
+  checks.jwt = process.env.JWT_SECRET
+    ? { status: 'configured' }
+    : { status: 'missing', error: 'JWT_SECRET not set' };
+
+  // Overall status — 'ok' only if DB connected and JWT present
+  const healthy = checks.database.status === 'ok' && checks.jwt.status === 'configured';
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    version: process.env.npm_package_version || '1.0.0',
+    node: process.version,
+    env: process.env.NODE_ENV || 'unknown',
+    uptime: `${Math.floor(process.uptime())}s`,
+    checks,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Routes
@@ -104,23 +125,12 @@ app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, async () => {
+server.listen(PORT, () => {
   logger.info(`CebuSafeTour API running on port ${PORT}`);
-  // Verify DB connection at startup
-  try {
-    await prisma.$connect();
-    logger.info('MySQL database connected successfully');
-    // Auto-run migrations on first deploy
-    const { execSync } = require('child_process');
-    try {
-      execSync('npx prisma migrate deploy', { cwd: __dirname + '/..', stdio: 'inherit' });
-    } catch (e) {
-      logger.warn('Migration skipped or already up to date:', e.message);
-    }
-  } catch (e) {
-    logger.error(`Database connection FAILED: ${e.message}`);
-    logger.error(`DATABASE_URL host: ${(process.env.DATABASE_URL || '').replace(/:\/\/[^@]+@/, '://***@')}`);
-  }
+  // Verify DB connection after startup (non-blocking)
+  prisma.$connect()
+    .then(() => logger.info('MySQL database connected successfully'))
+    .catch((e) => logger.error(`Database connection FAILED: ${e.message}`));
 });
 
 module.exports = app;
