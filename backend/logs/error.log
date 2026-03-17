@@ -1,0 +1,2486 @@
+2026-02-28 11:00:01 [ERROR]: Error
+    at Query.run (F:\Upload\Projects\cebusafetour\backend\node_modules\sequelize\lib\dialects\postgres\query.js:50:25)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\sequelize\lib\sequelize.js:315:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async PostgresQueryInterface.select (F:\Upload\Projects\cebusafetour\backend\node_modules\sequelize\lib\dialects\abstract\query-interface.js:407:12)
+    at async User.findAll (F:\Upload\Projects\cebusafetour\backend\node_modules\sequelize\lib\model.js:1140:21)
+    at async User.findOne (F:\Upload\Projects\cebusafetour\backend\node_modules\sequelize\lib\model.js:1240:12)
+    at async exports.login (F:\Upload\Projects\cebusafetour\backend\src\controllers\authController.js:49:18)
+2026-02-28 11:34:50 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:34:50 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:34:50 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:34:51 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:34:51 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:34:51 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:34:59 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:34:59 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:34:59 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:35:00 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:00 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:00 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:35:08 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:08 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:08 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:35:09 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:09 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:09 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:35:18 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:18 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:18 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:35:19 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:19 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:35:19 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:36:20 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:36:20 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:36:20 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:37:06 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:37:06 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:37:06 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 50,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:37:19 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:37:19 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:37:19 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:08 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:08 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:08 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:10 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:10 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:10 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:11 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:11 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:11 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:12 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:12 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:12 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:13 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:13 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:13 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:32 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:32 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:39:32 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:39:47 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:75:11)
+2026-02-28 11:40:11 [ERROR]: Prisma error: 
+Invalid `prisma.advisory.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:44
+
+  64 const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+  65 if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+  66 
+→ 67 const advisory = await prisma.advisory.update({
+       where: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e"
+       },
+       data: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e",
+         title: "Typhoon Preparedness Alert — Southwest Cebu",
+         description: "Tropical Storm Isang is expected to make landfall near the southwestern coast of Cebu within the next 24-48 hours. Signal No. 2 has been raised for the municipalities of Badian, Moalboal, Alcantara, and Ronda. Expect strong winds and heavy rainfall. All outdoor activities including canyoneering and beach swimming are suspended.",
+         severity: "critical",
+         source: "pagasa",
+         affectedArea: {
+           type: "attractions",
+           attractionIds: []
+         },
+         recommendedActions: "1. Stay indoors and away from windows.\n2. Prepare emergency bags with essentials (water, food, medicine, documents).\n3. Avoid beaches, rivers, and mountain trails.\n4. Monitor PAGASA updates at pagasa.dost.gov.ph.\n5. Contact CDRRMO Cebu at (032) 255-3068 if you need evacuation assistance.",
+         startDate: "2026-02-28",
+                    ~~~~~~~~~~~~
+         endDate: "2026-03-03",
+         status: "resolved",
+         notificationSent: true,
+         acknowledgedBy: [],
+         createdBy: "c63e7762-4ea8-4a22-aecf-1be86904455a",
+         createdAt: "2026-02-28T03:28:56.342Z",
+         updatedAt: "2026-02-28T03:40:04.223Z"
+       }
+     })
+
+Invalid value for argument `startDate`: premature end of input. Expected ISO-8601 DateTime.
+2026-02-28 11:40:11 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.advisory.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:44
+
+  64 const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+  65 if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+  66 
+→ 67 const advisory = await prisma.advisory.update({
+       where: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e"
+       },
+       data: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e",
+         title: "Typhoon Preparedness Alert — Southwest Cebu",
+         description: "Tropical Storm Isang is expected to make landfall near the southwestern coast of Cebu within the next 24-48 hours. Signal No. 2 has been raised for the municipalities of Badian, Moalboal, Alcantara, and Ronda. Expect strong winds and heavy rainfall. All outdoor activities including canyoneering and beach swimming are suspended.",
+         severity: "critical",
+         source: "pagasa",
+         affectedArea: {
+           type: "attractions",
+           attractionIds: []
+         },
+         recommendedActions: "1. Stay indoors and away from windows.\n2. Prepare emergency bags with essentials (water, food, medicine, documents).\n3. Avoid beaches, rivers, and mountain trails.\n4. Monitor PAGASA updates at pagasa.dost.gov.ph.\n5. Contact CDRRMO Cebu at (032) 255-3068 if you need evacuation assistance.",
+         startDate: "2026-02-28",
+                    ~~~~~~~~~~~~
+         endDate: "2026-03-03",
+         status: "resolved",
+         notificationSent: true,
+         acknowledgedBy: [],
+         createdBy: "c63e7762-4ea8-4a22-aecf-1be86904455a",
+         createdAt: "2026-02-28T03:28:56.342Z",
+         updatedAt: "2026-02-28T03:40:04.223Z"
+       }
+     })
+
+Invalid value for argument `startDate`: premature end of input. Expected ISO-8601 DateTime.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.update (F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:22)
+2026-02-28 11:40:55 [ERROR]: Prisma error: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:40:55 [ERROR]: Prisma error: 
+Invalid `prisma.user.count()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:23:19
+
+  20   orderBy: { createdAt: 'desc' },
+  21   omit: { password: true, fcmToken: true },
+  22 }),
+→ 23 prisma.user.count({
+       select: {
+         _count: {
+           select: {
+             _all: true
+           }
+         }
+       },
+       where: {
+         role: "tourist"
+       },
+     ? orderBy?: UserOrderByWithRelationInput[] | UserOrderByWithRelationInput,
+     ? cursor?: UserWhereUniqueInput,
+     ? take?: Int,
+     ? skip?: Int,
+     ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+     })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+2026-02-28 11:40:55 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.findMany()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:18:19
+
+  15 const take = parseInt(limit);
+  16 
+  17 const [users, total] = await prisma.$transaction([
+→ 18   prisma.user.findMany({
+         where: {
+           role: "tourist"
+         },
+         skip: 0,
+         take: 20,
+         orderBy: {
+           createdAt: "desc"
+         },
+         omit: {
+         ~~~~
+           password: true,
+           fcmToken: true
+         },
+       ? cursor?: UserWhereUniqueInput,
+       ? distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+       })
+
+Unknown argument `omit`. Did you mean `skip`? Available options are marked with ?.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+2026-02-28 11:41:50 [ERROR]: Prisma error: 
+Invalid `prisma.advisory.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:44
+
+  64 const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+  65 if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+  66 
+→ 67 const advisory = await prisma.advisory.update({
+       where: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e"
+       },
+       data: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e",
+         title: "Typhoon Preparedness Alert — Southwest Cebu",
+         description: "Tropical Storm Isang is expected to make landfall near the southwestern coast of Cebu within the next 24-48 hours. Signal No. 2 has been raised for the municipalities of Badian, Moalboal, Alcantara, and Ronda. Expect strong winds and heavy rainfall. All outdoor activities including canyoneering and beach swimming are suspended.",
+         severity: "critical",
+         source: "pagasa",
+         affectedArea: {
+           type: "attractions",
+           attractionIds: []
+         },
+         recommendedActions: "1. Stay indoors and away from windows.\n2. Prepare emergency bags with essentials (water, food, medicine, documents).\n3. Avoid beaches, rivers, and mountain trails.\n4. Monitor PAGASA updates at pagasa.dost.gov.ph.\n5. Contact CDRRMO Cebu at (032) 255-3068 if you need evacuation assistance.",
+         startDate: "2026-02-28",
+                    ~~~~~~~~~~~~
+         endDate: "2026-03-03",
+         status: "resolved",
+         notificationSent: true,
+         acknowledgedBy: [],
+         createdBy: "c63e7762-4ea8-4a22-aecf-1be86904455a",
+         createdAt: "2026-02-28T03:28:56.342Z",
+         updatedAt: "2026-02-28T03:40:04.223Z"
+       }
+     })
+
+Invalid value for argument `startDate`: premature end of input. Expected ISO-8601 DateTime.
+2026-02-28 11:41:50 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.advisory.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:44
+
+  64 const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+  65 if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+  66 
+→ 67 const advisory = await prisma.advisory.update({
+       where: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e"
+       },
+       data: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e",
+         title: "Typhoon Preparedness Alert — Southwest Cebu",
+         description: "Tropical Storm Isang is expected to make landfall near the southwestern coast of Cebu within the next 24-48 hours. Signal No. 2 has been raised for the municipalities of Badian, Moalboal, Alcantara, and Ronda. Expect strong winds and heavy rainfall. All outdoor activities including canyoneering and beach swimming are suspended.",
+         severity: "critical",
+         source: "pagasa",
+         affectedArea: {
+           type: "attractions",
+           attractionIds: []
+         },
+         recommendedActions: "1. Stay indoors and away from windows.\n2. Prepare emergency bags with essentials (water, food, medicine, documents).\n3. Avoid beaches, rivers, and mountain trails.\n4. Monitor PAGASA updates at pagasa.dost.gov.ph.\n5. Contact CDRRMO Cebu at (032) 255-3068 if you need evacuation assistance.",
+         startDate: "2026-02-28",
+                    ~~~~~~~~~~~~
+         endDate: "2026-03-03",
+         status: "resolved",
+         notificationSent: true,
+         acknowledgedBy: [],
+         createdBy: "c63e7762-4ea8-4a22-aecf-1be86904455a",
+         createdAt: "2026-02-28T03:28:56.342Z",
+         updatedAt: "2026-02-28T03:40:04.223Z"
+       }
+     })
+
+Invalid value for argument `startDate`: premature end of input. Expected ISO-8601 DateTime.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.update (F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:22)
+2026-02-28 11:42:27 [ERROR]: Prisma error: 
+Invalid `prisma.advisory.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:44
+
+  64 const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+  65 if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+  66 
+→ 67 const advisory = await prisma.advisory.update({
+       where: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e"
+       },
+       data: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e",
+         title: "Typhoon Preparedness Alert — Southwest Cebu",
+         description: "Tropical Storm Isang is expected to make landfall near the southwestern coast of Cebu within the next 24-48 hours. Signal No. 2 has been raised for the municipalities of Badian, Moalboal, Alcantara, and Ronda. Expect strong winds and heavy rainfall. All outdoor activities including canyoneering and beach swimming are suspended.",
+         severity: "critical",
+         source: "pagasa",
+         affectedArea: {
+           type: "attractions",
+           attractionIds: []
+         },
+         recommendedActions: "1. Stay indoors and away from windows.\n2. Prepare emergency bags with essentials (water, food, medicine, documents).\n3. Avoid beaches, rivers, and mountain trails.\n4. Monitor PAGASA updates at pagasa.dost.gov.ph.\n5. Contact CDRRMO Cebu at (032) 255-3068 if you need evacuation assistance.",
+         startDate: "2026-02-28",
+                    ~~~~~~~~~~~~
+         endDate: "2026-03-03",
+         status: "resolved",
+         notificationSent: true,
+         acknowledgedBy: [],
+         createdBy: "c63e7762-4ea8-4a22-aecf-1be86904455a",
+         createdAt: "2026-02-28T03:28:56.342Z",
+         updatedAt: "2026-02-28T03:40:04.223Z"
+       }
+     })
+
+Invalid value for argument `startDate`: premature end of input. Expected ISO-8601 DateTime.
+2026-02-28 11:42:27 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.advisory.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:44
+
+  64 const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+  65 if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+  66 
+→ 67 const advisory = await prisma.advisory.update({
+       where: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e"
+       },
+       data: {
+         id: "e08a9910-7e12-4bcf-b5e3-0df356fe5b1e",
+         title: "Typhoon Preparedness Alert — Southwest Cebu",
+         description: "Tropical Storm Isang is expected to make landfall near the southwestern coast of Cebu within the next 24-48 hours. Signal No. 2 has been raised for the municipalities of Badian, Moalboal, Alcantara, and Ronda. Expect strong winds and heavy rainfall. All outdoor activities including canyoneering and beach swimming are suspended.",
+         severity: "critical",
+         source: "pagasa",
+         affectedArea: {
+           type: "attractions",
+           attractionIds: []
+         },
+         recommendedActions: "1. Stay indoors and away from windows.\n2. Prepare emergency bags with essentials (water, food, medicine, documents).\n3. Avoid beaches, rivers, and mountain trails.\n4. Monitor PAGASA updates at pagasa.dost.gov.ph.\n5. Contact CDRRMO Cebu at (032) 255-3068 if you need evacuation assistance.",
+         startDate: "2026-02-28",
+                    ~~~~~~~~~~~~
+         endDate: "2026-03-03",
+         status: "resolved",
+         notificationSent: true,
+         acknowledgedBy: [],
+         createdBy: "c63e7762-4ea8-4a22-aecf-1be86904455a",
+         createdAt: "2026-02-28T03:28:56.342Z",
+         updatedAt: "2026-02-28T03:40:04.223Z"
+       }
+     })
+
+Invalid value for argument `startDate`: premature end of input. Expected ISO-8601 DateTime.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.update (F:\Upload\Projects\cebusafetour\backend\src\controllers\advisoriesController.js:67:22)
+2026-02-28 11:42:33 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:75:11)
+2026-02-28 12:02:15 [ERROR]: Error: Ollama responded with 404: {"error":"model 'llama3' not found"}
+    at exports.suggestAttraction (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:47:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async exports.aiSuggest (F:\Upload\Projects\cebusafetour\backend\src\controllers\attractionsController.js:104:24)
+2026-02-28 12:02:53 [ERROR]: Error: Ollama responded with 404: {"error":"model 'mistral' not found"}
+    at exports.suggestAttraction (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:47:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async exports.aiSuggest (F:\Upload\Projects\cebusafetour\backend\src\controllers\attractionsController.js:104:24)
+2026-03-01 09:37:58 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:75:11)
+2026-03-01 09:38:06 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:75:11)
+2026-03-01 09:38:20 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:75:11)
+2026-03-01 09:38:30 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:75:11)
+2026-03-01 09:41:13 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.reportIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:20:11)
+2026-03-01 09:41:34 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.reportIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:20:11)
+2026-03-01 09:42:06 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.reportIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:20:11)
+2026-03-01 09:53:44 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.reportIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:20:11)
+2026-03-01 10:06:36 [ERROR]: Error: The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.
+    at AppStore.getApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\lifecycle.js:65:19)
+    at FirebaseNamespaceInternals.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:54:35)
+    at FirebaseNamespace.app (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:256:30)
+    at FirebaseNamespace.ensureApp (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:266:24)
+    at FirebaseNamespace.fn (F:\Upload\Projects\cebusafetour\backend\node_modules\firebase-admin\lib\app\firebase-namespace.js:136:25)
+    at getFirestore (F:\Upload\Projects\cebusafetour\backend\src\config\firebase.js:18:34)
+    at exports.updateIncident (F:\Upload\Projects\cebusafetour\backend\src\controllers\emergencyController.js:88:11)
+2026-03-01 10:08:31 [ERROR]: Error: 5 NOT_FOUND: No document to update: projects/cebusafetour/databases/(default)/documents/incidents/bb04da1f-9230-4444-95df-92a035e72aba
+    at callErrorFromStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\call.js:32:19)
+    at Object.onReceiveStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client.js:193:76)
+    at Object.onReceiveStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client-interceptors.js:367:141)
+    at Object.onReceiveStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client-interceptors.js:327:181)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\resolving-call.js:135:78
+    at process.processTicksAndRejections (node:internal/process/task_queues:84:11)
+for call at
+    at ServiceClientImpl.makeUnaryRequest (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client.js:161:32)
+    at ServiceClientImpl.<anonymous> (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\make-client.js:105:19)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\v1\firestore_client.js:242:33
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\timeout.js:44:16
+    at repeat (F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\retries.js:82:25)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\retries.js:125:13
+    at OngoingCallPromise.call (F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\call.js:67:27)
+    at NormalApiCaller.call (F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\normalApiCaller.js:34:19)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\createApiCall.js:112:30
+Caused by: Error
+    at _firestore._traceUtil.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\write-batch.js:438:27)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:110:30
+    at NoopContextManager.with (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js:25:19)
+    at ContextAPI.with (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\api\context.js:60:46)
+    at NoopTracer.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js:65:31)
+    at ProxyTracer.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js:36:24)
+    at EnabledTraceUtil.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:102:28)
+    at WriteBatch.commit (F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\write-batch.js:436:43)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\reference\document-reference.js:392:18
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:110:30
+2026-03-01 10:09:21 [ERROR]: Error: 5 NOT_FOUND: No document to update: projects/cebusafetour/databases/(default)/documents/incidents/bb04da1f-9230-4444-95df-92a035e72aba
+    at callErrorFromStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\call.js:32:19)
+    at Object.onReceiveStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client.js:193:76)
+    at Object.onReceiveStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client-interceptors.js:367:141)
+    at Object.onReceiveStatus (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client-interceptors.js:327:181)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\resolving-call.js:135:78
+    at process.processTicksAndRejections (node:internal/process/task_queues:84:11)
+for call at
+    at ServiceClientImpl.makeUnaryRequest (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\client.js:161:32)
+    at ServiceClientImpl.<anonymous> (F:\Upload\Projects\cebusafetour\backend\node_modules\@grpc\grpc-js\build\src\make-client.js:105:19)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\v1\firestore_client.js:242:33
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\timeout.js:44:16
+    at repeat (F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\retries.js:82:25)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\retries.js:125:13
+    at OngoingCallPromise.call (F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\call.js:67:27)
+    at NormalApiCaller.call (F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\normalCalls\normalApiCaller.js:34:19)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\google-gax\build\src\createApiCall.js:112:30
+Caused by: Error
+    at _firestore._traceUtil.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\write-batch.js:438:27)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:110:30
+    at NoopContextManager.with (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\context\NoopContextManager.js:25:19)
+    at ContextAPI.with (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\api\context.js:60:46)
+    at NoopTracer.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\trace\NoopTracer.js:65:31)
+    at ProxyTracer.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@opentelemetry\api\build\src\trace\ProxyTracer.js:36:24)
+    at EnabledTraceUtil.startActiveSpan (F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:102:28)
+    at WriteBatch.commit (F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\write-batch.js:436:43)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\reference\document-reference.js:392:18
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\@google-cloud\firestore\build\src\telemetry\enabled-trace-util.js:110:30
+2026-03-01 10:12:12 [ERROR]: Error: Error while downloading http://192.168.1.3:5000/uploads/avatars/b086f1bb-5cb8-4127-8afe-5a00b02c1029.jpg.
+    at parseOpenAI (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:126:15)
+    at exports.verifyProfilePicture (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:223:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async exports.verifyPicture (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:100:20)
+2026-03-01 10:17:00 [ERROR]: Error: Error while downloading http://192.168.1.3:5000/uploads/avatars/b086f1bb-5cb8-4127-8afe-5a00b02c1029.jpg.
+    at parseOpenAI (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:126:15)
+    at exports.verifyProfilePicture (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:223:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async exports.verifyPicture (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:99:20)
+2026-03-01 10:19:53 [ERROR]: Error: Error while downloading http://192.168.1.3:5000/uploads/avatars/b086f1bb-5cb8-4127-8afe-5a00b02c1029.jpg.
+    at parseOpenAI (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:126:15)
+    at exports.verifyProfilePicture (F:\Upload\Projects\cebusafetour\backend\src\services\aiService.js:223:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async exports.verifyPicture (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:99:20)
+2026-03-01 16:38:53 [ERROR]: Prisma error: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "ceb",
+                       ~~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+2026-03-01 16:38:53 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "ceb",
+                       ~~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.updateProfile (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:18)
+2026-03-01 16:39:04 [ERROR]: Prisma error: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "es",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+2026-03-01 16:39:04 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "es",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.updateProfile (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:18)
+2026-03-01 16:39:17 [ERROR]: Prisma error: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "pt",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+2026-03-01 16:39:17 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "pt",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.updateProfile (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:18)
+2026-03-01 16:39:19 [ERROR]: Prisma error: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "hi",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+2026-03-01 16:39:19 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "hi",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.updateProfile (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:18)
+2026-03-01 16:39:21 [ERROR]: Prisma error: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "hi",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+2026-03-01 16:39:21 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "hi",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.updateProfile (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:18)
+2026-03-01 16:39:25 [ERROR]: Prisma error: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "it",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+2026-03-01 16:39:25 [ERROR]: PrismaClientValidationError: 
+Invalid `prisma.user.update()` invocation in
+F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:36
+
+  51 exports.updateProfile = async (req, res, next) => {
+  52   try {
+  53     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;
+→ 54     const user = await prisma.user.update({
+           where: {
+             id: "b30bab8a-5284-4c03-a2a3-03f34cec0f73"
+           },
+           data: {
+             name: undefined,
+             nationality: undefined,
+             contactNumber: undefined,
+             language: "it",
+                       ~~~~
+             emergencyContacts: undefined
+           },
+           select: {
+             id: true,
+             name: true,
+             email: true,
+             nationality: true,
+             contactNumber: true,
+             role: true,
+             status: true,
+             language: true,
+             profilePicture: true,
+             profilePictureVerified: true,
+             isVerified: true,
+             lastActive: true,
+             emergencyContacts: true,
+             createdAt: true,
+             updatedAt: true
+           }
+         })
+
+Invalid value for argument `language`. Expected UserLanguage.
+    at wn (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\Upload\Projects\cebusafetour\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.updateProfile (F:\Upload\Projects\cebusafetour\backend\src\controllers\usersController.js:54:18)
+2026-03-06 12:42:55 [ERROR]: TypeError: Cannot read properties of undefined (reading 'findMany')
+    at exports.list (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:7:41)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:284:15
+    at param (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:365:14)
+    at param (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:376:14)
+    at router.process_params (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:421:3)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:280:10)
+2026-03-06 12:43:13 [ERROR]: TypeError: Cannot read properties of undefined (reading 'findMany')
+    at exports.list (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:7:41)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:284:15
+    at param (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:365:14)
+    at param (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:376:14)
+    at router.process_params (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:421:3)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:280:10)
+2026-03-06 12:52:00 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 12:52:02 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 12:52:10 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 12:52:11 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 12:52:38 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 12:52:38 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 12:52:39 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:00:30 [ERROR]: TypeError: Cannot read properties of undefined (reading 'findMany')
+    at exports.listAll (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:99:21)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at F:\Upload\Projects\cebusafetour\backend\src\middleware\auth.js:30:3
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at authenticate (F:\Upload\Projects\cebusafetour\backend\src\middleware\auth.js:20:5)
+2026-03-06 13:00:31 [ERROR]: TypeError: Cannot read properties of undefined (reading 'findMany')
+    at exports.listAll (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:99:21)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at F:\Upload\Projects\cebusafetour\backend\src\middleware\auth.js:30:3
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at authenticate (F:\Upload\Projects\cebusafetour\backend\src\middleware\auth.js:20:5)
+2026-03-06 13:02:02 [ERROR]: TypeError: Cannot read properties of undefined (reading 'findMany')
+    at exports.list (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:7:41)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\layer.js:95:5)
+    at F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:284:15
+    at param (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:365:14)
+    at param (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:376:14)
+    at router.process_params (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:421:3)
+    at next (F:\Upload\Projects\cebusafetour\backend\node_modules\express\lib\router\index.js:280:10)
+2026-03-06 13:02:08 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:12 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:13 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:13 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:14 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:15 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:26 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:29 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:32 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:33 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
+2026-03-06 13:02:33 [ERROR]: TypeError: Cannot read properties of undefined (reading 'upsert')
+    at exports.upsert (F:\Upload\Projects\cebusafetour\backend\src\controllers\reviewsController.js:31:40)
