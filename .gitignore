@@ -1,0 +1,32 @@
+# Node / Backend
+backend/node_modules/
+backend/.env
+backend/.env.local
+backend/dist/
+backend/logs/
+backend/*.log
+
+# React Admin
+admin/node_modules/
+admin/dist/
+admin/.env
+admin/.env.local
+
+# Flutter Mobile
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/.packages
+mobile/pubspec.lock
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/google-services.json
+mobile/ios/Pods/
+mobile/ios/Runner/GoogleService-Info.plist
+
+# General
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
