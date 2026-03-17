@@ -53,10 +53,6 @@ exports.login = async (req, res, next) => {
     }
     if (!user.isVerified) return res.status(403).json({ error: 'Please verify your email first' });
     if (user.status !== 'active') return res.status(403).json({ error: 'Account suspended or banned. Please contact support.', code: 'ACCOUNT_SUSPENDED' });
-    // Admin panel guard — checked via x-admin-request header sent by the admin panel
-    const isAdminRequest = req.headers['x-admin-request'] === '1';
-    const isAdmin = ['admin_super', 'admin_content', 'admin_emergency'].includes(user.role);
-    if (isAdminRequest && !isAdmin) return res.status(403).json({ error: 'Access denied. Admin accounts only.' });
 
     await prisma.user.update({ where: { id: user.id }, data: { lastActive: new Date() } });
     res.json({ token: generateToken(user), user: sanitize(user) });

@@ -7,20 +7,34 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, token, hydrate } = useAuthStore();
+  const [error, setError] = useState('');
+  const { login, token, user, hydrate } = useAuthStore();
   const navigate = useNavigate();
 
-  useEffect(() => { hydrate(); if (token) navigate('/dashboard'); }, []);
+  // Redirect if already logged in
+  useEffect(() => {
+    hydrate();
+    if (token) navigate('/dashboard', { replace: true });
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      const data = await login(email, password);
+      const role = data?.user?.role;
+      const isAdmin = ['admin_super', 'admin_content', 'admin_emergency'].includes(role);
+      if (!isAdmin) {
+        useAuthStore.getState().logout();
+        setError('Access denied. Admin accounts only.');
+        return;
+      }
       toast.success('Welcome back!');
-      navigate('/dashboard');
-    } catch {
-      // error handled by api interceptor
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Login failed. Check your credentials.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -35,6 +49,12 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-gray-900">CebuSafeTour</h1>
           <p className="text-gray-500 text-sm mt-1">Admin Portal — Secure Login</p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>

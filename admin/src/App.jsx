@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/layout/Layout';
@@ -12,8 +13,10 @@ import Reports from './pages/Reports';
 import Reviews from './pages/Reviews';
 
 const ProtectedRoute = ({ children }) => {
-  const token = useAuthStore(s => s.token);
-  return token ? children : <Navigate to="/login" replace />;
+  const { token, hydrate } = useAuthStore();
+  useEffect(() => { hydrate(); }, []);
+  if (!token) return <Navigate to="/login" replace />;
+  return children;
 };
 
 export default function App() {
