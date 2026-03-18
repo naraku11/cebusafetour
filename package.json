@@ -1,0 +1,13 @@
+{
+  "name": "cebusafetour",
+  "version": "1.0.0",
+  "description": "CebuSafeTour monorepo — Express + React admin",
+  "main": "backend/src/app.js",
+  "scripts": {
+    "build": "npm install --prefix backend --include=dev && npm install --prefix admin && npm run build --prefix admin",
+    "start": "node backend/src/app.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
