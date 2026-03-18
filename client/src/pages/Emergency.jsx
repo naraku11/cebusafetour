@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useAuthStore } from '../store/authStore';
 
 const TYPE_ICONS = {
   medical: '🏥', fire: '🔥', crime: '🚔',
@@ -53,10 +54,12 @@ const STAT_STYLES = {
 
 export default function Emergency() {
   const qc = useQueryClient();
-  const [activeTab,    setActiveTab]    = useState('new');
-  const [selected,     setSelected]     = useState(null);
-  const [viewMode,     setViewMode]     = useState('tabs'); // 'tabs' | 'kanban'
-  const [confirmDelete, setConfirmDelete] = useState(null); // incident to delete
+  const [activeTab,       setActiveTab]       = useState('new');
+  const [selected,        setSelected]        = useState(null);
+  const [viewMode,        setViewMode]        = useState('tabs'); // 'tabs' | 'kanban'
+  const [confirmDelete,   setConfirmDelete]   = useState(null); // incident to delete
+  const [passwordLock,    setPasswordLock]    = useState(null); // resolved incident awaiting password
+  const adminEmail = useAuthStore(s => s.user?.email);
 
   const { data, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['incidents'],
@@ -85,6 +88,14 @@ export default function Emergency() {
     },
     onError: () => toast.error('Failed to delete incident'),
   });
+
+  const requestDelete = (incident) => {
+    if (incident.status === 'resolved') {
+      setPasswordLock(incident);
+    } else {
+      setConfirmDelete(incident);
+    }
+  };
 
   const allIncidents = data?.incidents || [];
   const counts = {
@@ -168,7 +179,7 @@ export default function Emergency() {
           byStatus={byStatus}
           tabs={TABS}
           onSelect={setSelected}
-          onDelete={setConfirmDelete}
+          onDelete={requestDelete}
         />
       ) : (
         <TabsView
@@ -179,17 +190,27 @@ export default function Emergency() {
           incidents={byStatus(activeTab)}
           tabCfg={activeTabCfg}
           onSelect={setSelected}
-          onDelete={setConfirmDelete}
+          onDelete={requestDelete}
         />
       )}
 
       {selected && (
         <IncidentModal
           incident={selected}
+          adminEmail={adminEmail}
           onClose={() => setSelected(null)}
           onSave={body => updateMutation.mutate({ id: selected.id, ...body })}
-          onDelete={() => setConfirmDelete(selected)}
+          onDelete={() => requestDelete(selected)}
           saving={updateMutation.isPending}
+        />
+      )}
+
+      {passwordLock && (
+        <PasswordUnlockModal
+          incident={passwordLock}
+          adminEmail={adminEmail}
+          onCancel={() => setPasswordLock(null)}
+          onUnlocked={() => { setConfirmDelete(passwordLock); setPasswordLock(null); }}
         />
       )}
 
@@ -312,12 +333,13 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, onClick, onDelet
           )}
           <button
             onClick={onDelete}
-            title="Delete incident"
+            title={inc.status === 'resolved' ? 'Locked — requires admin password' : 'Delete incident'}
             className="p-1 text-gray-300 hover:text-red-500 transition-colors rounded"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            {inc.status === 'resolved'
+              ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            }
           </button>
         </div>
       </div>
@@ -340,10 +362,14 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, onClick, onDelet
 
 /* ── Incident modal ────────────────────────────────────────────────────────── */
 
-function IncidentModal({ incident: inc, onClose, onSave, onDelete, saving }) {
+function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onDelete, saving }) {
   const [status,         setStatus]         = useState(inc.status);
   const [assignedTo,     setAssignedTo]     = useState(inc.assignedTo || '');
   const [responderNotes, setResponderNotes] = useState(inc.responderNotes || '');
+  const [editUnlocked,   setEditUnlocked]   = useState(false);
+  const [showUnlock,     setShowUnlock]     = useState(false);
+
+  const isLocked = inc.status === 'resolved' && !editUnlocked;
 
   const statusColors = {
     new:         'bg-red-100 text-red-700',
@@ -404,7 +430,25 @@ function IncidentModal({ incident: inc, onClose, onSave, onDelete, saving }) {
 
         {/* Update form */}
         <div className="space-y-3 border-t pt-4">
-          <div>
+          {/* Lock banner for resolved incidents */}
+          {isLocked && (
+            <div className="flex items-center justify-between gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2 text-yellow-700 text-sm">
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>Editing locked — this incident is resolved.</span>
+              </div>
+              <button
+                onClick={() => setShowUnlock(true)}
+                className="shrink-0 text-xs font-medium text-yellow-700 hover:text-yellow-900 underline underline-offset-2"
+              >
+                Unlock to Edit
+              </button>
+            </div>
+          )}
+
+          <div className={isLocked ? 'opacity-40 pointer-events-none select-none' : ''}>
             <label className="block text-sm font-medium mb-1">Update Status</label>
             <div className="flex gap-2">
               {[
@@ -423,7 +467,7 @@ function IncidentModal({ incident: inc, onClose, onSave, onDelete, saving }) {
             </div>
           </div>
 
-          <div>
+          <div className={isLocked ? 'opacity-40 pointer-events-none select-none' : ''}>
             <label className="block text-sm font-medium mb-1">Assign Responder / Agency</label>
             <input
               value={assignedTo}
@@ -433,7 +477,7 @@ function IncidentModal({ incident: inc, onClose, onSave, onDelete, saving }) {
             />
           </div>
 
-          <div>
+          <div className={isLocked ? 'opacity-40 pointer-events-none select-none' : ''}>
             <label className="block text-sm font-medium mb-1">Responder Notes</label>
             <textarea
               value={responderNotes}
@@ -444,27 +488,117 @@ function IncidentModal({ incident: inc, onClose, onSave, onDelete, saving }) {
           </div>
         </div>
 
+        {/* Password unlock sheet (inline inside modal) */}
+        {showUnlock && (
+          <PasswordUnlockModal
+            incident={inc}
+            adminEmail={adminEmail}
+            onCancel={() => setShowUnlock(false)}
+            onUnlocked={() => { setEditUnlocked(true); setShowUnlock(false); }}
+          />
+        )}
+
         {/* Actions */}
         <div className="flex items-center justify-between gap-3 pt-2">
           <button
             onClick={onDelete}
             className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Delete
+            {inc.status === 'resolved'
+              ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            }
+            {inc.status === 'resolved' ? 'Delete (Locked)' : 'Delete'}
           </button>
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-secondary">Cancel</button>
             <button
               onClick={() => onSave({ status, assignedTo, responderNotes })}
-              disabled={saving}
-              className="btn-primary"
+              disabled={saving || isLocked}
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving…' : 'Update Incident'}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PasswordUnlockModal({ incident: inc, adminEmail, onCancel, onUnlocked }) {
+  const [password, setPassword] = useState('');
+  const [show,     setShow]     = useState(false);
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
+
+  const handleVerify = async () => {
+    if (!password) { setError('Password is required'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/login', { email: adminEmail, password });
+      onUnlocked();
+    } catch {
+      setError('Incorrect password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Admin Verification Required</h3>
+            <p className="text-sm text-gray-500">This incident is resolved and locked.</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-600">
+          Enter your admin password to unlock deletion of the{' '}
+          <span className="font-medium capitalize">{inc.type.replace('_', ' ')}</span> incident.
+        </p>
+
+        <div className="relative">
+          <input
+            type={show ? 'text' : 'password'}
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(''); }}
+            onKeyDown={e => e.key === 'Enter' && handleVerify()}
+            placeholder="Enter your password"
+            autoFocus
+            className={`input pr-10 ${error ? 'border-red-400 focus:ring-red-300' : ''}`}
+          />
+          <button
+            type="button"
+            onClick={() => setShow(v => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            {show
+              ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" /></svg>
+              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            }
+          </button>
+        </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel} disabled={loading} className="btn-secondary">Cancel</button>
+          <button
+            onClick={handleVerify}
+            disabled={loading || !password}
+            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+          >
+            {loading ? 'Verifying…' : 'Unlock & Delete'}
+          </button>
         </div>
       </div>
     </div>
