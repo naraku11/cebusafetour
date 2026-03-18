@@ -127,3 +127,23 @@ exports.resolve = async (req, res, next) => {
     res.json({ message: 'Advisory resolved' });
   } catch (err) { next(err); }
 };
+
+exports.archive = async (req, res, next) => {
+  try {
+    const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+    const archived = await prisma.advisory.update({ where: { id: req.params.id }, data: { status: 'archived' } });
+    socket.emitToAll('advisory:updated', { advisory: archived });
+    res.json({ message: 'Advisory archived' });
+  } catch (err) { next(err); }
+};
+
+exports.unarchive = async (req, res, next) => {
+  try {
+    const existing = await prisma.advisory.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+    const restored = await prisma.advisory.update({ where: { id: req.params.id }, data: { status: 'resolved' } });
+    socket.emitToAll('advisory:updated', { advisory: restored });
+    res.json({ message: 'Advisory restored to resolved' });
+  } catch (err) { next(err); }
+};

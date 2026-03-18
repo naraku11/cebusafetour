@@ -9,7 +9,9 @@ router.get('/incidents/mine', authenticate, ctrl.myIncidents);   // must be befo
 // Admin only
 router.get('/incidents', authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.listIncidents);
 router.get('/incidents/:id', authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.getIncident);
-router.patch('/incidents/:id',  authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.updateIncident);
-router.delete('/incidents/:id', authenticate, requireRole('admin_super'), ctrl.deleteIncident);
+router.get('/incidents/archived',        authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.listArchivedIncidents);
+router.patch('/incidents/:id',           authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.updateIncident);
+router.patch('/incidents/:id/archive',   authenticate, requireRole('admin_super'), ctrl.archiveIncident);
+router.patch('/incidents/:id/unarchive', authenticate, requireRole('admin_super'), ctrl.unarchiveIncident);
 
 module.exports = router;

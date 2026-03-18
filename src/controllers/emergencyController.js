@@ -56,7 +56,8 @@ exports.myIncidents = async (req, res, next) => {
 exports.listIncidents = async (req, res, next) => {
   try {
     const { status, type, page = 1, limit = 20 } = req.query;
-    const where = {};
+    // Exclude archived from the main list — they have their own endpoint
+    const where = { NOT: { status: 'archived' } };
     if (status) where.status = status;
     if (type) where.type = type;
 
@@ -100,14 +101,45 @@ exports.updateIncident = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-exports.deleteIncident = async (req, res, next) => {
+exports.archiveIncident = async (req, res, next) => {
   try {
     const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
-    await prisma.incident.delete({ where: { id: req.params.id } });
-    firestore(db => db.collection('incidents').doc(req.params.id).delete());
-    socket.emitToAdmins('incident:deleted', { id: req.params.id });
-    res.json({ message: 'Incident deleted' });
+    const incident = await prisma.incident.update({
+      where: { id: req.params.id },
+      data: { status: 'archived' },
+    });
+    firestore(db => db.collection('incidents').doc(req.params.id).set({ status: 'archived' }, { merge: true }));
+    socket.emitToAdmins('incident:archived', { id: req.params.id });
+    res.json({ incident, message: 'Incident archived' });
+  } catch (err) { next(err); }
+};
+
+exports.unarchiveIncident = async (req, res, next) => {
+  try {
+    const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Incident not found' });
+    const incident = await prisma.incident.update({
+      where: { id: req.params.id },
+      data: { status: 'resolved' },
+    });
+    firestore(db => db.collection('incidents').doc(req.params.id).set({ status: 'resolved' }, { merge: true }));
+    socket.emitToAdmins('incident:updated', { incident });
+    res.json({ incident, message: 'Incident unarchived' });
+  } catch (err) { next(err); }
+};
+
+exports.listArchivedIncidents = async (req, res, next) => {
+  try {
+    const { type, page = 1, limit = 20 } = req.query;
+    const where = { status: 'archived' };
+    if (type) where.type = type;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [incidents, total] = await prisma.$transaction([
+      prisma.incident.findMany({ where, skip, take: parseInt(limit), orderBy: { updatedAt: 'desc' }, include: { reporter: { select: { id: true, name: true } } } }),
+      prisma.incident.count({ where }),
+    ]);
+    res.json({ incidents, total });
   } catch (err) { next(err); }
 };
 

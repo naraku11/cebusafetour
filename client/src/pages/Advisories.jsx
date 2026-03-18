@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { PlusIcon, CheckCircleIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckCircleIcon, SparklesIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
+import { useAuthStore } from '../store/authStore';
 
 const SEVERITY_MAP = { critical: 'badge-critical', warning: 'badge-warning', advisory: 'badge-advisory' };
 const SEVERITY_ICONS = { critical: '🔴', warning: '🟡', advisory: '🟢' };
@@ -15,12 +16,19 @@ const defaultForm = {
 
 export default function Advisories() {
   const qc = useQueryClient();
+  const adminEmail = useAuthStore(s => s.user?.email);
+
   const [statusFilter, setStatusFilter] = useState('active');
-  const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(defaultForm);
-  const [aiArea, setAiArea] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
+  const [showModal,    setShowModal]    = useState(false);
+  const [editing,      setEditing]      = useState(null);
+  const [form,         setForm]         = useState(defaultForm);
+  const [aiArea,       setAiArea]       = useState('');
+  const [aiLoading,    setAiLoading]    = useState(false);
+
+  // password modal state: { advisory, purpose: 'edit' | 'archive' | 'unarchive' } | null
+  const [passwordLock,   setPasswordLock]   = useState(null);
+  // archive confirm state: advisory | null
+  const [confirmArchive, setConfirmArchive] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['advisories', statusFilter],
@@ -57,6 +65,26 @@ export default function Advisories() {
   const resolveMutation = useMutation({
     mutationFn: (id) => api.patch(`/advisories/${id}/resolve`),
     onSuccess: () => { qc.invalidateQueries(['advisories']); toast.success('Advisory resolved'); },
+    onError: () => toast.error('Failed to resolve advisory'),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id) => api.patch(`/advisories/${id}/archive`),
+    onSuccess: () => {
+      qc.invalidateQueries(['advisories']);
+      setConfirmArchive(null);
+      toast.success('Advisory archived');
+    },
+    onError: () => toast.error('Failed to archive advisory'),
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: (id) => api.patch(`/advisories/${id}/unarchive`),
+    onSuccess: () => {
+      qc.invalidateQueries(['advisories']);
+      toast.success('Advisory restored to resolved');
+    },
+    onError: () => toast.error('Failed to restore advisory'),
   });
 
   const openEdit = (a) => {
@@ -64,6 +92,33 @@ export default function Advisories() {
     setForm({ ...a, startDate: a.startDate?.split('T')[0] || '', endDate: a.endDate?.split('T')[0] || '' });
     setAiArea('');
     setShowModal(true);
+  };
+
+  // Request edit — resolved requires password
+  const requestEdit = (advisory) => {
+    if (advisory.status === 'resolved') {
+      setPasswordLock({ advisory, purpose: 'edit' });
+    } else {
+      openEdit(advisory);
+    }
+  };
+
+  // Request archive — resolved requires password, active does not
+  const requestArchive = (advisory) => {
+    if (advisory.status === 'resolved') {
+      setPasswordLock({ advisory, purpose: 'archive' });
+    } else {
+      setConfirmArchive(advisory);
+    }
+  };
+
+  // After password verified
+  const handlePasswordUnlocked = () => {
+    const { advisory, purpose } = passwordLock;
+    setPasswordLock(null);
+    if (purpose === 'edit')      openEdit(advisory);
+    if (purpose === 'archive')   setConfirmArchive(advisory);
+    if (purpose === 'unarchive') unarchiveMutation.mutate(advisory.id);
   };
 
   const handleAiFill = async () => {
@@ -112,7 +167,7 @@ export default function Advisories() {
               statusFilter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {s}
+            {s === 'archived' ? '📦 ' : ''}{s}
           </button>
         ))}
       </div>
@@ -123,13 +178,16 @@ export default function Advisories() {
       ) : (
         <div className="space-y-4">
           {data?.advisories?.map(advisory => (
-            <div key={advisory.id} className="card">
+            <div key={advisory.id} className={`card ${advisory.status === 'archived' ? 'opacity-75' : ''}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">{SEVERITY_ICONS[advisory.severity]}</span>
                     <h3 className="font-semibold text-gray-900">{advisory.title}</h3>
                     <span className={SEVERITY_MAP[advisory.severity]}>{advisory.severity}</span>
+                    {advisory.status === 'archived' && (
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">archived</span>
+                    )}
                   </div>
                   <p className="text-gray-600 text-sm mb-3">{advisory.description}</p>
                   <div className="flex gap-4 text-xs text-gray-500">
@@ -139,11 +197,48 @@ export default function Advisories() {
                     <span>Acknowledged: <strong>{advisory.acknowledgedBy?.length ?? 0} users</strong></span>
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={() => openEdit(advisory)} className="btn-secondary text-xs py-1.5">Edit</button>
+
+                <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                  {/* Edit button — not shown for archived */}
+                  {advisory.status !== 'archived' && (
+                    <button
+                      onClick={() => requestEdit(advisory)}
+                      className="flex items-center gap-1 btn-secondary text-xs py-1.5"
+                    >
+                      {advisory.status === 'resolved' && <LockClosedIcon className="w-3.5 h-3.5 text-yellow-500" />}
+                      Edit
+                    </button>
+                  )}
+
+                  {/* Resolve button — only for active */}
                   {advisory.status === 'active' && (
-                    <button onClick={() => resolveMutation.mutate(advisory.id)} className="flex items-center gap-1 text-xs py-1.5 px-3 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100">
+                    <button
+                      onClick={() => resolveMutation.mutate(advisory.id)}
+                      className="flex items-center gap-1 text-xs py-1.5 px-3 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100"
+                    >
                       <CheckCircleIcon className="w-4 h-4" /> Resolve
+                    </button>
+                  )}
+
+                  {/* Archive button — for active and resolved (not archived) */}
+                  {advisory.status !== 'archived' && (
+                    <button
+                      onClick={() => requestArchive(advisory)}
+                      className="flex items-center gap-1 text-xs py-1.5 px-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100"
+                    >
+                      {advisory.status === 'resolved' && <LockClosedIcon className="w-3.5 h-3.5" />}
+                      📦 Archive
+                    </button>
+                  )}
+
+                  {/* Restore button — only for archived */}
+                  {advisory.status === 'archived' && (
+                    <button
+                      onClick={() => setPasswordLock({ advisory, purpose: 'unarchive' })}
+                      className="flex items-center gap-1 text-xs py-1.5 px-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100"
+                    >
+                      <LockClosedIcon className="w-3.5 h-3.5" />
+                      🔄 Restore
                     </button>
                   )}
                 </div>
@@ -156,11 +251,19 @@ export default function Advisories() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Edit / Create Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setShowModal(false); setEditing(null); setForm(defaultForm); setAiArea(''); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold">{editing ? 'Edit Advisory' : 'Create Advisory'}</h3>
+
+            {/* Resolved lock banner */}
+            {editing?.status === 'resolved' && (
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                <LockClosedIcon className="w-4 h-4 text-yellow-600 shrink-0" />
+                <p className="text-sm text-yellow-700">This resolved advisory has been unlocked for editing.</p>
+              </div>
+            )}
 
             {/* AI generation — only for new advisories */}
             {!editing && (
@@ -238,7 +341,7 @@ export default function Advisories() {
             </div>
 
             <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setShowModal(false); setEditing(null); setForm(defaultForm); }} className="btn-secondary">Cancel</button>
               <button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending} className="btn-primary">
                 {saveMutation.isPending ? 'Saving...' : editing ? 'Update Advisory' : 'Publish & Notify'}
               </button>
@@ -246,6 +349,136 @@ export default function Advisories() {
           </div>
         </div>
       )}
+
+      {/* Password Unlock Modal */}
+      {passwordLock && (
+        <PasswordUnlockModal
+          advisory={passwordLock.advisory}
+          purpose={passwordLock.purpose}
+          adminEmail={adminEmail}
+          onCancel={() => setPasswordLock(null)}
+          onUnlocked={handlePasswordUnlocked}
+        />
+      )}
+
+      {/* Archive Confirm Modal */}
+      {confirmArchive && (
+        <ArchiveConfirmModal
+          advisory={confirmArchive}
+          onCancel={() => setConfirmArchive(null)}
+          onConfirm={() => archiveMutation.mutate(confirmArchive.id)}
+          archiving={archiveMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Password Unlock Modal ────────────────────────────────────────────────────
+
+function PasswordUnlockModal({ advisory, purpose, adminEmail, onCancel, onUnlocked }) {
+  const [password, setPassword] = useState('');
+  const [show,     setShow]     = useState(false);
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(false);
+
+  const purposeLabel = purpose === 'edit'      ? 'edit this advisory'    :
+                       purpose === 'archive'   ? 'archive this advisory' :
+                       'restore this advisory';
+
+  const verify = async () => {
+    if (!password.trim()) { setError('Enter your admin password'); return; }
+    setLoading(true); setError('');
+    try {
+      await api.post('/auth/login', { email: adminEmail, password }, { skipToast: true });
+      onUnlocked();
+    } catch {
+      setError('Incorrect password. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+            <LockClosedIcon className="w-5 h-5 text-yellow-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Admin Verification</h3>
+            <p className="text-sm text-gray-500">Enter password to {purposeLabel}</p>
+          </div>
+        </div>
+
+        <div className="p-3 bg-gray-50 rounded-xl">
+          <p className="text-sm font-medium text-gray-700 truncate">{advisory?.title}</p>
+          <p className="text-xs text-gray-500 capitalize mt-0.5">{advisory?.status} advisory</p>
+        </div>
+
+        <div className="relative">
+          <input
+            type={show ? 'text' : 'password'}
+            placeholder="Admin password"
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(''); }}
+            onKeyDown={e => e.key === 'Enter' && verify()}
+            className={`input pr-10 ${error ? 'border-red-400' : ''}`}
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={() => setShow(s => !s)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            {show ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <div className="flex gap-3 pt-1">
+          <button onClick={onCancel} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={verify} disabled={loading} className="btn-primary flex-1">
+            {loading ? 'Verifying...' : 'Unlock'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Archive Confirm Modal ────────────────────────────────────────────────────
+
+function ArchiveConfirmModal({ advisory, onCancel, onConfirm, archiving }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-xl">📦</div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Archive Advisory?</h3>
+            <p className="text-sm text-gray-500">This advisory will be moved to the archive.</p>
+          </div>
+        </div>
+
+        <div className="p-3 bg-gray-50 rounded-xl">
+          <p className="text-sm font-medium text-gray-700">{advisory?.title}</p>
+          <p className="text-xs text-gray-500 capitalize mt-0.5">{advisory?.status} advisory</p>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button onClick={onCancel} className="btn-secondary flex-1">Cancel</button>
+          <button
+            onClick={onConfirm}
+            disabled={archiving}
+            className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40 transition-colors"
+          >
+            {archiving ? 'Archiving...' : '📦 Archive'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

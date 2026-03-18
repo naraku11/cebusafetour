@@ -97,6 +97,7 @@ enum IncidentStatus {
   new
   in_progress
   resolved
+  archived
 }
 
 enum NotificationType {
