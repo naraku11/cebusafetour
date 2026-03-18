@@ -137,13 +137,45 @@ if (fs.existsSync(adminDist)) {
 // Global error handler
 app.use(errorHandler);
 
+// ── Server timeouts ──────────────────────────────────────────────────────────
+// Hostinger's proxy cuts connections at ~60 s.  Setting keepAliveTimeout just
+// above that prevents premature 502/timeout errors on persistent connections.
+server.keepAliveTimeout = 65_000;  // ms — must be > proxy idle timeout
+server.headersTimeout   = 66_000;  // ms — must be > keepAliveTimeout
+server.timeout          = 120_000; // ms — max time for a single request
+
+// ── Graceful shutdown ─────────────────────────────────────────────────────────
+const _shutdown = async (signal) => {
+  logger.info(`${signal} received — shutting down gracefully`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    logger.info('Database disconnected. Process exiting.');
+    process.exit(0);
+  });
+  // Force-exit if graceful shutdown stalls
+  setTimeout(() => process.exit(1), 10_000).unref();
+};
+process.on('SIGTERM', () => _shutdown('SIGTERM'));
+process.on('SIGINT',  () => _shutdown('SIGINT'));
+
+// ── Start: pre-warm Prisma binary engine BEFORE accepting HTTP traffic ────────
+// On Hostinger, the binary engine can take several seconds to spawn on first
+// use.  Connecting here ensures the engine is ready before the first request
+// arrives, preventing cold-start timeouts on the hosting proxy.
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  logger.info(`CebuSafeTour API running on port ${PORT}`);
-  // Verify DB connection after startup (non-blocking)
-  prisma.$connect()
-    .then(() => logger.info('MySQL database connected successfully'))
-    .catch((e) => logger.error(`Database connection FAILED: ${e.message}`));
-});
+
+(async () => {
+  try {
+    await prisma.$connect();
+    logger.info('MySQL database connected successfully');
+  } catch (e) {
+    logger.error(`Database connection FAILED: ${e.message}`);
+    // Continue anyway — individual requests will surface DB errors properly.
+  }
+
+  server.listen(PORT, () => {
+    logger.info(`CebuSafeTour API running on port ${PORT}`);
+  });
+})();
 
 module.exports = app;
