@@ -3,6 +3,9 @@ const { sendPushToAdmins } = require('../services/fcmService');
 const { getFirestore } = require('../config/firebase');
 const socket = require('../services/socketService');
 
+// Safe fire-and-forget Firestore call — swallows both sync throws and async rejections
+const firestore = (fn) => { try { fn(getFirestore()); } catch (_) {} };
+
 exports.reportIncident = async (req, res, next) => {
   try {
     const { type, description, latitude, longitude, nearestLandmark, attachments } = req.body;
@@ -18,14 +21,13 @@ exports.reportIncident = async (req, res, next) => {
       },
     });
 
-    // Non-blocking — Firebase may not be configured in all environments
-    getFirestore().collection('incidents').doc(incident.id).set({
+    firestore(db => db.collection('incidents').doc(incident.id).set({
       id: incident.id, type,
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
       status: 'new',
       reportedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }));
 
     sendPushToAdmins({
       title: `New Incident: ${type.replace('_', ' ').toUpperCase()}`,
@@ -88,10 +90,10 @@ exports.updateIncident = async (req, res, next) => {
 
     const incident = await prisma.incident.update({ where: { id: req.params.id }, data });
 
-    await getFirestore().collection('incidents').doc(incident.id).set({
+    firestore(db => db.collection('incidents').doc(incident.id).set({
       status: incident.status,
       assignedTo: incident.assignedTo,
-    }, { merge: true });
+    }, { merge: true }));
 
     socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident });
@@ -103,7 +105,7 @@ exports.deleteIncident = async (req, res, next) => {
     const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
     await prisma.incident.delete({ where: { id: req.params.id } });
-    getFirestore().collection('incidents').doc(req.params.id).delete().catch(() => {});
+    firestore(db => db.collection('incidents').doc(req.params.id).delete());
     socket.emitToAdmins('incident:deleted', { id: req.params.id });
     res.json({ message: 'Incident deleted' });
   } catch (err) { next(err); }
