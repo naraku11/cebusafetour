@@ -106,7 +106,7 @@ exports.verifyPicture = async (req, res, next) => {
 
     res.json({ verified, reason: result.reason });
   } catch (err) {
-    if (err.code === 'NO_API_KEY')     return res.status(503).json({ error: 'OpenAI API key not configured.', hint: 'Set OPENAI_API_KEY in backend/.env' });
+    if (err.code === 'NO_API_KEY')     return res.status(503).json({ error: 'OpenAI API key not configured.', hint: 'Set OPENAI_API_KEY in .env' });
     if (err.code === 'OPENAI_AUTH')    return res.status(401).json({ error: err.message });
     if (err.code === 'QUOTA_EXCEEDED') return res.status(429).json({ error: err.message, hint: err.isQuota ? 'Add credits at https://platform.openai.com/settings/billing/overview' : 'Wait a few seconds and try again.' });
     if (err.code === 'OPENAI_TIMEOUT') return res.status(504).json({ error: err.message });

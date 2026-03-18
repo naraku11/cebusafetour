@@ -133,7 +133,7 @@ exports.refreshPhotos = async (req, res, next) => {
     });
     res.json({ attraction: updated, count: urls.length });
   } catch (err) {
-    if (err.code === 'NO_MAPS_KEY') return res.status(503).json({ error: err.message, hint: 'Set GOOGLE_MAPS_API_KEY in backend/.env' });
+    if (err.code === 'NO_MAPS_KEY') return res.status(503).json({ error: err.message, hint: 'Set GOOGLE_MAPS_API_KEY in .env' });
     next(err);
   }
 };
@@ -152,7 +152,7 @@ exports.aiSuggest = async (req, res, next) => {
     if (err.code === 'NO_API_KEY') {
       return res.status(503).json({
         error: 'OpenAI API key not configured.',
-        hint:  'Set OPENAI_API_KEY in backend/.env — get a key at https://platform.openai.com/api-keys',
+        hint:  'Set OPENAI_API_KEY in .env — get a key at https://platform.openai.com/api-keys',
       });
     }
     if (err.code === 'OPENAI_AUTH') {

@@ -1,6 +1,6 @@
 // OpenAI ChatGPT integration
 // Get an API key at: https://platform.openai.com/api-keys
-// Set OPENAI_API_KEY in backend/.env
+// Set OPENAI_API_KEY in .env
 
 const https = require('node:https');
 
@@ -54,7 +54,7 @@ Attraction or area in Cebu: "${area}"`;
 const openaiPost = (promptOrMessages) => new Promise((resolve, reject) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    const e = new Error('OPENAI_API_KEY is not set in backend/.env');
+    const e = new Error('OPENAI_API_KEY is not set in .env');
     e.code = 'NO_API_KEY';
     return reject(e);
   }
@@ -105,7 +105,7 @@ const openaiPost = (promptOrMessages) => new Promise((resolve, reject) => {
 // Shared response parser for OpenAI chat completions
 const parseOpenAI = ({ status, body }) => {
   if (status === 401) {
-    const e = new Error('Invalid OpenAI API key — check OPENAI_API_KEY in backend/.env');
+    const e = new Error('Invalid OpenAI API key — check OPENAI_API_KEY in .env');
     e.code = 'OPENAI_AUTH';
     throw e;
   }
