@@ -266,14 +266,17 @@ Returns:
 {
   "status": "ok",
   "checks": {
-    "database": { "status": "ok", "latencyMs": 4 },
-    "smtp": { "status": "configured" },
-    "firebase": { "status": "configured" },
-    "jwt": { "status": "configured" }
+    "database":  { "status": "ok", "latencyMs": 4 },
+    "smtp":      { "status": "configured" },
+    "firebase":  { "status": "configured" },
+    "openai":    { "status": "configured", "keyPrefix": "sk-proj-abcd..." },
+    "jwt":       { "status": "configured" }
   },
   "uptime": "120s"
 }
 ```
+
+`openai.keyPrefix` shows the first 12 characters of the loaded API key — use this to confirm the correct key is deployed without exposing the full secret.
 
 ---
 
@@ -297,10 +300,10 @@ flutter pub get
 Edit `mobile/lib/utils/constants.dart`:
 
 ```dart
-// Local dev (Android emulator):
+// Android emulator (10.0.2.2 maps to host machine localhost):
 static const String serverUrl = 'http://10.0.2.2:5000';
 
-// Local dev (physical device on same Wi-Fi):
+// Physical device on the same Wi-Fi — replace with your machine's local IP:
 static const String serverUrl = 'http://YOUR_LOCAL_IP:5000';
 
 // Production:
@@ -381,13 +384,14 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/api/advisories` | Public | List advisories (filters: status, severity) |
+| GET | `/api/advisories` | Public | List advisories (filters: `status`, `severity`) |
 | GET | `/api/advisories/:id` | Public | Advisory detail |
 | POST | `/api/advisories/ai-suggest` | Admin | AI generate advisory from attraction name |
 | POST | `/api/advisories` | Admin | Publish advisory + auto push notify |
 | PUT | `/api/advisories/:id` | Admin | Update advisory |
-| POST | `/api/advisories/:id/acknowledge` | Tourist | Acknowledge advisory |
-| PATCH | `/api/advisories/:id/resolve` | Admin | Resolve advisory |
+| PATCH | `/api/advisories/:id/resolve` | Admin (super, content) | Set status → `resolved` |
+| PATCH | `/api/advisories/:id/archive` | Admin (super, content) | Set status → `archived` |
+| PATCH | `/api/advisories/:id/unarchive` | Super Admin | Restore archived → `resolved` |
 
 ### Emergency
 
@@ -395,9 +399,13 @@ After running `npm run db:seed`:
 |---|---|---|---|
 | GET | `/api/emergency/services` | Public | Cebu emergency contacts list |
 | POST | `/api/emergency/incidents` | Tourist | Report incident (notifies admins via Socket.IO) |
-| GET | `/api/emergency/incidents` | Admin | List incidents |
+| GET | `/api/emergency/incidents/mine` | Tourist | My reported incidents |
+| GET | `/api/emergency/incidents` | Admin | List active incidents (excludes archived) |
+| GET | `/api/emergency/incidents/archived` | Admin (super, emergency) | List archived incidents |
 | GET | `/api/emergency/incidents/:id` | Admin | Incident detail |
-| PATCH | `/api/emergency/incidents/:id` | Admin | Update incident status |
+| PATCH | `/api/emergency/incidents/:id` | Admin | Update incident (status, responder notes, assignedTo) |
+| PATCH | `/api/emergency/incidents/:id/archive` | Super Admin | Archive incident |
+| PATCH | `/api/emergency/incidents/:id/unarchive` | Super Admin | Restore archived incident → `resolved` |
 
 ### Weather (Open-Meteo — no API key)
 
@@ -462,9 +470,10 @@ The admin portal connects via Socket.IO using the logged-in JWT. Sockets are pla
 | Event | Room | Trigger |
 |---|---|---|
 | `incident:new` | `admins` | New incident reported |
-| `incident:updated` | `admins` | Incident status changed |
+| `incident:updated` | `admins` | Incident status / notes changed |
+| `incident:archived` | `admins` | Incident archived or unarchived |
 | `advisory:new` | all | Advisory published |
-| `advisory:updated` | all | Advisory updated or resolved |
+| `advisory:updated` | all | Advisory updated, resolved, archived, or restored |
 | `notification:new` | `admins` | Push notification sent |
 
 ---
@@ -494,7 +503,7 @@ Admin clicks "Verify with AI" on a user. The backend sends the image to GPT-4o-m
 | Dashboard | `/dashboard` | All admins |
 | Attractions | `/attractions` | Super + Content |
 | Advisories | `/advisories` | Super + Content |
-| Emergency Center | `/emergency` | Super + Emergency |
+| Emergency & Incident Center | `/emergency` | Super + Emergency |
 | Users | `/users` | All admins |
 | Notifications | `/notifications` | All admins |
 | Reports | `/reports` | All admins |
@@ -503,9 +512,33 @@ Admin clicks "Verify with AI" on a user. The backend sends the image to GPT-4o-m
 
 | Role | Permissions |
 |---|---|
-| `admin_super` | Full access — including permanent delete and user banning |
-| `admin_content` | Attractions + Advisories only |
-| `admin_emergency` | Emergency center + Incidents only |
+| `admin_super` | Full access — including archive/unarchive incidents & advisories, user banning |
+| `admin_content` | Attractions + Advisories (create, edit, resolve, archive) |
+| `admin_emergency` | Emergency center — view and update incidents |
+
+### Emergency & Incident Center
+
+Incidents are never hard-deleted. The workflow:
+
+| Action | Who | Password required? |
+|---|---|---|
+| Update status / notes | Admin (super, emergency) | No |
+| Edit a **resolved** incident | Admin (super, emergency) | Yes — admin password via `/auth/login` |
+| Archive an **active/in-progress** incident | Super Admin | No |
+| Archive a **resolved** incident | Super Admin | Yes |
+| Restore (unarchive) archived incident | Super Admin | Yes |
+
+Views: **Tabs** (by status) · **Kanban** · **📦 Archive**
+
+### Safety Advisories
+
+| Action | Who | Password required? |
+|---|---|---|
+| Edit an **active** advisory | Admin (super, content) | No |
+| Edit a **resolved** advisory | Admin (super, content) | Yes |
+| Archive an **active** advisory | Admin (super, content) | No |
+| Archive a **resolved** advisory | Admin (super, content) | Yes |
+| Restore (unarchive) archived advisory | Super Admin | Yes |
 
 ---
 
@@ -515,19 +548,21 @@ Admin clicks "Verify with AI" on a user. The backend sends the image to GPT-4o-m
 |---|---|
 | Splash | Auto-redirects based on stored auth token |
 | Login / Register / OTP | Full email-verified auth flow with language selector (12 languages) |
-| Home Dashboard | Quick actions + active advisories + SOS FAB |
+| Home Dashboard | Quick actions, active advisories, language flag button, SOS FAB |
 | Explore | Search + filter attractions by category and safety status |
 | Attraction Detail | Photos, safety badge, crowd level, hours, directions |
 | Emergency | Type selection + GPS capture + one-tap call to services |
 | Advisories | Severity-sorted list with bottom sheet detail |
 | Trip Planner | Date picker + attraction checklist + drag-to-reorder itinerary |
-| Profile | Avatar (tap to change), verification badge, language preference, emergency contacts, logout |
+| Profile | Avatar (tap to change), verification badge, emergency contacts, logout |
 
 The red **SOS** floating action button is visible on every screen. Suspended/banned accounts receive an "Account Restricted" banner at login.
 
 ### Localization
 
-12 languages supported: English, Chinese, Korean, Japanese, German, Spanish, French, Arabic, Hindi, Russian, Filipino, Indonesian. Language selection is on the login screen. Auth users' preferred language is synced from the backend profile.
+12 languages supported: English, Chinese, Korean, Japanese, German, Spanish, French, Arabic, Hindi, Russian, Filipino, Indonesian.
+
+Language selection is available on the **login screen** (flag chip row + searchable full picker) and via the **flag button on the home dashboard header**. The selected language is persisted locally (SharedPreferences) and is **not** automatically overridden when a tourist logs in — the user's language preference is always under their control.
 
 ---
 
@@ -552,6 +587,8 @@ Enable in Firebase Console:
 |---|---|
 | Cloud Messaging (FCM) | Push notifications to mobile app |
 | Authentication (Email/Password) | Optional — JWT handles auth; Firebase used for FCM only |
+
+> Firebase credentials (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) must be set as environment variables. If they are missing, the server starts normally but FCM push notifications and Firestore writes are silently skipped — the `/health` endpoint will report `firebase: { status: "missing" }`.
 
 ---
 
