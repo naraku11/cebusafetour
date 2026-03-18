@@ -94,6 +94,12 @@ app.get('/health', async (req, res) => {
     ? { status: 'configured' }
     : { status: 'missing', error: 'JWT_SECRET not set' };
 
+  // 5. OpenAI key — show first 12 chars so you can verify which key the server loaded
+  const oaiKey = process.env.OPENAI_API_KEY;
+  checks.openai = oaiKey
+    ? { status: 'configured', keyPrefix: oaiKey.slice(0, 12) + '...' }
+    : { status: 'missing', error: 'OPENAI_API_KEY not set' };
+
   // Overall status — 'ok' only if DB connected and JWT present
   const healthy = checks.database.status === 'ok' && checks.jwt.status === 'configured';
 
