@@ -123,7 +123,7 @@ const adminDist = path.join(__dirname, '..', '..', 'admin', 'dist');
 if (fs.existsSync(adminDist)) {
   app.use(express.static(adminDist));
   // SPA fallback — all non-API routes return index.html
-  app.get('*', (_req, res) => res.sendFile(path.join(adminDist, 'index.html')));
+  app.get('/{*splat}', (_req, res) => res.sendFile(path.join(adminDist, 'index.html')));
 } else {
   app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 }
