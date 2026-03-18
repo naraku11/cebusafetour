@@ -1,18 +1,18 @@
-# Node / Backend
-backend/node_modules/
-backend/.env
-backend/.env.local
-backend/dist/
-backend/logs/
-backend/*.log
-backend/uploads/avatars/*
-!backend/uploads/avatars/.gitkeep
+# Node / Express
+node_modules/
+.env
+.env.local
+logs/
+*.log
+public/
+uploads/avatars/*
+!uploads/avatars/.gitkeep
 
-# React Admin
-admin/node_modules/
-admin/dist/
-admin/.env
-admin/.env.local
+# React Client
+client/node_modules/
+client/dist/
+client/.env
+client/.env.local
 
 # Flutter Mobile
 mobile/.dart_tool/
