@@ -18,15 +18,16 @@ exports.reportIncident = async (req, res, next) => {
       },
     });
 
-    await getFirestore().collection('incidents').doc(incident.id).set({
+    // Non-blocking — Firebase may not be configured in all environments
+    getFirestore().collection('incidents').doc(incident.id).set({
       id: incident.id, type,
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
       status: 'new',
       reportedAt: new Date().toISOString(),
-    });
+    }).catch(() => {});
 
-    await sendPushToAdmins({
+    sendPushToAdmins({
       title: `New Incident: ${type.replace('_', ' ').toUpperCase()}`,
       body: `Reported at ${nearestLandmark || `${latitude}, ${longitude}`}`,
       data: { type: 'incident', incidentId: incident.id },
@@ -94,6 +95,17 @@ exports.updateIncident = async (req, res, next) => {
 
     socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident });
+  } catch (err) { next(err); }
+};
+
+exports.deleteIncident = async (req, res, next) => {
+  try {
+    const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Incident not found' });
+    await prisma.incident.delete({ where: { id: req.params.id } });
+    getFirestore().collection('incidents').doc(req.params.id).delete().catch(() => {});
+    socket.emitToAdmins('incident:deleted', { id: req.params.id });
+    res.json({ message: 'Incident deleted' });
   } catch (err) { next(err); }
 };
 

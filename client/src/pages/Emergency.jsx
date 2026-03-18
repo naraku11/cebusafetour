@@ -53,9 +53,10 @@ const STAT_STYLES = {
 
 export default function Emergency() {
   const qc = useQueryClient();
-  const [activeTab, setActiveTab]   = useState('new');
-  const [selected,  setSelected]    = useState(null);
-  const [viewMode,  setViewMode]    = useState('tabs'); // 'tabs' | 'kanban'
+  const [activeTab,    setActiveTab]    = useState('new');
+  const [selected,     setSelected]     = useState(null);
+  const [viewMode,     setViewMode]     = useState('tabs'); // 'tabs' | 'kanban'
+  const [confirmDelete, setConfirmDelete] = useState(null); // incident to delete
 
   const { data, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['incidents'],
@@ -72,6 +73,17 @@ export default function Emergency() {
       setSelected(null);
     },
     onError: () => toast.error('Failed to update incident'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/emergency/incidents/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries(['incidents']);
+      toast.success('Incident deleted');
+      setConfirmDelete(null);
+      setSelected(null);
+    },
+    onError: () => toast.error('Failed to delete incident'),
   });
 
   const allIncidents = data?.incidents || [];
@@ -156,6 +168,7 @@ export default function Emergency() {
           byStatus={byStatus}
           tabs={TABS}
           onSelect={setSelected}
+          onDelete={setConfirmDelete}
         />
       ) : (
         <TabsView
@@ -166,6 +179,7 @@ export default function Emergency() {
           incidents={byStatus(activeTab)}
           tabCfg={activeTabCfg}
           onSelect={setSelected}
+          onDelete={setConfirmDelete}
         />
       )}
 
@@ -174,7 +188,17 @@ export default function Emergency() {
           incident={selected}
           onClose={() => setSelected(null)}
           onSave={body => updateMutation.mutate({ id: selected.id, ...body })}
+          onDelete={() => setConfirmDelete(selected)}
           saving={updateMutation.isPending}
+        />
+      )}
+
+      {confirmDelete && (
+        <DeleteConfirmModal
+          incident={confirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => deleteMutation.mutate(confirmDelete.id)}
+          deleting={deleteMutation.isPending}
         />
       )}
     </div>
@@ -183,7 +207,7 @@ export default function Emergency() {
 
 /* ── Tabs view ─────────────────────────────────────────────────────────────── */
 
-function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onSelect }) {
+function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onSelect, onDelete }) {
   return (
     <div>
       {/* Tab bar */}
@@ -216,7 +240,7 @@ function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onS
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
           {incidents.map(inc => (
-            <IncidentCard key={inc.id} incident={inc} tabCfg={tabCfg} onClick={() => onSelect(inc)} />
+            <IncidentCard key={inc.id} incident={inc} tabCfg={tabCfg} onClick={() => onSelect(inc)} onDelete={e => { e.stopPropagation(); onDelete(inc); }} />
           ))}
         </div>
       )}
@@ -226,7 +250,7 @@ function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onS
 
 /* ── Kanban view ───────────────────────────────────────────────────────────── */
 
-function KanbanView({ byStatus, tabs, onSelect }) {
+function KanbanView({ byStatus, tabs, onSelect, onDelete }) {
   return (
     <div className="grid lg:grid-cols-3 gap-4 items-start">
       {tabs.map(tab => {
@@ -247,7 +271,7 @@ function KanbanView({ byStatus, tabs, onSelect }) {
               {incidents.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">No incidents</p>
               ) : incidents.map(inc => (
-                <IncidentCard key={inc.id} incident={inc} tabCfg={tab} compact onClick={() => onSelect(inc)} />
+                <IncidentCard key={inc.id} incident={inc} tabCfg={tab} compact onClick={() => onSelect(inc)} onDelete={e => { e.stopPropagation(); onDelete(inc); }} />
               ))}
             </div>
           </div>
@@ -259,7 +283,7 @@ function KanbanView({ byStatus, tabs, onSelect }) {
 
 /* ── Incident card ─────────────────────────────────────────────────────────── */
 
-function IncidentCard({ incident: inc, tabCfg, compact = false, onClick }) {
+function IncidentCard({ incident: inc, tabCfg, compact = false, onClick, onDelete }) {
   return (
     <div
       onClick={onClick}
@@ -280,11 +304,22 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, onClick }) {
             )}
           </div>
         </div>
-        {!compact && (
-          <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${tabCfg?.badgeBg}`}>
-            {tabCfg?.label}
-          </span>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {!compact && (
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tabCfg?.badgeBg}`}>
+              {tabCfg?.label}
+            </span>
+          )}
+          <button
+            onClick={onDelete}
+            title="Delete incident"
+            className="p-1 text-gray-300 hover:text-red-500 transition-colors rounded"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {!compact && inc.description && (
@@ -305,7 +340,7 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, onClick }) {
 
 /* ── Incident modal ────────────────────────────────────────────────────────── */
 
-function IncidentModal({ incident: inc, onClose, onSave, saving }) {
+function IncidentModal({ incident: inc, onClose, onSave, onDelete, saving }) {
   const [status,         setStatus]         = useState(inc.status);
   const [assignedTo,     setAssignedTo]     = useState(inc.assignedTo || '');
   const [responderNotes, setResponderNotes] = useState(inc.responderNotes || '');
@@ -410,14 +445,59 @@ function IncidentModal({ incident: inc, onClose, onSave, saving }) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 justify-end pt-2">
-          <button onClick={onClose} className="btn-secondary">Cancel</button>
+        <div className="flex items-center justify-between gap-3 pt-2">
           <button
-            onClick={() => onSave({ status, assignedTo, responderNotes })}
-            disabled={saving}
-            className="btn-primary"
+            onClick={onDelete}
+            className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
           >
-            {saving ? 'Saving…' : 'Update Incident'}
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete
+          </button>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="btn-secondary">Cancel</button>
+            <button
+              onClick={() => onSave({ status, assignedTo, responderNotes })}
+              disabled={saving}
+              className="btn-primary"
+            >
+              {saving ? 'Saving…' : 'Update Incident'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteConfirmModal({ incident: inc, onCancel, onConfirm, deleting }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Delete Incident</h3>
+            <p className="text-sm text-gray-500">This action cannot be undone.</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-700">
+          Are you sure you want to delete the <span className="font-medium capitalize">{inc.type.replace('_', ' ')}</span> incident
+          {inc.nearestLandmark ? <> at <span className="font-medium">{inc.nearestLandmark}</span></> : ''}?
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel} disabled={deleting} className="btn-secondary">Cancel</button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
           </button>
         </div>
       </div>
