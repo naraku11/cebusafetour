@@ -118,8 +118,15 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports',       reportsRoutes);
 app.use('/api/reviews',       reviewsRoutes);
 
-// 404
-app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
+// Serve admin panel static files
+const adminDist = path.join(__dirname, '..', '..', 'admin', 'dist');
+if (fs.existsSync(adminDist)) {
+  app.use(express.static(adminDist));
+  // SPA fallback — all non-API routes return index.html
+  app.get('*', (_req, res) => res.sendFile(path.join(adminDist, 'index.html')));
+} else {
+  app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
+}
 
 // Global error handler
 app.use(errorHandler);
