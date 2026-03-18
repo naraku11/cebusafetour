@@ -118,8 +118,8 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports',       reportsRoutes);
 app.use('/api/reviews',       reviewsRoutes);
 
-// Serve admin panel static files
-const adminDist = path.join(__dirname, '..', '..', 'admin', 'dist');
+// Serve admin panel static files (built into backend/public during deployment)
+const adminDist = path.join(__dirname, '..', 'public');
 if (fs.existsSync(adminDist)) {
   app.use(express.static(adminDist));
   // SPA fallback — all non-API routes return index.html
