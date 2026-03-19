@@ -130,7 +130,7 @@ export default function Attractions() {
     setForm(f => ({ ...f, name: value }));
     if (nameDebounceRef.current) clearTimeout(nameDebounceRef.current);
     if (value.trim().length < 3) return;
-    nameDebounceRef.current = setTimeout(async () => {
+    nameDebounceRef.current = setTimeout(async () => { // 1500 ms debounce
       setAiNameLoading(true);
       try {
         const { data: res } = await api.post('/attractions/ai-suggest', { name: value.trim() }, { skipToast: true, timeout: 60_000 });
@@ -160,7 +160,7 @@ export default function Attractions() {
       } finally {
         setAiNameLoading(false);
       }
-    }, 800);
+    }, 1500);
   };
 
   return (

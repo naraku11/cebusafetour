@@ -6,7 +6,7 @@ const { authenticate, requireAdmin, requireRole } = require('../middleware/auth'
 
 const aiSuggestLimit = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 20,
+  max: 60,
   message: { error: 'Too many AI suggestions — please wait a few minutes before trying again.' },
   standardHeaders: true,
   legacyHeaders: false,
