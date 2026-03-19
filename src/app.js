@@ -37,6 +37,10 @@ fs.mkdirSync(path.join(__dirname, '..', 'uploads', 'avatars'), { recursive: true
 const app    = express();
 const server = http.createServer(app);
 
+// Trust Hostinger's reverse proxy so express-rate-limit reads the real client IP
+// from X-Forwarded-For instead of the proxy's internal IP.
+app.set('trust proxy', 1);
+
 // Attach Socket.IO
 socket.init(server);
 
