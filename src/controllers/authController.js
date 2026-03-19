@@ -25,9 +25,25 @@ exports.register = async (req, res, next) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
-    await sendOtpEmail(email, name, otp);
 
-    res.status(201).json({ message: 'Account created. Please verify your email.', userId: user.id });
+    // Send OTP — don't let an SMTP failure fail the whole registration
+    let emailSent = true;
+    try {
+      await sendOtpEmail(email, name, otp);
+    } catch (emailErr) {
+      emailSent = false;
+      // Log but swallow — account was created, user can resend OTP
+      const logger = require('../utils/logger');
+      logger.error(`Failed to send OTP email to ${email}: ${emailErr.message}`);
+    }
+
+    res.status(201).json({
+      message: emailSent
+        ? 'Account created. Please check your email for the verification code.'
+        : 'Account created. Email delivery failed — use Resend OTP to get your code.',
+      userId: user.id,
+      emailSent,
+    });
   } catch (err) { next(err); }
 };
 

@@ -37,7 +37,7 @@ cebusafetour/
 │   │   ├── socketService.js    # Socket.IO — JWT rooms (admins / tourists)
 │   │   ├── aiService.js        # OpenAI ChatGPT + vision
 │   │   ├── fcmService.js       # Firebase Cloud Messaging
-│   │   ├── emailService.js     # Nodemailer OTP / alerts
+│   │   ├── emailService.js     # Nodemailer OTP / alerts (branded HTML template)
 │   │   └── placesService.js    # Google Places / geocoding
 │   └── utils/
 ├── prisma/
@@ -61,7 +61,7 @@ cebusafetour/
 │   └── build.js                # Build script: installs client → builds → copies to public/
 ├── uploads/
 │   └── avatars/                # User profile pictures (served statically)
-├── mobile/                     # Flutter mobile app (separate — see §4)
+├── mobile/                     # Flutter mobile app
 ├── public/                     # Built React app (generated at deploy, gitignored)
 ├── package.json                # Root — Express dependencies + build/start scripts
 ├── .env                        # Production environment variables
@@ -80,14 +80,14 @@ cebusafetour/
 | Admin Portal | React 18 + Vite + Tailwind CSS |
 | Backend API | Node.js + Express 5 |
 | Realtime | Socket.IO 4 (JWT-authenticated rooms) |
-| ORM | Prisma 6 |
+| ORM | Prisma 6 (binary engine — required for Hostinger shared hosting) |
 | Database | MySQL 8 (Hostinger) |
 | Auth | JWT + bcryptjs |
 | Push Notifications | Firebase Cloud Messaging (FCM) |
 | Maps | Google Maps API |
 | AI / Vision | OpenAI GPT-4o-mini |
 | Weather | Open-Meteo (free, no API key) |
-| Email / OTP | Nodemailer (SMTP) |
+| Email / OTP | Nodemailer (SMTP) — branded HTML template |
 | File Uploads | Multer (local disk, Express static) |
 | Hosting | Hostinger Business Web Hosting (Express 22 preset) |
 
@@ -109,75 +109,48 @@ cebusafetour/
 ### Install dependencies
 
 ```bash
-# Install backend dependencies (also runs prisma generate via postinstall)
 npm install --include=dev
-
-# Install admin panel dependencies
 cd client && npm install && cd ..
 ```
 
 ### Configure environment
 
-Create `.env.local` at the repo root (overrides `.env` for local dev):
-
-```bash
-cp .env.local.example .env.local
-```
-
-Key variables:
+Create `.env.local` at the repo root:
 
 | Variable | Description |
 |---|---|
 | `PORT` | API server port (default: `5000`) |
 | `NODE_ENV` | `development` or `production` |
-| `DATABASE_URL` | MySQL connection string (see format below) |
+| `DATABASE_URL` | MySQL connection string |
 | `JWT_SECRET` | Long random string |
 | `JWT_EXPIRES_IN` | Token lifetime (default: `7d`) |
 | `FIREBASE_PROJECT_ID` | Firebase project ID |
 | `FIREBASE_CLIENT_EMAIL` | Service account client email |
 | `FIREBASE_PRIVATE_KEY` | Service account private key — paste with literal `\n` |
-| `SMTP_HOST` | SMTP host (e.g. `smtp.gmail.com`) |
-| `SMTP_PORT` | SMTP port (e.g. `587`) |
+| `SMTP_HOST` | SMTP host (e.g. `smtp.hostinger.com`) |
+| `SMTP_PORT` | `465` for SSL, `587` for STARTTLS |
+| `SMTP_SECURE` | `true` for port 465, `false` for port 587 |
 | `SMTP_USER` | SMTP email address |
 | `SMTP_PASS` | SMTP app password |
-| `EMAIL_FROM` | Sender address |
-| `GOOGLE_MAPS_API_KEY` | Used for reverse geocoding (AI suggest) |
+| `EMAIL_FROM` | Sender address shown in emails |
+| `GOOGLE_MAPS_API_KEY` | Used for reverse geocoding |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `OPENAI_MODEL` | Model to use (default: `gpt-4o-mini`) |
 | `CORS_ORIGINS` | Comma-separated allowed origins |
 
-#### DATABASE_URL format (MySQL)
+#### DATABASE_URL format
 
-```
-mysql://USER:PASSWORD@HOST:3306/DATABASE
-```
-
-For local MySQL:
+Local:
 ```
 DATABASE_URL="mysql://root:@localhost:3306/cebusafetour_dev"
 ```
 
-For Hostinger remote MySQL (enable Remote MySQL in hPanel first):
+Hostinger (production) — add `connection_limit` and `connect_timeout` to prevent pool exhaustion:
 ```
-DATABASE_URL="mysql://u856082912_cebusafetour:PASSWORD@HOST:3306/u856082912_cebusafetourdb"
+DATABASE_URL="mysql://USER:PASSWORD@127.0.0.1:3306/DATABASE?connection_limit=5&connect_timeout=10"
 ```
 
-> Special characters in passwords must be URL-encoded (e.g. `@` → `%40`, `?` → `%3F`). Use a password without special characters to avoid this.
-
-### Get Firebase credentials
-
-1. [console.firebase.google.com](https://console.firebase.google.com) → Project Settings → Service accounts → Generate new private key
-2. Copy `project_id`, `client_email`, `private_key` from the downloaded JSON into `.env.local`
-
-### Run database migrations
-
-```bash
-# Apply schema to database (creates all tables)
-npm run db:migrate
-
-# Seed the database (admin accounts, attractions, advisories, incidents)
-npm run db:seed
-```
+> Special characters in passwords must be URL-encoded (e.g. `@` → `%40`, `?` → `%3F`).
 
 ### Database scripts
 
@@ -185,7 +158,7 @@ npm run db:seed
 |---|---|
 | `npm run db:generate` | Regenerate Prisma client after schema changes |
 | `npm run db:migrate` | Apply migrations (dev) |
-| `npm run db:deploy` | Apply migrations (production — no prompts) |
+| `npm run db:deploy` | Apply migrations (production) |
 | `npm run db:seed` | Run seed script |
 | `npm run db:studio` | Open Prisma Studio at `localhost:5555` |
 | `npm run db:reset` | Drop all tables, re-migrate, re-seed |
@@ -193,16 +166,9 @@ npm run db:seed
 ### Run locally
 
 ```bash
-# Start API server (port 5000)
-npm run dev
-
-# In a separate terminal — start admin panel dev server (port 5173)
-cd client && npm run dev
+npm run dev              # API on port 5000
+cd client && npm run dev # Admin panel on port 5173 (proxies /api/* to 5000)
 ```
-
-- API: `http://localhost:5000`
-- Admin portal: `http://localhost:5173` (proxies `/api/*` to port 5000)
-- Health check: `GET http://localhost:5000/health`
 
 ---
 
@@ -214,28 +180,23 @@ cd client && npm run dev
 |---|---|
 | Framework preset | **Express** |
 | Node version | **22.x** |
-| Root directory | *(leave empty)* |
 | Entry file | `src/app.js` |
 | Build command | `npm install && npm run build` |
 
-The build command:
-1. Installs backend dependencies (`npm install` → also runs `prisma generate` via postinstall)
-2. Runs `scripts/build.js` which installs `client/` deps, builds Vite, and copies `client/dist/` → `public/`
-
-Express then serves `public/` as static files and the React SPA handles all frontend routing.
-
 ### Environment variables on Hostinger
 
-Set these in hPanel → Node.js → Environment Variables:
+Set in hPanel → Node.js → Environment Variables:
 
 ```
 NODE_ENV=production
-DATABASE_URL=mysql://u856082912_cebusafetour:PASSWORD@127.0.0.1:3306/u856082912_cebusafetourdb
+DATABASE_URL=mysql://USER:PASSWORD@127.0.0.1:3306/DATABASE?connection_limit=5&connect_timeout=10
 JWT_SECRET=...
 FIREBASE_PROJECT_ID=...
 FIREBASE_CLIENT_EMAIL=...
-FIREBASE_PRIVATE_KEY=...    ← paste full key manually (do not use quotes)
-SMTP_HOST=...
+FIREBASE_PRIVATE_KEY=...
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
 SMTP_USER=...
 SMTP_PASS=...
 EMAIL_FROM=...
@@ -244,15 +205,29 @@ OPENAI_API_KEY=...
 CORS_ORIGINS=https://cebusafetour.fun,https://www.cebusafetour.fun
 ```
 
-> Use `127.0.0.1` (not `localhost`) for the MySQL host on Hostinger to force TCP connection.
+> Use `127.0.0.1` (not `localhost`) for MySQL host on Hostinger.
+
+### Hostinger-specific notes
+
+**Server timeouts** — configured automatically in `src/app.js`:
+
+| Setting | Value | Reason |
+|---|---|---|
+| `keepAliveTimeout` | 65 000 ms | Must exceed Hostinger's ~60 s proxy idle timeout |
+| `headersTimeout` | 66 000 ms | Must be > `keepAliveTimeout` |
+| `server.timeout` | 120 000 ms | Max time for a single long-running request |
+
+**Prisma engine** — The schema uses `engineType = "binary"` so Prisma spawns a separate query engine process. The default `library` engine panics (`PANIC: timer has gone away`) on Hostinger's shared Linux due to Tokio timer restrictions.
+
+**Prisma pre-warm** — The server calls `await prisma.$connect()` before `server.listen()` to prevent cold-start timeouts on first request.
 
 ### First-time database setup on Hostinger
 
 1. Create the database in hPanel → Databases → MySQL Databases
-2. Import `prisma/seed.sql` via phpMyAdmin to create tables and seed data, **or** run:
+2. Run:
    ```bash
-   npm run db:deploy   # applies all migrations
-   npm run db:seed     # seeds admin accounts + sample data
+   npm run db:deploy
+   npm run db:seed
    ```
 
 ### Verify deployment
@@ -261,63 +236,46 @@ CORS_ORIGINS=https://cebusafetour.fun,https://www.cebusafetour.fun
 GET https://cebusafetour.fun/health
 ```
 
-Returns:
-```json
-{
-  "status": "ok",
-  "checks": {
-    "database":  { "status": "ok", "latencyMs": 4 },
-    "smtp":      { "status": "configured" },
-    "firebase":  { "status": "configured" },
-    "openai":    { "status": "configured", "keyPrefix": "sk-proj-abcd..." },
-    "jwt":       { "status": "configured" }
-  },
-  "uptime": "120s"
-}
-```
-
-`openai.keyPrefix` shows the first 12 characters of the loaded API key — use this to confirm the correct key is deployed without exposing the full secret.
-
 ---
 
 ## 4. Mobile App Setup
-
-### Install dependencies
 
 ```bash
 cd mobile
 flutter pub get
 ```
 
-### Configure Firebase
+Place Firebase config files:
+- `mobile/android/app/google-services.json`
+- `mobile/ios/Runner/GoogleService-Info.plist`
 
-1. Download `google-services.json` from Firebase Console → Project Settings → Android app
-2. Place at `mobile/android/app/google-services.json`
-3. iOS: download `GoogleService-Info.plist` → `mobile/ios/Runner/GoogleService-Info.plist`
-
-### Configure API base URL
-
-Edit `mobile/lib/utils/constants.dart`:
+Configure API base URL in `mobile/lib/utils/constants.dart`:
 
 ```dart
-// Android emulator (10.0.2.2 maps to host machine localhost):
+// Android emulator:
 static const String serverUrl = 'http://10.0.2.2:5000';
 
-// Physical device on the same Wi-Fi — replace with your machine's local IP:
+// Physical device (same Wi-Fi):
 static const String serverUrl = 'http://YOUR_LOCAL_IP:5000';
 
 // Production:
 static const String serverUrl = 'https://cebusafetour.fun';
 ```
 
-### Run
-
 ```bash
-flutter devices                     # list available devices
-flutter run -d android              # run on Android
-flutter run -d ios                  # run on iOS
-flutter build apk --release         # release APK
-flutter build appbundle --release   # Play Store bundle
+flutter run -d android
+flutter build apk --release
+```
+
+### Flutter build errors — Kotlin incremental cache
+
+If you get `Daemon compilation failed: this and base files have different roots` after moving the project to a different drive, delete the stale Kotlin caches:
+
+```powershell
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Pub\Cache\hosted\pub.dev\share_plus-*\android\build\kotlin"
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Pub\Cache\hosted\pub.dev\shared_preferences_android-*\android\build\kotlin"
+Remove-Item -Recurse -Force "mobile\build"
+Remove-Item -Recurse -Force "mobile\android\.gradle"
 ```
 
 ---
@@ -334,7 +292,7 @@ After running `npm run db:seed`:
 | Content Manager | `content@cebusafetour.ph` | `Content@123` |
 | Emergency Officer | `emergency@cebusafetour.ph` | `Emergency@123` |
 
-### Tourist accounts (all use `Tourist@123`)
+### Tourist accounts (password: `Tourist@123`)
 
 | Nationality | Email |
 |---|---|
@@ -348,7 +306,7 @@ After running `npm run db:seed`:
 ### Seed data included
 
 - **10 attractions** — Kawasan Falls, Magellan's Cross, Basilica del Santo Niño, Osmeña Peak, Moalboal Beach, Temple of Leah, Tops Lookout, Fort San Pedro, Carbon Market, Mactan Shrine
-- **3 advisories** — Typhoon alert (critical), Ocean current warning (warning), Sinulog festival advisory
+- **3 advisories** — Typhoon alert (critical), Ocean current warning, Sinulog festival advisory
 - **3 incidents** — Medical at Kawasan Falls, Theft at Carbon Market, Lost person at Osmeña Peak
 
 ---
@@ -359,10 +317,11 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/register` | Public | Register new tourist |
-| POST | `/api/auth/verify-otp` | Public | Verify email OTP |
+| POST | `/api/auth/register` | Public | Register tourist — sends OTP email; returns `emailSent: false` if SMTP fails (account still created) |
+| POST | `/api/auth/verify-otp` | Public | Verify email OTP to activate account |
+| POST | `/api/auth/resend-otp` | Public | Resend OTP |
 | POST | `/api/auth/login` | Public | Login |
-| POST | `/api/auth/forgot-password` | Public | Request password reset OTP |
+| POST | `/api/auth/forgot-password` | Public | Send password reset OTP to email |
 | POST | `/api/auth/reset-password` | Public | Reset password with OTP |
 | GET | `/api/auth/me` | Tourist | Current user info |
 | PATCH | `/api/auth/fcm-token` | Tourist | Update FCM push token |
@@ -374,9 +333,9 @@ After running `npm run db:seed`:
 | GET | `/api/attractions` | Public | List attractions (filters: category, district, safetyStatus, search) |
 | GET | `/api/attractions/nearby?lat=&lng=` | Public | Nearest attractions by GPS |
 | GET | `/api/attractions/:id` | Public | Attraction detail |
-| POST | `/api/attractions/ai-suggest` | Admin | AI auto-fill from `{ latitude, longitude }` — reverse geocode + ChatGPT |
+| POST | `/api/attractions/ai-suggest` | Admin | AI auto-fill from coordinates |
 | POST | `/api/attractions` | Admin | Create attraction |
-| PUT | `/api/attractions/:id` | Admin | Update attraction (safety change triggers push notification) |
+| PUT | `/api/attractions/:id` | Admin | Update attraction |
 | DELETE | `/api/attractions/:id` | Admin | Archive attraction (soft delete) |
 | DELETE | `/api/attractions/:id/permanent` | Super Admin | Permanently delete |
 
@@ -384,14 +343,14 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/api/advisories` | Public | List advisories (filters: `status`, `severity`) |
+| GET | `/api/advisories` | Public | List advisories (filters: status, severity) |
 | GET | `/api/advisories/:id` | Public | Advisory detail |
-| POST | `/api/advisories/ai-suggest` | Admin | AI generate advisory from attraction name |
-| POST | `/api/advisories` | Admin | Publish advisory + auto push notify |
+| POST | `/api/advisories/ai-suggest` | Admin | AI generate advisory content |
+| POST | `/api/advisories` | Admin | Publish advisory + push notify |
 | PUT | `/api/advisories/:id` | Admin | Update advisory |
-| PATCH | `/api/advisories/:id/resolve` | Admin (super, content) | Set status → `resolved` |
-| PATCH | `/api/advisories/:id/archive` | Admin (super, content) | Set status → `archived` |
-| PATCH | `/api/advisories/:id/unarchive` | Super Admin | Restore archived → `resolved` |
+| PATCH | `/api/advisories/:id/resolve` | Super + Content | Set status → `resolved` |
+| PATCH | `/api/advisories/:id/archive` | Super + Content | Set status → `archived` |
+| PATCH | `/api/advisories/:id/unarchive` | Super Admin | Restore → `resolved` |
 
 ### Emergency
 
@@ -400,18 +359,18 @@ After running `npm run db:seed`:
 | GET | `/api/emergency/services` | Public | Cebu emergency contacts list |
 | POST | `/api/emergency/incidents` | Tourist | Report incident (notifies admins via Socket.IO) |
 | GET | `/api/emergency/incidents/mine` | Tourist | My reported incidents |
-| GET | `/api/emergency/incidents` | Admin | List active incidents (excludes archived) |
-| GET | `/api/emergency/incidents/archived` | Admin (super, emergency) | List archived incidents |
+| GET | `/api/emergency/incidents` | Admin | Active incidents |
+| GET | `/api/emergency/incidents/archived` | Super + Emergency | Archived incidents |
 | GET | `/api/emergency/incidents/:id` | Admin | Incident detail |
-| PATCH | `/api/emergency/incidents/:id` | Admin | Update incident (status, responder notes, assignedTo) |
+| PATCH | `/api/emergency/incidents/:id` | Admin | Update incident (status, notes, assignedTo) |
 | PATCH | `/api/emergency/incidents/:id/archive` | Super Admin | Archive incident |
-| PATCH | `/api/emergency/incidents/:id/unarchive` | Super Admin | Restore archived incident → `resolved` |
+| PATCH | `/api/emergency/incidents/:id/unarchive` | Super Admin | Restore archived incident |
 
-### Weather (Open-Meteo — no API key)
+### Weather
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/weather/current?lat=&lng=` | Current conditions |
+| GET | `/api/weather/current?lat=&lng=` | Current conditions (Open-Meteo, no API key) |
 | GET | `/api/weather/forecast?lat=&lng=` | 7-day forecast |
 | GET | `/api/weather/safety?lat=&lng=` | Safety assessment with warnings |
 
@@ -420,13 +379,20 @@ After running `npm run db:seed`:
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/api/users/me` | Tourist | Current user profile |
-| PATCH | `/api/users/me` | Tourist | Update profile |
-| POST | `/api/users/me/profile-picture` | Tourist | Upload avatar (`multipart/form-data`, field: `avatar`, max 5 MB) |
-| GET | `/api/users/stats` | Admin | User count stats |
-| GET | `/api/users` | Admin | User list (filters: search, status, nationality) |
+| PATCH | `/api/users/me` | Tourist | Update own profile |
+| POST | `/api/users/me/profile-picture` | Tourist | Upload avatar (multipart, field: `avatar`, max 5 MB) |
+| GET | `/api/users/stats` | Admin | Tourist count stats (total, active, suspended, banned) |
+| GET | `/api/users/staff` | Super Admin | List staff accounts (Content Manager + Emergency Officer) |
+| POST | `/api/users/staff` | Super Admin | Create staff account (name, email, password, role, contactNumber) |
+| PATCH | `/api/users/staff/:id` | Super Admin | Update staff (name, email, role, contactNumber) |
+| DELETE | `/api/users/staff/:id` | Super Admin | Delete staff account (cannot delete self) |
+| GET | `/api/users` | Admin | Tourist list (filters: search, status, nationality, page) |
 | GET | `/api/users/:id` | Admin | User detail + incident history |
-| PATCH | `/api/users/:id/status` | Super Admin | Suspend / ban / activate user |
-| POST | `/api/users/:id/verify-picture` | Admin | AI verify profile picture via GPT-4o-mini vision |
+| PATCH | `/api/users/:id/status` | Super Admin | Change status (active / suspended / banned / archived) |
+| PATCH | `/api/users/:id` | Super Admin | Edit tourist (name, email, nationality, contactNumber, isVerified) |
+| POST | `/api/users/:id/verify` | Admin | Manually mark email as verified |
+| DELETE | `/api/users/:id` | Super Admin | Permanently delete tourist account |
+| POST | `/api/users/:id/verify-picture` | Admin | AI verify profile picture via GPT-4o-mini |
 
 ### Notifications
 
@@ -439,9 +405,12 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/api/reports/summary` | Admin | Dashboard stats (users, incidents, advisories) |
-| GET | `/api/reports/incidents` | Admin | Filterable incident log |
-| GET | `/api/reports/attractions` | Admin | Attraction analytics |
+| GET | `/api/reports/summary` | Admin | Full breakdown — users by status, attractions by safety, incidents active/resolved/today/this-month, advisories active/critical |
+| GET | `/api/reports/trends` | Admin | 6-month monthly counts for incidents, advisories, and new users |
+| GET | `/api/reports/incidents` | Admin | Filterable incident log (from, to, type, status, page) + byType/byStatus aggregation |
+| GET | `/api/reports/advisories` | Admin | bySeverity + byStatus groupBy + recent 15 advisories |
+| GET | `/api/reports/attractions` | Admin | byCategory + bySafety groupBy + top-50 by visits |
+| GET | `/api/reports/users-summary` | Admin | Top-10 nationalities + email verification breakdown |
 
 ### Reviews
 
@@ -455,17 +424,11 @@ After running `npm run db:seed`:
 
 ## Real-Time (Socket.IO)
 
-The admin portal connects via Socket.IO using the logged-in JWT. Sockets are placed into rooms based on role — `admins` or `tourists`. The backend emits events on every significant database write; the admin panel listens and automatically invalidates React Query caches.
-
-### Rooms
-
 | Room | Members |
 |---|---|
 | `admins` | `admin_super`, `admin_content`, `admin_emergency` |
 | `tourists` | All tourist accounts |
 | `user:<id>` | Individual user (private messages) |
-
-### Events emitted by the server
 
 | Event | Room | Trigger |
 |---|---|---|
@@ -480,16 +443,13 @@ The admin portal connects via Socket.IO using the logged-in JWT. Sockets are pla
 
 ## AI Features
 
-All AI features require `OPENAI_API_KEY`. Default model: `gpt-4o-mini` (override with `OPENAI_MODEL`).
+All AI features require `OPENAI_API_KEY`. Default model: `gpt-4o-mini`.
 
-### Attraction AI Suggest
-Admin drops a pin on the map. The backend reverse-geocodes the coordinates via Google Maps, then sends the location to ChatGPT to fill in `name`, `category`, `district`, `address`, `description`, `entranceFee`, and `safetyTips`. Coordinates outside Cebu Province (`lat 9.4–11.5`, `lng 123.3–124.1`) are rejected.
-
-### Advisory AI Suggest
-Admin selects an attraction from a dropdown. ChatGPT generates a realistic safety advisory with `title`, `description`, `severity`, and `recommendedActions` for that attraction.
-
-### Profile Picture Verification
-Admin clicks "Verify with AI" on a user. The backend sends the image to GPT-4o-mini vision which checks whether it is a real human face photograph. Result (`profilePictureVerified: true/false`) is saved and shown as a badge on the user's avatar.
+| Feature | Description |
+|---|---|
+| Attraction AI Suggest | Admin drops a pin — backend reverse-geocodes via Google Maps, then ChatGPT fills name, category, description, safety tips. Coordinates outside Cebu Province are rejected. |
+| Advisory AI Suggest | Admin selects an attraction — ChatGPT generates a realistic safety advisory with title, severity, and recommended actions. |
+| Profile Picture Verification | Admin clicks "Verify with AI" — GPT-4o-mini vision checks whether the photo is a real human face. Result saved as `profilePictureVerified` and shown as a badge on the avatar. |
 
 ---
 
@@ -504,41 +464,96 @@ Admin clicks "Verify with AI" on a user. The backend sends the image to GPT-4o-m
 | Attractions | `/attractions` | Super + Content |
 | Advisories | `/advisories` | Super + Content |
 | Emergency & Incident Center | `/emergency` | Super + Emergency |
-| Users | `/users` | All admins |
+| Users | `/users` | Super Admin only |
 | Notifications | `/notifications` | All admins |
 | Reports | `/reports` | All admins |
 
 ### Roles
 
-| Role | Permissions |
+| Role | Sidebar + Access |
 |---|---|
-| `admin_super` | Full access — including archive/unarchive incidents & advisories, user banning |
-| `admin_content` | Attractions + Advisories (create, edit, resolve, archive) |
-| `admin_emergency` | Emergency center — view and update incidents |
+| `admin_super` | Full access — all pages including User Management |
+| `admin_content` | Dashboard, Attractions, Advisories, Notifications, Reports |
+| `admin_emergency` | Dashboard, Emergency Center, Notifications, Reports |
+
+Each role has a colored pill badge in the header and a dot indicator in the sidebar.
+
+### User Management
+
+The Users page has two sections, toggled by large cards at the top:
+
+#### Staff Accounts (Content Manager / Emergency Officer)
+
+Super Admin can fully manage staff accounts:
+
+| Action | Description |
+|---|---|
+| Create | Set name, email, role, initial password, contact number |
+| Edit | Update name, email, role, contact number |
+| Suspend | Temporarily disable login |
+| Archive | Soft-disable — account kept for audit trail |
+| Activate | Re-enable a suspended or archived account |
+| Delete | Permanently delete (cannot delete own account) |
+
+Stats cards: Total / Active / Suspended / Archived. Filter by status or search by name/email.
+
+#### Tourist Accounts
+
+| Tab | Shows |
+|---|---|
+| All Users | Every tourist account |
+| Suspended | Temporarily suspended (count badge) |
+| Banned | Permanently banned (count badge) |
+
+Per-row and detail-modal actions:
+
+| Action | Who | Notes |
+|---|---|---|
+| View | All admins | Detail modal with profile, picture verification, incident history |
+| Edit | Super Admin | Name, email, nationality, contact, email-verified flag |
+| Verify email | All admins | Manual email verification (unverified users only) |
+| Activate / Suspend / Ban | Super Admin | Confirm dialog |
+| Delete | Super Admin | Hard delete with warning; tourist-only |
+| Verify picture with AI | All admins | GPT-4o-mini vision check in detail modal |
+
+### Reports & Analytics
+
+Role-based tabs — each role only sees data relevant to their function:
+
+| Tab | Super Admin | Content Manager | Emergency Officer |
+|---|---|---|---|
+| Overview | ✅ | ✅ | ✅ |
+| Users | ✅ | — | — |
+| Incidents | ✅ | — | ✅ |
+| Advisories | ✅ | ✅ | — |
+| Attractions | ✅ | ✅ | — |
+
+**Overview** — filtered stat cards, 6-month line trend chart, doughnut breakdowns per role
+**Users** — status pie, verification doughnut, top-10 nationalities bar, new-this-month count
+**Incidents** — by-type bar + by-status doughnut + filterable paginated log (date range, type, status) with CSV export
+**Advisories** — by-severity doughnut + by-status bar + recent 15 advisories table with CSV export
+**Attractions** — by-category bar + safety doughnut + top-5-visits horizontal bar + full table with CSV export
 
 ### Emergency & Incident Center
 
-Incidents are never hard-deleted. The workflow:
+| Action | Who |
+|---|---|
+| Update status / notes | Super + Emergency |
+| Edit a resolved incident | Super + Emergency (admin password required) |
+| Archive an active/in-progress incident | Super Admin |
+| Archive a resolved incident | Super Admin (password required) |
+| Restore archived incident | Super Admin (password required) |
 
-| Action | Who | Password required? |
-|---|---|---|
-| Update status / notes | Admin (super, emergency) | No |
-| Edit a **resolved** incident | Admin (super, emergency) | Yes — admin password via `/auth/login` |
-| Archive an **active/in-progress** incident | Super Admin | No |
-| Archive a **resolved** incident | Super Admin | Yes |
-| Restore (unarchive) archived incident | Super Admin | Yes |
-
-Views: **Tabs** (by status) · **Kanban** · **📦 Archive**
+Views: Tabs (by status) · Kanban · Archive
 
 ### Safety Advisories
 
-| Action | Who | Password required? |
-|---|---|---|
-| Edit an **active** advisory | Admin (super, content) | No |
-| Edit a **resolved** advisory | Admin (super, content) | Yes |
-| Archive an **active** advisory | Admin (super, content) | No |
-| Archive a **resolved** advisory | Admin (super, content) | Yes |
-| Restore (unarchive) archived advisory | Super Admin | Yes |
+| Action | Who |
+|---|---|
+| Edit an active advisory | Super + Content |
+| Edit a resolved advisory | Super + Content (password required) |
+| Archive an advisory | Super + Content (password required for resolved) |
+| Restore archived advisory | Super Admin (password required) |
 
 ---
 
@@ -547,48 +562,62 @@ Views: **Tabs** (by status) · **Kanban** · **📦 Archive**
 | Screen | Description |
 |---|---|
 | Splash | Auto-redirects based on stored auth token |
-| Login / Register / OTP | Full email-verified auth flow with language selector (12 languages) |
-| Home Dashboard | Quick actions, active advisories, language flag button, SOS FAB |
+| Login | Email + password, language selector (12 languages), suspended-account banner |
+| Register | Name, email, password, nationality, contact; duplicate-email shown inline |
+| OTP Verify | 6-digit code sent to email; 60 s resend countdown; orange warning if SMTP delivery failed |
+| Forgot Password | Email input → sends reset OTP |
+| Reset Password | OTP + new password + confirm; 60 s resend countdown; redirects to login on success |
+| Home Dashboard | Quick actions, active advisories, SOS FAB |
 | Explore | Search + filter attractions by category and safety status |
 | Attraction Detail | Photos, safety badge, crowd level, hours, directions |
 | Emergency | Type selection + GPS capture + one-tap call to services |
 | Advisories | Severity-sorted list with bottom sheet detail |
 | Trip Planner | Date picker + attraction checklist + drag-to-reorder itinerary |
-| Profile | Avatar (tap to change), verification badge, emergency contacts, logout |
+| Profile | Avatar, verification badge, emergency contacts, logout |
 
-The red **SOS** floating action button is visible on every screen. Suspended/banned accounts receive an "Account Restricted" banner at login.
+The red **SOS** floating action button is visible on every screen. Suspended/banned accounts see an "Account Restricted" banner at login.
+
+### Registration & OTP flow
+
+1. User fills register form → taps **Create Account**
+2. Backend creates account, generates 6-digit OTP (valid 10 min), sends branded HTML email
+3. Mobile navigates to OTP screen; 60 s resend countdown starts immediately
+4. If SMTP fails, backend still returns `201` with `emailSent: false` — OTP screen shows orange warning with immediate resend
+5. Correct code → account activated → auto login
+
+### Forgot Password flow
+
+1. User taps **Forgot Password** on login (email pre-filled if already typed)
+2. Enters email → taps **Send Reset Code** → backend emails a 6-digit OTP
+3. Reset Password screen: enter OTP + new password + confirm
+4. On success → navigated to login with success snackbar
 
 ### Localization
 
-12 languages supported: English, Chinese, Korean, Japanese, German, Spanish, French, Arabic, Hindi, Russian, Filipino, Indonesian.
+12 languages: English, Chinese, Korean, Japanese, German, Spanish, French, Arabic, Hindi, Russian, Filipino, Indonesian.
 
-Language selection is available on the **login screen** (flag chip row + searchable full picker) and via the **flag button on the home dashboard header**. The selected language is persisted locally (SharedPreferences) and is **not** automatically overridden when a tourist logs in — the user's language preference is always under their control.
+Language selection is on the **login screen** (flag chip row + searchable full picker) and via the **flag button on the home dashboard**. Preference is persisted locally and never overridden on login.
 
 ---
 
 ## Google Maps APIs Required
-
-Enable in Google Cloud Console:
 
 | API | Used In |
 |---|---|
 | Maps SDK for Android | Flutter mobile — Android map rendering |
 | Maps SDK for iOS | Flutter mobile — iOS map rendering |
 | Maps JavaScript API | Admin portal — incident map, attraction pin picker |
-| Geocoding API | Reverse geocode map pin for AI attraction suggest |
+| Geocoding API | Reverse geocode for AI attraction suggest |
 
 ---
 
 ## Firebase Services Required
 
-Enable in Firebase Console:
-
 | Service | Purpose |
 |---|---|
 | Cloud Messaging (FCM) | Push notifications to mobile app |
-| Authentication (Email/Password) | Optional — JWT handles auth; Firebase used for FCM only |
 
-> Firebase credentials (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) must be set as environment variables. If they are missing, the server starts normally but FCM push notifications and Firestore writes are silently skipped — the `/health` endpoint will report `firebase: { status: "missing" }`.
+> If Firebase credentials are missing, the server starts normally but FCM push notifications are silently skipped — `/health` reports `firebase: { status: "missing" }`.
 
 ---
 
