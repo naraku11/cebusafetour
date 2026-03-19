@@ -24,7 +24,9 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@prisma/adapter-mysql": "^6.19.2",
     "@prisma/client": "^6.19.2",
+    "mysql2": "^3.14.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
