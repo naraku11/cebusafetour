@@ -27,7 +27,6 @@ const reportsRoutes       = require('./routes/reports');
 const reviewsRoutes       = require('./routes/reviews');
 
 const { errorHandler } = require('./middleware/errorHandler');
-const sanitize         = require('./middleware/sanitize');
 const logger           = require('./utils/logger');
 const socket           = require('./services/socketService');
 const db               = require('./config/db');
@@ -46,26 +45,7 @@ app.set('trust proxy', 1);
 socket.init(server);
 
 // Security & parsing middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'"],
-      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc:         ["'self'", 'data:', 'https:', 'blob:'],
-      connectSrc:     ["'self'", 'https://api.groq.com', 'https://maps.googleapis.com'],
-      frameSrc:       ["'none'"],
-      objectSrc:      ["'none'"],
-      upgradeInsecureRequests: [],
-    },
-  },
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  permittedCrossDomainPolicies: false,
-  dnsPrefetchControl: { allow: false },
-}));
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 const _corsAllowed = (process.env.CORS_ORIGINS || process.env.ADMIN_URL || 'http://localhost:5173')
   .split(',').map((o) => o.trim()).filter(Boolean);
 app.use(cors({
@@ -76,32 +56,16 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(morgan('combined', {
-  skip: (req) => req.query.LSCWP_CTRL != null,
-  stream: { write: msg => logger.info(msg.trim()) },
-}));
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-app.use(sanitize);
+app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Global rate limiting
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
 }));
-
-// Auth brute-force protection — tight limits on login / register / OTP
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,                   // 20 attempts per window per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many auth attempts — please wait 15 minutes and try again.' },
-  skipSuccessfulRequests: true, // only count failures
-});
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -134,11 +98,11 @@ app.get('/health', async (req, res) => {
     ? { status: 'configured' }
     : { status: 'missing', error: 'JWT_SECRET not set' };
 
-  // 5. Groq key — show first 12 chars so you can verify which key the server loaded
-  const groqKey = process.env.GROQ_API_KEY;
-  checks.groq = groqKey
-    ? { status: 'configured', keyPrefix: groqKey.slice(0, 12) + '...' }
-    : { status: 'missing', error: 'GROQ_API_KEY not set' };
+  // 5. OpenAI key — show first 12 chars so you can verify which key the server loaded
+  const oaiKey = process.env.OPENAI_API_KEY;
+  checks.openai = oaiKey
+    ? { status: 'configured', keyPrefix: oaiKey.slice(0, 12) + '...' }
+    : { status: 'missing', error: 'OPENAI_API_KEY not set' };
 
   // Overall status — 'ok' only if DB connected and JWT present
   const healthy = checks.database.status === 'ok' && checks.jwt.status === 'configured';
@@ -155,13 +119,13 @@ app.get('/health', async (req, res) => {
 });
 
 // Routes
-app.use('/api/auth',          authLimiter, authRoutes);
+app.use('/api/auth',          authRoutes);
 app.use('/api/attractions',   attractionsRoutes);
 app.use('/api/advisories',    advisoriesRoutes);
 app.use('/api/emergency',     emergencyRoutes);
 app.use('/api/users',         usersRoutes);
 app.use('/api/notifications', notificationsRoutes);
-app.use('/api/analytics',     reportsRoutes);
+app.use('/api/reports',       reportsRoutes);
 app.use('/api/reviews',       reviewsRoutes);
 
 // Serve admin panel static files (built into backend/public during deployment)

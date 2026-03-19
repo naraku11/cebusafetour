@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -24,9 +24,7 @@ export default function Attractions() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(defaultForm);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiNameLoading, setAiNameLoading] = useState(false);
   const [aiSafetyTip, setAiSafetyTip] = useState('');
-  const nameDebounceRef = useRef(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name } | null
 
   const { data, isLoading } = useQuery({
@@ -109,14 +107,11 @@ export default function Attractions() {
       if (s.safetyTips) setAiSafetyTip(s.safetyTips);
       toast.success('AI filled in all fields — review and adjust as needed');
     } catch (err) {
-      const status    = err?.response?.status;
       const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
       const serverMsg = err?.response?.data?.error;
       const hint      = err?.response?.data?.hint;
       if (isTimeout) {
         toast.error('Request timed out — the model is too slow. Try phi3 or gemma.', { duration: 8000 });
-      } else if (status === 429 || status === 403) {
-        toast.error(serverMsg || 'Too many AI requests — please wait a few minutes before trying again.', { duration: 8000 });
       } else {
         toast.error(serverMsg || 'AI suggestion failed', { duration: 6000 });
         if (hint) toast(hint, { icon: '💡', duration: 8000 });
@@ -124,43 +119,6 @@ export default function Attractions() {
     } finally {
       setAiLoading(false);
     }
-  };
-
-  const handleNameChange = (value) => {
-    setForm(f => ({ ...f, name: value }));
-    if (nameDebounceRef.current) clearTimeout(nameDebounceRef.current);
-    if (value.trim().length < 3) return;
-    nameDebounceRef.current = setTimeout(async () => { // 1500 ms debounce
-      setAiNameLoading(true);
-      try {
-        const { data: res } = await api.post('/attractions/ai-suggest', { name: value.trim() }, { skipToast: true, timeout: 60_000 });
-        const s = res.suggestion;
-        const sugLat = s.latitude  != null && s.latitude  !== '' ? parseFloat(s.latitude)  : null;
-        const sugLng = s.longitude != null && s.longitude !== '' ? parseFloat(s.longitude) : null;
-        setForm(f => ({
-          ...f,
-          category:    CATEGORIES.includes(s.category) ? s.category : f.category,
-          district:    s.district    || f.district,
-          address:     s.address     || f.address,
-          description: s.description || f.description,
-          entranceFee: s.entranceFee ?? f.entranceFee,
-          safetyStatus: s.safetyStatus && ['safe', 'caution', 'restricted'].includes(s.safetyStatus) ? s.safetyStatus : f.safetyStatus,
-          status: 'published',
-          // Keep existing pin if already placed
-          latitude:  f.latitude  || (sugLat ?? f.latitude),
-          longitude: f.longitude || (sugLng ?? f.longitude),
-        }));
-        if (s.safetyTips) setAiSafetyTip(s.safetyTips);
-      } catch (err) {
-        const status = err?.response?.status;
-        if (status === 429 || status === 403) {
-          toast.error(err?.response?.data?.error || 'Too many AI requests — please wait a few minutes.', { duration: 8000 });
-        }
-        // other errors are silent — name fill is best-effort
-      } finally {
-        setAiNameLoading(false);
-      }
-    }, 1500);
   };
 
   return (
@@ -292,17 +250,12 @@ export default function Attractions() {
             {/* Attraction Name */}
             <div>
               <label className="block text-sm font-medium mb-1">Attraction Name</label>
-              <div className="relative">
-                <input
-                  value={form.name}
-                  onChange={e => handleNameChange(e.target.value)}
-                  className="input w-full pr-8"
-                  placeholder="Type a name — AI will auto-fill all fields"
-                />
-                {aiNameLoading && (
-                  <SparklesIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 animate-pulse pointer-events-none" />
-                )}
-              </div>
+              <input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="input w-full"
+                placeholder="Filled by AI after placing pin, or type manually"
+              />
             </div>
 
             {/* AI safety tip banner */}

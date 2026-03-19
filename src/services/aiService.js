@@ -1,5 +1,6 @@
-// AI service — Groq (text + vision)
-// Get a free key at https://console.groq.com  →  set GROQ_API_KEY in .env
+// OpenAI ChatGPT integration
+// Get an API key at: https://platform.openai.com/api-keys
+// Set OPENAI_API_KEY in .env
 
 const https = require('node:https');
 
@@ -33,24 +34,6 @@ Respond with only valid JSON. No markdown, no explanation, no code fences.
 Coordinates: latitude ${lat}, longitude ${lng}
 Place name from reverse geocoding: "${placeName}"`;
 
-const NAME_PROMPT = (name) =>
-  `You are a tourism data assistant exclusively for Cebu Province, Philippines.
-Fill in the details for the following attraction in Cebu: "${name}".
-
-Return a JSON object with these exact fields:
-- "name": the full official name of the attraction
-- "category": one of ${CATEGORIES.join(', ')}
-- "district": municipality or city in Cebu Province (e.g. "Moalboal", "Cebu City", "Oslob", "Lapu-Lapu City")
-- "address": full street address or nearest landmark in Cebu
-- "description": 2-3 engaging sentences for tourists describing what makes this specific place special
-- "entranceFee": estimated entrance fee in Philippine Pesos as a number (0 if free)
-- "safetyStatus": one of "safe", "caution", "restricted" — based on typical conditions at this attraction
-- "safetyTips": one short sentence of safety advice specific to this attraction
-- "latitude": approximate latitude (must be within Cebu Province bounds: 9.4 to 11.5)
-- "longitude": approximate longitude (must be within Cebu Province bounds: 123.3 to 124.1)
-
-Respond with only valid JSON. No markdown, no explanation, no code fences.`;
-
 const ADVISORY_PROMPT = (area) =>
   `You are a safety advisory writer for CebuSafeTour, a tourism safety app for Cebu Province, Philippines.
 Generate a realistic and relevant safety advisory for the following attraction or area in Cebu.
@@ -66,17 +49,17 @@ Respond with only valid JSON. No markdown, no explanation, no code fences.
 
 Attraction or area in Cebu: "${area}"`;
 
-// ── Groq — fast LLM for text completions ──────────────────────────────────────
-
-const groqPost = (promptOrMessages, { model: modelOverride } = {}) => new Promise((resolve, reject) => {
-  const apiKey = process.env.GROQ_API_KEY;
+// POST to OpenAI chat completions endpoint
+// promptOrMessages: string prompt OR a pre-built messages array (for vision)
+const openaiPost = (promptOrMessages) => new Promise((resolve, reject) => {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    const e = new Error('GROQ_API_KEY is not set in .env');
+    const e = new Error('OPENAI_API_KEY is not set in .env');
     e.code = 'NO_API_KEY';
     return reject(e);
   }
 
-  const model    = modelOverride || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const model    = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   const messages = typeof promptOrMessages === 'string'
     ? [{ role: 'user', content: promptOrMessages }]
     : promptOrMessages;
@@ -85,28 +68,27 @@ const groqPost = (promptOrMessages, { model: modelOverride } = {}) => new Promis
     model,
     messages,
     response_format: { type: 'json_object' },
-    temperature: 0.3,
   }));
 
   const req = https.request({
-    hostname: 'api.groq.com',
-    path:     '/openai/v1/chat/completions',
+    hostname: 'api.openai.com',
+    path:     '/v1/chat/completions',
     method:   'POST',
     headers:  {
-      'Content-Type':   'application/json',
+      'Content-Type':  'application/json',
       'Content-Length': payload.length,
-      'Authorization':  `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
     timeout: 30_000,
   }, (res) => {
     let data = '';
-    res.on('data', chunk => { data += chunk; });
+    res.on('data', (chunk) => { data += chunk; });
     res.on('end', () => resolve({ status: res.statusCode, body: data }));
   });
 
   req.on('timeout', () => {
     req.destroy();
-    const e = new Error('Groq request timed out — please try again.');
+    const e = new Error('ChatGPT request timed out — please try again.');
     e.code = 'OPENAI_TIMEOUT';
     reject(e);
   });
@@ -120,22 +102,28 @@ const groqPost = (promptOrMessages, { model: modelOverride } = {}) => new Promis
   req.end();
 });
 
-const parseGroq = ({ status, body }) => {
+// Shared response parser for OpenAI chat completions
+const parseOpenAI = ({ status, body }) => {
   if (status === 401) {
-    const e = new Error('Invalid Groq API key — check GROQ_API_KEY in .env');
+    const e = new Error('Invalid OpenAI API key — check OPENAI_API_KEY in .env');
     e.code = 'OPENAI_AUTH';
     throw e;
   }
   if (status === 429) {
-    const e = new Error('Groq rate limit hit — please wait a moment and try again');
+    let errCode = '';
+    try { errCode = JSON.parse(body).error?.code || ''; } catch {}
+    const isQuota = errCode === 'insufficient_quota';
+    const e = new Error(isQuota
+      ? 'OpenAI billing quota exceeded — add credits at https://platform.openai.com/settings/billing/overview'
+      : 'OpenAI rate limit hit — please wait a moment and try again');
     e.code = 'QUOTA_EXCEEDED';
-    e.isQuota = false;
+    e.isQuota = isQuota;
     throw e;
   }
   if (status !== 200) {
     let msg = '';
     try { msg = JSON.parse(body).error?.message || ''; } catch {}
-    const e = new Error(msg || `Groq returned status ${status}`);
+    const e = new Error(msg || `OpenAI returned status ${status}`);
     e.code = 'OPENAI_ERROR';
     throw e;
   }
@@ -143,8 +131,6 @@ const parseGroq = ({ status, body }) => {
   const content = json.choices?.[0]?.message?.content ?? '';
   return JSON.parse(content);
 };
-
-// ── Reverse geocoding ──────────────────────────────────────────────────────────
 
 /**
  * Reverse geocode coordinates using Google Maps Geocoding API.
@@ -167,6 +153,7 @@ const reverseGeocode = (lat, lng) => new Promise((resolve) => {
       try {
         const json    = JSON.parse(data);
         const results = json.results ?? [];
+        // Prefer a named POI over a plain address
         const poi = results.find(r =>
           r.types?.some(t => ['point_of_interest', 'establishment', 'natural_feature', 'park', 'tourist_attraction'].includes(t))
         );
@@ -182,10 +169,8 @@ const reverseGeocode = (lat, lng) => new Promise((resolve) => {
   req.end();
 });
 
-// ── Exports ────────────────────────────────────────────────────────────────────
-
 /**
- * Ask Groq to identify and fill in attraction details from coordinates.
+ * Ask ChatGPT to identify and fill in attraction details from coordinates.
  * Returns { name, category, district, address, description, entranceFee, safetyTips, latitude, longitude }
  */
 exports.suggestByCoords = async (lat, lng) => {
@@ -194,25 +179,13 @@ exports.suggestByCoords = async (lat, lng) => {
     e.code = 'OUTSIDE_CEBU';
     throw e;
   }
+  // Reverse geocode first so the AI gets the actual place name, not just raw coords
   const placeName = await reverseGeocode(lat, lng);
-  return parseGroq(await groqPost(COORD_PROMPT(lat, lng, placeName)));
+  return parseOpenAI(await openaiPost(COORD_PROMPT(lat, lng, placeName)));
 };
 
 /**
- * Ask Groq to fill in attraction details from a name alone.
- * Returns { name, category, district, address, description, entranceFee, safetyStatus, safetyTips, latitude, longitude }
- */
-exports.suggestByName = async (name) => {
-  if (!name?.trim()) {
-    const e = new Error('Attraction name is required');
-    e.code = 'BAD_INPUT';
-    throw e;
-  }
-  return parseGroq(await groqPost(NAME_PROMPT(name.trim())));
-};
-
-/**
- * Ask Groq to generate a safety advisory for a specific Cebu attraction/area.
+ * Ask ChatGPT to generate a safety advisory for a specific Cebu attraction/area.
  * Returns { title, description, severity, recommendedActions }
  */
 exports.suggestAdvisory = async (area) => {
@@ -221,11 +194,11 @@ exports.suggestAdvisory = async (area) => {
     e.code = 'BAD_INPUT';
     throw e;
   }
-  return parseGroq(await groqPost(ADVISORY_PROMPT(area.trim())));
+  return parseOpenAI(await openaiPost(ADVISORY_PROMPT(area.trim())));
 };
 
 /**
- * Use Groq vision to verify whether a profile picture URL shows a real human face.
+ * Use OpenAI vision to verify whether a profile picture URL shows a real human face.
  * Returns { isReal: boolean, reason: string }
  */
 exports.verifyProfilePicture = async (url) => {
@@ -247,6 +220,5 @@ exports.verifyProfilePicture = async (url) => {
       },
     ],
   }];
-  const visionModel = process.env.GROQ_VISION_MODEL || 'llama-3.2-11b-vision-preview';
-  return parseGroq(await groqPost(messages, { model: visionModel }));
+  return parseOpenAI(await openaiPost(messages));
 };

@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const { sendPushToAll } = require('../services/fcmService');
-const { suggestByCoords, suggestByName } = require('../services/aiService');
+const { suggestByCoords } = require('../services/aiService');
 const { fetchPlacePhotos } = require('../services/placesService');
 
 // JSON fields that must be stringified before writing to DB
@@ -204,21 +204,15 @@ exports.refreshPhotos = async (req, res, next) => {
 
 exports.aiSuggest = async (req, res, next) => {
   try {
-    const { latitude, longitude, name } = req.body;
+    const { latitude, longitude } = req.body;
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (isNaN(lat) || isNaN(lng)) return res.status(400).json({ error: 'Valid latitude and longitude are required' });
 
-    let suggestion;
-    if (name) {
-      suggestion = await suggestByName(name);
-    } else {
-      const lat = parseFloat(latitude);
-      const lng = parseFloat(longitude);
-      if (isNaN(lat) || isNaN(lng)) return res.status(400).json({ error: 'Valid latitude and longitude are required' });
-      suggestion = await suggestByCoords(lat, lng);
-    }
-
+    const suggestion = await suggestByCoords(lat, lng);
     res.json({ suggestion });
   } catch (err) {
-    if (err.code === 'NO_API_KEY')     return res.status(503).json({ error: 'Groq API key not configured.', hint: 'Set GROQ_API_KEY in .env — get a free key at https://console.groq.com' });
+    if (err.code === 'NO_API_KEY')     return res.status(503).json({ error: 'OpenAI API key not configured.', hint: 'Set OPENAI_API_KEY in .env — get a key at https://platform.openai.com/api-keys' });
     if (err.code === 'OPENAI_AUTH')    return res.status(401).json({ error: err.message });
     if (err.code === 'QUOTA_EXCEEDED') return res.status(429).json({ error: err.message, hint: err.isQuota ? 'Add credits at https://platform.openai.com/settings/billing/overview' : 'Wait a few seconds and try again.' });
     if (err.code === 'OPENAI_TIMEOUT') return res.status(504).json({ error: err.message });
