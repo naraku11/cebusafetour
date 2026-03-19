@@ -1,10 +1,10 @@
 const router = require('express').Router();
 const { authenticate, requireAdmin } = require('../middleware/auth');
-const prisma = require('../config/prisma');
+const db = require('../config/db');
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const monthRange = (offsetFromNow) => {
-  const now = new Date();
+  const now   = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - offsetFromNow, 1);
   const end   = new Date(now.getFullYear(), now.getMonth() - offsetFromNow + 1, 0, 23, 59, 59);
   return { start, end };
@@ -16,41 +16,39 @@ const monthLabel = (offsetFromNow) => {
   return d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
 };
 
+const count = (sql, params = []) => db.findOne(sql, params).then(r => r.n);
+
 // ── GET /reports/summary ─────────────────────────────────────────────────────
 router.get('/summary', authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const monthStart = new Date();
-    monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
     const [
       totalUsers, activeUsers, suspendedUsers, bannedUsers, newUsersThisMonth,
       totalAttractions, safeAttractions, cautionAttractions,
       totalIncidents, activeIncidents, resolvedIncidents, incidentsToday, incidentsThisMonth,
       totalAdvisories, activeAdvisories, criticalAdvisories,
-    ] = await prisma.$transaction([
-      prisma.user.count({ where: { role: 'tourist' } }),
-      prisma.user.count({ where: { role: 'tourist', status: 'active' } }),
-      prisma.user.count({ where: { role: 'tourist', status: 'suspended' } }),
-      prisma.user.count({ where: { role: 'tourist', status: 'banned' } }),
-      prisma.user.count({ where: { role: 'tourist', createdAt: { gte: monthStart } } }),
-      prisma.attraction.count({ where: { status: 'published' } }),
-      prisma.attraction.count({ where: { status: 'published', safetyStatus: 'safe' } }),
-      prisma.attraction.count({ where: { status: 'published', safetyStatus: 'caution' } }),
-      prisma.incident.count(),
-      prisma.incident.count({ where: { status: { in: ['new', 'in_progress'] } } }),
-      prisma.incident.count({ where: { status: 'resolved' } }),
-      prisma.incident.count({ where: { createdAt: { gte: todayStart } } }),
-      prisma.incident.count({ where: { createdAt: { gte: monthStart } } }),
-      prisma.advisory.count(),
-      prisma.advisory.count({ where: { status: 'active' } }),
-      prisma.advisory.count({ where: { status: 'active', severity: 'critical' } }),
+    ] = await Promise.all([
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist'`),
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND status = 'active'`),
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND status = 'suspended'`),
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND status = 'banned'`),
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND created_at >= ?`, [monthStart]),
+      count(`SELECT COUNT(*) as n FROM attractions WHERE status = 'published'`),
+      count(`SELECT COUNT(*) as n FROM attractions WHERE status = 'published' AND safety_status = 'safe'`),
+      count(`SELECT COUNT(*) as n FROM attractions WHERE status = 'published' AND safety_status = 'caution'`),
+      count(`SELECT COUNT(*) as n FROM incidents`),
+      count(`SELECT COUNT(*) as n FROM incidents WHERE status IN ('new', 'in_progress')`),
+      count(`SELECT COUNT(*) as n FROM incidents WHERE status = 'resolved'`),
+      count(`SELECT COUNT(*) as n FROM incidents WHERE created_at >= ?`, [todayStart]),
+      count(`SELECT COUNT(*) as n FROM incidents WHERE created_at >= ?`, [monthStart]),
+      count(`SELECT COUNT(*) as n FROM advisories`),
+      count(`SELECT COUNT(*) as n FROM advisories WHERE status = 'active'`),
+      count(`SELECT COUNT(*) as n FROM advisories WHERE status = 'active' AND severity = 'critical'`),
     ]);
 
-    const resolveRate = totalIncidents > 0
-      ? Math.round((resolvedIncidents / totalIncidents) * 100)
-      : 0;
+    const resolveRate = totalIncidents > 0 ? Math.round((resolvedIncidents / totalIncidents) * 100) : 0;
 
     res.json({
       users:       { total: totalUsers, active: activeUsers, suspended: suspendedUsers, banned: bannedUsers, newThisMonth: newUsersThisMonth },
@@ -64,21 +62,21 @@ router.get('/summary', authenticate, requireAdmin, async (req, res, next) => {
 // ── GET /reports/trends ──────────────────────────────────────────────────────
 router.get('/trends', authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const MONTHS = 6;
+    const MONTHS  = 6;
     const offsets = Array.from({ length: MONTHS }, (_, i) => MONTHS - 1 - i); // [5,4,3,2,1,0]
 
     const [incidentCounts, advisoryCounts, userCounts] = await Promise.all([
       Promise.all(offsets.map(o => {
         const { start, end } = monthRange(o);
-        return prisma.incident.count({ where: { createdAt: { gte: start, lte: end } } });
+        return count('SELECT COUNT(*) as n FROM incidents WHERE created_at >= ? AND created_at <= ?', [start, end]);
       })),
       Promise.all(offsets.map(o => {
         const { start, end } = monthRange(o);
-        return prisma.advisory.count({ where: { createdAt: { gte: start, lte: end } } });
+        return count('SELECT COUNT(*) as n FROM advisories WHERE created_at >= ? AND created_at <= ?', [start, end]);
       })),
       Promise.all(offsets.map(o => {
         const { start, end } = monthRange(o);
-        return prisma.user.count({ where: { role: 'tourist', createdAt: { gte: start, lte: end } } });
+        return count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND created_at >= ? AND created_at <= ?`, [start, end]);
       })),
     ]);
 
@@ -95,29 +93,29 @@ router.get('/trends', authenticate, requireAdmin, async (req, res, next) => {
 router.get('/incidents', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const { from, to, type, status, page = 1, limit = 50 } = req.query;
-    const where = {};
-    if (type)   where.type   = type;
-    if (status) where.status = status;
-    if (from || to) {
-      where.createdAt = {};
-      if (from) where.createdAt.gte = new Date(from);
-      if (to)   where.createdAt.lte = new Date(to);
-    }
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    const [incidents, total, byType, byStatus] = await prisma.$transaction([
-      prisma.incident.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
-      prisma.incident.count({ where }),
-      prisma.incident.groupBy({ by: ['type'],   _count: { _all: true }, where }),
-      prisma.incident.groupBy({ by: ['status'], _count: { _all: true }, where }),
+    const conditions = [];
+    const params     = [];
+    if (type)   { conditions.push('type = ?');   params.push(type); }
+    if (status) { conditions.push('status = ?'); params.push(status); }
+    if (from)   { conditions.push('created_at >= ?'); params.push(new Date(from)); }
+    if (to)     { conditions.push('created_at <= ?'); params.push(new Date(to)); }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const [incidents, total, byType, byStatus] = await Promise.all([
+      db.findMany(`SELECT * FROM incidents ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, take, skip]),
+      count(`SELECT COUNT(*) as n FROM incidents ${where}`, params),
+      db.findMany(`SELECT type, COUNT(*) as n FROM incidents ${where} GROUP BY type`, params),
+      db.findMany(`SELECT status, COUNT(*) as n FROM incidents ${where} GROUP BY status`, params),
     ]);
 
     res.json({
       incidents, total,
-      byType:   byType.map(r => ({ type: r.type, count: r._count._all })),
-      byStatus: byStatus.map(r => ({ status: r.status, count: r._count._all })),
+      byType:   byType.map(r => ({ type: r.type, count: r.n })),
+      byStatus: byStatus.map(r => ({ status: r.status, count: r.n })),
     });
   } catch (err) { next(err); }
 });
@@ -125,21 +123,19 @@ router.get('/incidents', authenticate, requireAdmin, async (req, res, next) => {
 // ── GET /reports/advisories ──────────────────────────────────────────────────
 router.get('/advisories', authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const [bySeverity, byStatus, recent, total] = await prisma.$transaction([
-      prisma.advisory.groupBy({ by: ['severity'], _count: { _all: true } }),
-      prisma.advisory.groupBy({ by: ['status'],   _count: { _all: true } }),
-      prisma.advisory.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 15,
-        select: { id: true, title: true, severity: true, status: true, createdAt: true, location: true },
-      }),
-      prisma.advisory.count(),
+    const [bySeverity, byStatus, recent, total] = await Promise.all([
+      db.findMany('SELECT severity, COUNT(*) as n FROM advisories GROUP BY severity'),
+      db.findMany('SELECT status, COUNT(*) as n FROM advisories GROUP BY status'),
+      db.findMany(
+        `SELECT id, title, severity, status, created_at FROM advisories ORDER BY created_at DESC LIMIT 15`
+      ),
+      count('SELECT COUNT(*) as n FROM advisories'),
     ]);
 
     res.json({
       total,
-      bySeverity: bySeverity.map(r => ({ severity: r.severity, count: r._count._all })),
-      byStatus:   byStatus.map(r => ({ status: r.status, count: r._count._all })),
+      bySeverity: bySeverity.map(r => ({ severity: r.severity, count: r.n })),
+      byStatus:   byStatus.map(r => ({ status: r.status, count: r.n })),
       recent,
     });
   } catch (err) { next(err); }
@@ -148,24 +144,19 @@ router.get('/advisories', authenticate, requireAdmin, async (req, res, next) => 
 // ── GET /reports/attractions ─────────────────────────────────────────────────
 router.get('/attractions', authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const [attractions, byCategory, bySafety] = await prisma.$transaction([
-      prisma.attraction.findMany({
-        where: { status: 'published' },
-        select: {
-          id: true, name: true, category: true, district: true,
-          totalVisits: true, totalSaves: true, averageRating: true, safetyStatus: true,
-        },
-        orderBy: { totalVisits: 'desc' },
-        take: 50,
-      }),
-      prisma.attraction.groupBy({ by: ['category'],    _count: { _all: true }, where: { status: 'published' } }),
-      prisma.attraction.groupBy({ by: ['safetyStatus'], _count: { _all: true }, where: { status: 'published' } }),
+    const [attractions, byCategory, bySafety] = await Promise.all([
+      db.findMany(
+        `SELECT id, name, category, district, total_visits, total_saves, average_rating, safety_status
+         FROM attractions WHERE status = 'published' ORDER BY total_visits DESC LIMIT 50`
+      ),
+      db.findMany(`SELECT category, COUNT(*) as n FROM attractions WHERE status = 'published' GROUP BY category`),
+      db.findMany(`SELECT safety_status, COUNT(*) as n FROM attractions WHERE status = 'published' GROUP BY safety_status`),
     ]);
 
     res.json({
       attractions,
-      byCategory: byCategory.map(r => ({ category: r.category, count: r._count._all })),
-      bySafety:   bySafety.map(r => ({ safety: r.safetyStatus, count: r._count._all })),
+      byCategory: byCategory.map(r => ({ category: r.category, count: r.n })),
+      bySafety:   bySafety.map(r => ({ safety: r.safetyStatus, count: r.n })),
     });
   } catch (err) { next(err); }
 });
@@ -173,22 +164,20 @@ router.get('/attractions', authenticate, requireAdmin, async (req, res, next) =>
 // ── GET /reports/users-summary ───────────────────────────────────────────────
 router.get('/users-summary', authenticate, requireAdmin, async (req, res, next) => {
   try {
-    const [byNationality, verified, unverified] = await prisma.$transaction([
-      prisma.user.groupBy({
-        by: ['nationality'],
-        where: { role: 'tourist', nationality: { not: null } },
-        _count: { nationality: true },
-        orderBy: { _count: { nationality: 'desc' } },
-        take: 10,
-      }),
-      prisma.user.count({ where: { role: 'tourist', isVerified: true } }),
-      prisma.user.count({ where: { role: 'tourist', isVerified: false } }),
+    const [byNationality, verified, unverified] = await Promise.all([
+      db.findMany(
+        `SELECT nationality, COUNT(*) as n FROM users
+         WHERE role = 'tourist' AND nationality IS NOT NULL
+         GROUP BY nationality ORDER BY n DESC LIMIT 10`
+      ),
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND is_verified = 1`),
+      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND is_verified = 0`),
     ]);
 
     res.json({
       byNationality: byNationality
         .filter(r => r.nationality)
-        .map(r => ({ name: r.nationality, count: r._count.nationality })),
+        .map(r => ({ name: r.nationality, count: r.n })),
       verification: { verified, unverified },
     });
   } catch (err) { next(err); }

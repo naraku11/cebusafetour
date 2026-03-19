@@ -1,5 +1,5 @@
 const { getMessaging } = require('../config/firebase');
-const prisma = require('../config/prisma');
+const db     = require('../config/db');
 const logger = require('../utils/logger');
 
 const buildMessage = (tokens, { title, body, data = {} }) => ({
@@ -12,10 +12,9 @@ const buildMessage = (tokens, { title, body, data = {} }) => ({
 
 exports.sendPushToAll = async (payload) => {
   try {
-    const users = await prisma.user.findMany({
-      where: { status: 'active', fcmToken: { not: null } },
-      select: { fcmToken: true },
-    });
+    const users  = await db.findMany(
+      `SELECT fcm_token FROM users WHERE status = 'active' AND fcm_token IS NOT NULL`
+    );
     const tokens = users.map(u => u.fcmToken).filter(Boolean);
     if (!tokens.length) return;
 
@@ -42,10 +41,9 @@ exports.sendPushToUsers = async (tokens, payload) => {
 
 exports.sendPushToAdmins = async (payload) => {
   try {
-    const admins = await prisma.user.findMany({
-      where: { role: { in: ['admin_super', 'admin_emergency'] }, fcmToken: { not: null } },
-      select: { fcmToken: true },
-    });
+    const admins = await db.findMany(
+      `SELECT fcm_token FROM users WHERE role IN ('admin_super', 'admin_emergency') AND fcm_token IS NOT NULL`
+    );
     const tokens = admins.map(u => u.fcmToken).filter(Boolean);
     if (tokens.length) {
       await getMessaging().sendEachForMulticast(buildMessage(tokens, payload));

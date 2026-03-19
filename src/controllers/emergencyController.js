@@ -1,4 +1,5 @@
-const prisma = require('../config/prisma');
+const { v4: uuidv4 } = require('uuid');
+const db     = require('../config/db');
 const { sendPushToAdmins } = require('../services/fcmService');
 const { getFirestore } = require('../config/firebase');
 const socket = require('../services/socketService');
@@ -6,33 +7,57 @@ const socket = require('../services/socketService');
 // Safe fire-and-forget Firestore call — swallows both sync throws and async rejections
 const firestore = (fn) => { try { fn(getFirestore()); } catch (_) {} };
 
+// Build a row with a nested reporter object from a JOIN result
+const mapWithReporter = row => ({
+  id: row.id, type: row.type, description: row.description,
+  latitude: row.latitude, longitude: row.longitude,
+  nearestLandmark: row.nearestLandmark,
+  reportedBy: row.reportedBy, reporterContact: row.reporterContact,
+  status: row.status, assignedTo: row.assignedTo, responderNotes: row.responderNotes,
+  attachments: row.attachments, resolvedAt: row.resolvedAt,
+  createdAt: row.createdAt, updatedAt: row.updatedAt,
+  reporter: row.rId ? { id: row.rId, name: row.rName } : null,
+});
+
+const INCIDENT_WITH_REPORTER = `
+  SELECT i.*, u.id as r_id, u.name as r_name
+  FROM incidents i
+  LEFT JOIN users u ON u.id = i.reported_by`;
+
 exports.reportIncident = async (req, res, next) => {
   try {
     const { type, description, latitude, longitude, nearestLandmark, attachments } = req.body;
 
-    const incident = await prisma.incident.create({
-      data: {
-        type, description,
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
-        nearestLandmark, attachments,
-        reportedBy: req.user?.id,
-        reporterContact: req.user?.contactNumber,
-      },
-    });
+    const id  = uuidv4();
+    const now = new Date();
+    await db.run(
+      `INSERT INTO incidents
+         (id, type, description, latitude, longitude, nearest_landmark,
+          reported_by, reporter_contact, status, attachments, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)`,
+      [
+        id, type, description ?? null,
+        parseFloat(latitude), parseFloat(longitude),
+        nearestLandmark ?? null,
+        req.user?.id ?? null,
+        req.user?.contactNumber ?? null,
+        JSON.stringify(attachments || []),
+        now, now,
+      ]
+    );
+
+    const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [id]);
 
     firestore(db => db.collection('incidents').doc(incident.id).set({
       id: incident.id, type,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
-      status: 'new',
-      reportedAt: new Date().toISOString(),
+      latitude: parseFloat(latitude), longitude: parseFloat(longitude),
+      status: 'new', reportedAt: now.toISOString(),
     }));
 
     sendPushToAdmins({
       title: `New Incident: ${type.replace('_', ' ').toUpperCase()}`,
-      body: `Reported at ${nearestLandmark || `${latitude}, ${longitude}`}`,
-      data: { type: 'incident', incidentId: incident.id },
+      body:  `Reported at ${nearestLandmark || `${latitude}, ${longitude}`}`,
+      data:  { type: 'incident', incidentId: incident.id },
     });
 
     socket.emitToAdmins('incident:new', { incident });
@@ -43,12 +68,14 @@ exports.reportIncident = async (req, res, next) => {
 exports.myIncidents = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const where = { reportedBy: req.user.id };
-    if (status) where.status = status;
-    const incidents = await prisma.incident.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    const conditions = ['reported_by = ?'];
+    const params     = [req.user.id];
+    if (status) { conditions.push('status = ?'); params.push(status); }
+
+    const incidents = await db.findMany(
+      `SELECT * FROM incidents WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`,
+      params
+    );
     res.json({ incidents });
   } catch (err) { next(err); }
 };
@@ -56,26 +83,35 @@ exports.myIncidents = async (req, res, next) => {
 exports.listIncidents = async (req, res, next) => {
   try {
     const { status, type, page = 1, limit = 20 } = req.query;
-    // Exclude archived from the main list — they have their own endpoint
-    const where = { NOT: { status: 'archived' } };
-    if (status) where.status = status;
-    if (type) where.type = type;
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    const [incidents, total] = await prisma.$transaction([
-      prisma.incident.findMany({ where, skip, take, orderBy: { createdAt: 'desc' }, include: { reporter: { select: { id: true, name: true } } } }),
-      prisma.incident.count({ where }),
+    // Exclude archived from the main list
+    const conditions = [`i.status != 'archived'`];
+    const params     = [];
+    if (status) { conditions.push('i.status = ?'); params.push(status); }
+    if (type)   { conditions.push('i.type = ?');   params.push(type); }
+
+    const where = conditions.join(' AND ');
+
+    const [rows, countRow] = await Promise.all([
+      db.findMany(
+        `${INCIDENT_WITH_REPORTER} WHERE ${where} ORDER BY i.created_at DESC LIMIT ? OFFSET ?`,
+        [...params, take, skip]
+      ),
+      db.findOne(
+        `SELECT COUNT(*) as n FROM incidents i WHERE ${where}`,
+        params
+      ),
     ]);
 
-    res.json({ incidents, total });
+    res.json({ incidents: rows.map(mapWithReporter), total: countRow.n });
   } catch (err) { next(err); }
 };
 
 exports.getIncident = async (req, res, next) => {
   try {
-    const incident = await prisma.incident.findUnique({ where: { id: req.params.id } });
+    const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     if (!incident) return res.status(404).json({ error: 'Incident not found' });
     res.json({ incident });
   } catch (err) { next(err); }
@@ -83,17 +119,47 @@ exports.getIncident = async (req, res, next) => {
 
 exports.updateIncident = async (req, res, next) => {
   try {
-    const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
+    const existing = await db.findOne('SELECT id FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
 
-    const data = { ...req.body };
-    if (req.body.status === 'resolved') data.resolvedAt = new Date();
+    // camelCase → snake_case map for updatable fields
+    const FIELD_MAP = {
+      type:            'type',
+      description:     'description',
+      latitude:        'latitude',
+      longitude:       'longitude',
+      nearestLandmark: 'nearest_landmark',
+      status:          'status',
+      assignedTo:      'assigned_to',
+      responderNotes:  'responder_notes',
+      attachments:     'attachments',
+    };
 
-    const incident = await prisma.incident.update({ where: { id: req.params.id }, data });
+    const sets   = [];
+    const params = [];
+
+    for (const [key, col] of Object.entries(FIELD_MAP)) {
+      if (req.body[key] !== undefined) {
+        sets.push(`${col} = ?`);
+        params.push(key === 'attachments' ? JSON.stringify(req.body[key]) : req.body[key]);
+      }
+    }
+
+    if (req.body.status === 'resolved') {
+      sets.push('resolved_at = ?');
+      params.push(new Date());
+    }
+
+    if (sets.length) {
+      sets.push('updated_at = ?');
+      params.push(new Date(), req.params.id);
+      await db.run(`UPDATE incidents SET ${sets.join(', ')} WHERE id = ?`, params);
+    }
+
+    const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
 
     firestore(db => db.collection('incidents').doc(incident.id).set({
-      status: incident.status,
-      assignedTo: incident.assignedTo,
+      status: incident.status, assignedTo: incident.assignedTo,
     }, { merge: true }));
 
     socket.emitToAdmins('incident:updated', { incident });
@@ -103,12 +169,10 @@ exports.updateIncident = async (req, res, next) => {
 
 exports.archiveIncident = async (req, res, next) => {
   try {
-    const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
+    const existing = await db.findOne('SELECT id FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
-    const incident = await prisma.incident.update({
-      where: { id: req.params.id },
-      data: { status: 'archived' },
-    });
+    await db.run("UPDATE incidents SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     firestore(db => db.collection('incidents').doc(req.params.id).set({ status: 'archived' }, { merge: true }));
     socket.emitToAdmins('incident:archived', { id: req.params.id });
     res.json({ incident, message: 'Incident archived' });
@@ -117,12 +181,10 @@ exports.archiveIncident = async (req, res, next) => {
 
 exports.unarchiveIncident = async (req, res, next) => {
   try {
-    const existing = await prisma.incident.findUnique({ where: { id: req.params.id } });
+    const existing = await db.findOne('SELECT id FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
-    const incident = await prisma.incident.update({
-      where: { id: req.params.id },
-      data: { status: 'resolved' },
-    });
+    await db.run("UPDATE incidents SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     firestore(db => db.collection('incidents').doc(req.params.id).set({ status: 'resolved' }, { merge: true }));
     socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident, message: 'Incident unarchived' });
@@ -132,14 +194,24 @@ exports.unarchiveIncident = async (req, res, next) => {
 exports.listArchivedIncidents = async (req, res, next) => {
   try {
     const { type, page = 1, limit = 20 } = req.query;
-    const where = { status: 'archived' };
-    if (type) where.type = type;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const [incidents, total] = await prisma.$transaction([
-      prisma.incident.findMany({ where, skip, take: parseInt(limit), orderBy: { updatedAt: 'desc' }, include: { reporter: { select: { id: true, name: true } } } }),
-      prisma.incident.count({ where }),
+    const take = parseInt(limit);
+
+    const conditions = [`i.status = 'archived'`];
+    const params     = [];
+    if (type) { conditions.push('i.type = ?'); params.push(type); }
+
+    const where = conditions.join(' AND ');
+
+    const [rows, countRow] = await Promise.all([
+      db.findMany(
+        `${INCIDENT_WITH_REPORTER} WHERE ${where} ORDER BY i.updated_at DESC LIMIT ? OFFSET ?`,
+        [...params, take, skip]
+      ),
+      db.findOne(`SELECT COUNT(*) as n FROM incidents i WHERE ${where}`, params),
     ]);
-    res.json({ incidents, total });
+
+    res.json({ incidents: rows.map(mapWithReporter), total: countRow.n });
   } catch (err) { next(err); }
 };
 
@@ -226,7 +298,7 @@ const EMERGENCY_SERVICES = {
 };
 
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
+  const R    = 6371;
   const toRad = d => d * Math.PI / 180;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
@@ -238,8 +310,8 @@ function haversine(lat1, lon1, lat2, lon2) {
 exports.getNearbyEmergencyServices = async (req, res, next) => {
   try {
     const { lat, lng, radius = 20 } = req.query;
-    const userLat = lat ? parseFloat(lat) : null;
-    const userLng = lng ? parseFloat(lng) : null;
+    const userLat  = lat ? parseFloat(lat) : null;
+    const userLng  = lng ? parseFloat(lng) : null;
     const maxRadius = parseFloat(radius);
 
     const filterAndAnnotate = (list) => list

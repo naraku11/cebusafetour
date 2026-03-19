@@ -1,4 +1,5 @@
-const prisma = require('../config/prisma');
+const { v4: uuidv4 } = require('uuid');
+const db     = require('../config/db');
 const { sendPushToAll, sendPushToUsers } = require('../services/fcmService');
 const socket = require('../services/socketService');
 
@@ -6,13 +7,22 @@ exports.send = async (req, res, next) => {
   try {
     const { title, body, type, priority = 'normal', target, scheduledAt } = req.body;
 
-    const notification = await prisma.notification.create({
-      data: {
-        title, body, type, priority, target,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        createdBy: req.user.id,
-      },
-    });
+    const id  = uuidv4();
+    const now = new Date();
+    await db.run(
+      `INSERT INTO notifications
+         (id, title, body, type, priority, target, scheduled_at, status, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+      [
+        id, title, body, type, priority,
+        JSON.stringify(target),
+        scheduledAt ? new Date(scheduledAt) : null,
+        req.user.id,
+        now, now,
+      ]
+    );
+
+    const notification = await db.findOne('SELECT * FROM notifications WHERE id = ? LIMIT 1', [id]);
 
     if (!scheduledAt) await dispatchNotification(notification);
 
@@ -27,19 +37,25 @@ exports.send = async (req, res, next) => {
 exports.list = async (req, res, next) => {
   try {
     const { status, type, page = 1, limit = 20 } = req.query;
-    const where = {};
-    if (status) where.status = status;
-    if (type) where.type = type;
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    const [notifications, total] = await prisma.$transaction([
-      prisma.notification.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
-      prisma.notification.count({ where }),
+    const conditions = [];
+    const params     = [];
+    if (status) { conditions.push('status = ?'); params.push(status); }
+    if (type)   { conditions.push('type = ?');   params.push(type); }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const [notifications, countRow] = await Promise.all([
+      db.findMany(
+        `SELECT * FROM notifications ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        [...params, take, skip]
+      ),
+      db.findOne(`SELECT COUNT(*) as n FROM notifications ${where}`, params),
     ]);
 
-    res.json({ notifications, total });
+    res.json({ notifications, total: countRow.n });
   } catch (err) { next(err); }
 };
 
@@ -51,29 +67,32 @@ const dispatchNotification = async (notification) => {
     if (target.type === 'all') {
       await sendPushToAll(fcmPayload);
     } else if (target.type === 'nationality') {
-      const users = await prisma.user.findMany({
-        where: { nationality: { contains: target.value, mode: 'insensitive' } },
-        select: { fcmToken: true },
-      });
+      const users  = await db.findMany(
+        'SELECT fcm_token FROM users WHERE nationality LIKE ? AND fcm_token IS NOT NULL',
+        [`%${target.value}%`]
+      );
       const tokens = users.map(u => u.fcmToken).filter(Boolean);
       if (tokens.length) await sendPushToUsers(tokens, fcmPayload);
     } else if (target.type === 'specific') {
-      const users = await prisma.user.findMany({
-        where: { id: { in: Array.isArray(target.value) ? target.value : [target.value] } },
-        select: { fcmToken: true },
-      });
+      const ids    = Array.isArray(target.value) ? target.value : [target.value];
+      const placeholders = ids.map(() => '?').join(',');
+      const users  = await db.findMany(
+        `SELECT fcm_token FROM users WHERE id IN (${placeholders}) AND fcm_token IS NOT NULL`,
+        ids
+      );
       const tokens = users.map(u => u.fcmToken).filter(Boolean);
       if (tokens.length) await sendPushToUsers(tokens, fcmPayload);
     }
-    await prisma.notification.update({
-      where: { id: notification.id },
-      data: { status: 'sent', sentAt: new Date() },
-    });
+
+    await db.run(
+      "UPDATE notifications SET status = 'sent', sent_at = ?, updated_at = ? WHERE id = ?",
+      [new Date(), new Date(), notification.id]
+    );
   } catch {
-    await prisma.notification.update({
-      where: { id: notification.id },
-      data: { status: 'failed' },
-    });
+    await db.run(
+      "UPDATE notifications SET status = 'failed', updated_at = ? WHERE id = ?",
+      [new Date(), notification.id]
+    );
   }
 };
 
@@ -81,9 +100,9 @@ exports.dispatchNotification = dispatchNotification;
 
 exports.remove = async (req, res, next) => {
   try {
-    const existing = await prisma.notification.findUnique({ where: { id: req.params.id } });
+    const existing = await db.findOne('SELECT id FROM notifications WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Notification not found' });
-    await prisma.notification.delete({ where: { id: req.params.id } });
+    await db.run('DELETE FROM notifications WHERE id = ?', [req.params.id]);
     res.json({ message: 'Notification deleted' });
   } catch (err) { next(err); }
 };
@@ -91,12 +110,10 @@ exports.remove = async (req, res, next) => {
 // Public endpoint — any authenticated user can fetch recent sent announcements
 exports.listPublic = async (req, res, next) => {
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { status: 'sent' },
-      orderBy: { sentAt: 'desc' },
-      take: 50,
-      select: { id: true, title: true, body: true, type: true, priority: true, sentAt: true, createdAt: true },
-    });
+    const notifications = await db.findMany(
+      `SELECT id, title, body, type, priority, sent_at, created_at
+       FROM notifications WHERE status = 'sent' ORDER BY sent_at DESC LIMIT 50`
+    );
     res.json({ notifications });
   } catch (err) { next(err); }
 };

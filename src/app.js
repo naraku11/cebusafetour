@@ -29,7 +29,7 @@ const reviewsRoutes       = require('./routes/reviews');
 const { errorHandler } = require('./middleware/errorHandler');
 const logger           = require('./utils/logger');
 const socket           = require('./services/socketService');
-const prisma           = require('./config/prisma');
+const db               = require('./config/db');
 
 // Ensure upload directories exist
 fs.mkdirSync(path.join(__dirname, '..', 'uploads', 'avatars'), { recursive: true });
@@ -77,7 +77,7 @@ app.get('/health', async (req, res) => {
   // 1. Database
   try {
     const t = Date.now();
-    await prisma.$queryRaw`SELECT 1`;
+    await db.execute('SELECT 1');
     checks.database = { status: 'ok', latencyMs: Date.now() - t };
   } catch (e) {
     checks.database = { status: 'error', error: e.message };
@@ -152,7 +152,7 @@ server.timeout          = 120_000; // ms — max time for a single request
 const _shutdown = async (signal) => {
   logger.info(`${signal} received — shutting down gracefully`);
   server.close(async () => {
-    await prisma.$disconnect();
+    await db.end().catch(() => {});
     logger.info('Database disconnected. Process exiting.');
     process.exit(0);
   });
@@ -169,8 +169,10 @@ process.on('SIGINT',  () => _shutdown('SIGINT'));
 const PORT = process.env.PORT || 5000;
 
 (async () => {
+  // Pre-warm the mysql2 connection pool before accepting HTTP traffic
   try {
-    await prisma.$connect();
+    const conn = await db.getConnection();
+    conn.release();
     logger.info('MySQL database connected successfully');
   } catch (e) {
     logger.error(`Database connection FAILED: ${e.message}`);
