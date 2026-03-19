@@ -59,7 +59,8 @@ export default function Emergency() {
   const [viewMode,        setViewMode]        = useState('tabs'); // 'tabs' | 'kanban' | 'archive'
   const [confirmArchive,  setConfirmArchive]  = useState(null);
   const [passwordLock,    setPasswordLock]    = useState(null);
-  const adminEmail = useAuthStore(s => s.user?.email);
+  const adminEmail  = useAuthStore(s => s.user?.email);
+  const isSuperAdmin = useAuthStore(s => s.user?.role) === 'admin_super';
 
   const { data, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['incidents'],
@@ -139,10 +140,10 @@ export default function Emergency() {
           {/* View toggle */}
           <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
             {[
-              { id: 'tabs',    label: 'Tabs'    },
-              { id: 'kanban',  label: 'Kanban'  },
-              { id: 'archive', label: '📦 Archive' },
-            ].map(v => (
+              { id: 'tabs',    label: 'Tabs',        superOnly: false },
+              { id: 'kanban',  label: 'Kanban',      superOnly: false },
+              { id: 'archive', label: '📦 Archive',  superOnly: true  },
+            ].filter(v => !v.superOnly || isSuperAdmin).map(v => (
               <button
                 key={v.id}
                 onClick={() => setViewMode(v.id)}
@@ -208,6 +209,7 @@ export default function Emergency() {
           tabs={TABS}
           onSelect={setSelected}
           onArchive={requestArchive}
+          canArchive={isSuperAdmin}
         />
       ) : (
         <TabsView
@@ -219,6 +221,7 @@ export default function Emergency() {
           tabCfg={activeTabCfg}
           onSelect={setSelected}
           onArchive={requestArchive}
+          canArchive={isSuperAdmin}
         />
       )}
 
@@ -230,6 +233,7 @@ export default function Emergency() {
           onSave={body => updateMutation.mutate({ id: selected.id, ...body })}
           onArchive={() => requestArchive(selected)}
           saving={updateMutation.isPending}
+          canArchive={isSuperAdmin}
         />
       )}
 
@@ -256,7 +260,7 @@ export default function Emergency() {
 
 /* ── Tabs view ─────────────────────────────────────────────────────────────── */
 
-function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onSelect, onArchive }) {
+function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onSelect, onArchive, canArchive }) {
   return (
     <div>
       {/* Tab bar */}
@@ -289,7 +293,7 @@ function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onS
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
           {incidents.map(inc => (
-            <IncidentCard key={inc.id} incident={inc} tabCfg={tabCfg} onClick={() => onSelect(inc)} onArchive={e => { e.stopPropagation(); onArchive(inc); }} />
+            <IncidentCard key={inc.id} incident={inc} tabCfg={tabCfg} canArchive={canArchive} onClick={() => onSelect(inc)} onArchive={e => { e.stopPropagation(); onArchive(inc); }} />
           ))}
         </div>
       )}
@@ -299,7 +303,7 @@ function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onS
 
 /* ── Kanban view ───────────────────────────────────────────────────────────── */
 
-function KanbanView({ byStatus, tabs, onSelect, onArchive }) {
+function KanbanView({ byStatus, tabs, onSelect, onArchive, canArchive }) {
   return (
     <div className="grid lg:grid-cols-3 gap-4 items-start">
       {tabs.map(tab => {
@@ -320,7 +324,7 @@ function KanbanView({ byStatus, tabs, onSelect, onArchive }) {
               {incidents.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">No incidents</p>
               ) : incidents.map(inc => (
-                <IncidentCard key={inc.id} incident={inc} tabCfg={tab} compact onClick={() => onSelect(inc)} onArchive={e => { e.stopPropagation(); onArchive(inc); }} />
+                <IncidentCard key={inc.id} incident={inc} tabCfg={tab} compact canArchive={canArchive} onClick={() => onSelect(inc)} onArchive={e => { e.stopPropagation(); onArchive(inc); }} />
               ))}
             </div>
           </div>
@@ -332,7 +336,7 @@ function KanbanView({ byStatus, tabs, onSelect, onArchive }) {
 
 /* ── Incident card ─────────────────────────────────────────────────────────── */
 
-function IncidentCard({ incident: inc, tabCfg, compact = false, onClick, onArchive }) {
+function IncidentCard({ incident: inc, tabCfg, compact = false, canArchive = false, onClick, onArchive }) {
   return (
     <div
       onClick={onClick}
@@ -359,16 +363,18 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, onClick, onArchi
               {tabCfg?.label}
             </span>
           )}
-          <button
-            onClick={onArchive}
-            title={inc.status === 'resolved' ? 'Archive (requires password)' : 'Archive incident'}
-            className="p-1 text-gray-300 hover:text-amber-500 transition-colors rounded"
-          >
-            {inc.status === 'resolved'
-              ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-            }
-          </button>
+          {canArchive && (
+            <button
+              onClick={onArchive}
+              title={inc.status === 'resolved' ? 'Archive (requires password)' : 'Archive incident'}
+              className="p-1 text-gray-300 hover:text-amber-500 transition-colors rounded"
+            >
+              {inc.status === 'resolved'
+                ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+              }
+            </button>
+          )}
         </div>
       </div>
 
@@ -390,7 +396,7 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, onClick, onArchi
 
 /* ── Incident modal ────────────────────────────────────────────────────────── */
 
-function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, saving }) {
+function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, saving, canArchive = false }) {
   const [status,         setStatus]         = useState(inc.status);
   const [assignedTo,     setAssignedTo]     = useState(inc.assignedTo || '');
   const [responderNotes, setResponderNotes] = useState(inc.responderNotes || '');
@@ -528,16 +534,18 @@ function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, 
 
         {/* Actions */}
         <div className="flex items-center justify-between gap-3 pt-2">
-          <button
-            onClick={onArchive}
-            className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            {inc.status === 'resolved'
-              ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-            }
-            {inc.status === 'resolved' ? 'Archive (Locked)' : 'Archive'}
-          </button>
+          {canArchive ? (
+            <button
+              onClick={onArchive}
+              className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {inc.status === 'resolved'
+                ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+              }
+              {inc.status === 'resolved' ? 'Archive (Locked)' : 'Archive'}
+            </button>
+          ) : <span />}
           <div className="flex gap-3">
             <button onClick={onClose} className="btn-secondary">Cancel</button>
             <button

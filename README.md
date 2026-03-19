@@ -12,7 +12,7 @@ A tourism safety platform for Cebu, Philippines. Tourists explore attractions sa
 │   Flutter — Android / iOS  │       React 18 + Vite + Tailwind     │
 ├────────────────────────────┴──────────────────────────────────────┤
 │                    REST API  +  Socket.IO                         │
-│              Node.js / Express 5  ·  Prisma ORM                   │
+│              Node.js / Express 5  ·  mysql2                       │
 ├───────────────────────────────────────────────────────────────────┤
 │   MySQL (Hostinger)  ·  Firebase (FCM)  ·  OpenAI  ·  SMTP       │
 └───────────────────────────────────────────────────────────────────┘
@@ -28,7 +28,7 @@ The backend and admin portal are deployed together as a **single Express app** o
 cebusafetour/
 ├── src/                        # Express API
 │   ├── app.js                  # Entry point — HTTP server + Socket.IO init
-│   ├── config/                 # prisma.js, firebase.js
+│   ├── config/                 # db.js (mysql2 pool), firebase.js
 │   ├── controllers/            # auth, attractions, advisories, emergency,
 │   │                           #   users, notifications, reviews
 │   ├── middleware/             # auth.js, errorHandler.js, validate.js
@@ -41,8 +41,7 @@ cebusafetour/
 │   │   └── placesService.js    # Google Places / geocoding
 │   └── utils/
 ├── prisma/
-│   ├── schema.prisma           # Database schema
-│   ├── migrations/             # Migration history
+│   ├── schema.prisma           # Database schema reference
 │   ├── seed.js                 # Seed script
 │   └── seed.sql                # Raw SQL seed (idempotent INSERT IGNORE)
 ├── client/                     # React admin panel source
@@ -80,7 +79,7 @@ cebusafetour/
 | Admin Portal | React 18 + Vite + Tailwind CSS |
 | Backend API | Node.js + Express 5 |
 | Realtime | Socket.IO 4 (JWT-authenticated rooms) |
-| ORM | Prisma 6 (binary engine — required for Hostinger shared hosting) |
+| Database Driver | mysql2 (pure JavaScript — no native binary) |
 | Database | MySQL 8 (Hostinger) |
 | Auth | JWT + bcryptjs |
 | Push Notifications | Firebase Cloud Messaging (FCM) |
@@ -152,17 +151,6 @@ DATABASE_URL="mysql://USER:PASSWORD@127.0.0.1:3306/DATABASE?connection_limit=5&c
 
 > Special characters in passwords must be URL-encoded (e.g. `@` → `%40`, `?` → `%3F`).
 
-### Database scripts
-
-| Script | Description |
-|---|---|
-| `npm run db:generate` | Regenerate Prisma client after schema changes |
-| `npm run db:migrate` | Apply migrations (dev) |
-| `npm run db:deploy` | Apply migrations (production) |
-| `npm run db:seed` | Run seed script |
-| `npm run db:studio` | Open Prisma Studio at `localhost:5555` |
-| `npm run db:reset` | Drop all tables, re-migrate, re-seed |
-
 ### Run locally
 
 ```bash
@@ -217,16 +205,16 @@ CORS_ORIGINS=https://cebusafetour.fun,https://www.cebusafetour.fun
 | `headersTimeout` | 66 000 ms | Must be > `keepAliveTimeout` |
 | `server.timeout` | 120 000 ms | Max time for a single long-running request |
 
-**Prisma engine** — The schema uses `engineType = "binary"` so Prisma spawns a separate query engine process. The default `library` engine panics (`PANIC: timer has gone away`) on Hostinger's shared Linux due to Tokio timer restrictions.
+**mysql2** — The database layer uses the pure-JavaScript `mysql2` driver (`src/config/db.js`). No native binary engine is required, which avoids the `PANIC: timer has gone away` crash caused by Hostinger's restricted Linux kernel blocking Rust/Tokio timer syscalls.
 
-**Prisma pre-warm** — The server calls `await prisma.$connect()` before `server.listen()` to prevent cold-start timeouts on first request.
+**Connection pool pre-warm** — The server acquires and immediately releases a connection before `server.listen()` to prevent cold-start latency on the first request.
 
 ### First-time database setup on Hostinger
 
 1. Create the database in hPanel → Databases → MySQL Databases
-2. Run:
+2. Import the schema using `prisma/seed.sql` or run the Prisma schema as a reference to create tables manually
+3. Run:
    ```bash
-   npm run db:deploy
    npm run db:seed
    ```
 
@@ -349,7 +337,7 @@ After running `npm run db:seed`:
 | POST | `/api/advisories` | Admin | Publish advisory + push notify |
 | PUT | `/api/advisories/:id` | Admin | Update advisory |
 | PATCH | `/api/advisories/:id/resolve` | Super + Content | Set status → `resolved` |
-| PATCH | `/api/advisories/:id/archive` | Super + Content | Set status → `archived` |
+| PATCH | `/api/advisories/:id/archive` | Super Admin | Set status → `archived` |
 | PATCH | `/api/advisories/:id/unarchive` | Super Admin | Restore → `resolved` |
 
 ### Emergency
@@ -365,14 +353,6 @@ After running `npm run db:seed`:
 | PATCH | `/api/emergency/incidents/:id` | Admin | Update incident (status, notes, assignedTo) |
 | PATCH | `/api/emergency/incidents/:id/archive` | Super Admin | Archive incident |
 | PATCH | `/api/emergency/incidents/:id/unarchive` | Super Admin | Restore archived incident |
-
-### Weather
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/weather/current?lat=&lng=` | Current conditions (Open-Meteo, no API key) |
-| GET | `/api/weather/forecast?lat=&lng=` | 7-day forecast |
-| GET | `/api/weather/safety?lat=&lng=` | Safety assessment with warnings |
 
 ### Users
 
@@ -540,20 +520,22 @@ Role-based tabs — each role only sees data relevant to their function:
 |---|---|
 | Update status / notes | Super + Emergency |
 | Edit a resolved incident | Super + Emergency (admin password required) |
-| Archive an active/in-progress incident | Super Admin |
+| Archive an incident | Super Admin only |
 | Archive a resolved incident | Super Admin (password required) |
-| Restore archived incident | Super Admin (password required) |
+| Restore archived incident | Super Admin |
 
-Views: Tabs (by status) · Kanban · Archive
+Views: Tabs (by status) · Kanban · Archive (Super Admin only)
 
 ### Safety Advisories
 
 | Action | Who |
 |---|---|
+| Create advisory | Super + Content |
 | Edit an active advisory | Super + Content |
 | Edit a resolved advisory | Super + Content (password required) |
-| Archive an advisory | Super + Content (password required for resolved) |
-| Restore archived advisory | Super Admin (password required) |
+| Resolve an advisory | Super + Content |
+| Archive an advisory | Super Admin only |
+| Restore archived advisory | Super Admin |
 
 ---
 

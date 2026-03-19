@@ -16,7 +16,8 @@ const defaultForm = {
 
 export default function Advisories() {
   const qc = useQueryClient();
-  const adminEmail = useAuthStore(s => s.user?.email);
+  const adminEmail   = useAuthStore(s => s.user?.email);
+  const isSuperAdmin = useAuthStore(s => s.user?.role) === 'admin_super';
 
   const [statusFilter, setStatusFilter] = useState('active');
   const [showModal,    setShowModal]    = useState(false);
@@ -159,7 +160,7 @@ export default function Advisories() {
 
       {/* Filter tabs */}
       <div className="flex gap-2">
-        {['active', 'resolved', 'archived'].map(s => (
+        {['active', 'resolved', ...(isSuperAdmin ? ['archived'] : [])].map(s => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
@@ -220,8 +221,8 @@ export default function Advisories() {
                     </button>
                   )}
 
-                  {/* Archive button — for active and resolved (not archived) */}
-                  {advisory.status !== 'archived' && (
+                  {/* Archive button — super admin only, for active and resolved (not archived) */}
+                  {isSuperAdmin && advisory.status !== 'archived' && (
                     <button
                       onClick={() => requestArchive(advisory)}
                       className="flex items-center gap-1 text-xs py-1.5 px-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100"
@@ -231,8 +232,8 @@ export default function Advisories() {
                     </button>
                   )}
 
-                  {/* Restore button — only for archived */}
-                  {advisory.status === 'archived' && (
+                  {/* Restore button — super admin only, for archived */}
+                  {isSuperAdmin && advisory.status === 'archived' && (
                     <button
                       onClick={() => setPasswordLock({ advisory, purpose: 'unarchive' })}
                       className="flex items-center gap-1 text-xs py-1.5 px-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100"
