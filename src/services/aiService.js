@@ -34,6 +34,24 @@ Respond with only valid JSON. No markdown, no explanation, no code fences.
 Coordinates: latitude ${lat}, longitude ${lng}
 Place name from reverse geocoding: "${placeName}"`;
 
+const NAME_PROMPT = (name) =>
+  `You are a tourism data assistant exclusively for Cebu Province, Philippines.
+Fill in the details for the following attraction in Cebu: "${name}".
+
+Return a JSON object with these exact fields:
+- "name": the full official name of the attraction
+- "category": one of ${CATEGORIES.join(', ')}
+- "district": municipality or city in Cebu Province (e.g. "Moalboal", "Cebu City", "Oslob", "Lapu-Lapu City")
+- "address": full street address or nearest landmark in Cebu
+- "description": 2-3 engaging sentences for tourists describing what makes this specific place special
+- "entranceFee": estimated entrance fee in Philippine Pesos as a number (0 if free)
+- "safetyStatus": one of "safe", "caution", "restricted" — based on typical conditions at this attraction
+- "safetyTips": one short sentence of safety advice specific to this attraction
+- "latitude": approximate latitude (must be within Cebu Province bounds: 9.4 to 11.5)
+- "longitude": approximate longitude (must be within Cebu Province bounds: 123.3 to 124.1)
+
+Respond with only valid JSON. No markdown, no explanation, no code fences.`;
+
 const ADVISORY_PROMPT = (area) =>
   `You are a safety advisory writer for CebuSafeTour, a tourism safety app for Cebu Province, Philippines.
 Generate a realistic and relevant safety advisory for the following attraction or area in Cebu.
@@ -182,6 +200,19 @@ exports.suggestByCoords = async (lat, lng) => {
   // Reverse geocode first so the AI gets the actual place name, not just raw coords
   const placeName = await reverseGeocode(lat, lng);
   return parseOpenAI(await openaiPost(COORD_PROMPT(lat, lng, placeName)));
+};
+
+/**
+ * Ask ChatGPT to fill in attraction details from a name alone.
+ * Returns { name, category, district, address, description, entranceFee, safetyStatus, safetyTips, latitude, longitude }
+ */
+exports.suggestByName = async (name) => {
+  if (!name?.trim()) {
+    const e = new Error('Attraction name is required');
+    e.code = 'BAD_INPUT';
+    throw e;
+  }
+  return parseOpenAI(await openaiPost(NAME_PROMPT(name.trim())));
 };
 
 /**

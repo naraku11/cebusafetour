@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -24,7 +24,9 @@ export default function Attractions() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(defaultForm);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiNameLoading, setAiNameLoading] = useState(false);
   const [aiSafetyTip, setAiSafetyTip] = useState('');
+  const nameDebounceRef = useRef(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name } | null
 
   const { data, isLoading } = useQuery({
@@ -119,6 +121,37 @@ export default function Attractions() {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const handleNameChange = (value) => {
+    setForm(f => ({ ...f, name: value }));
+    if (nameDebounceRef.current) clearTimeout(nameDebounceRef.current);
+    if (value.trim().length < 3) return;
+    nameDebounceRef.current = setTimeout(async () => {
+      setAiNameLoading(true);
+      try {
+        const { data: res } = await api.post('/attractions/ai-suggest', { name: value.trim() }, { skipToast: true, timeout: 60_000 });
+        const s = res.suggestion;
+        const sugLat = s.latitude  != null && s.latitude  !== '' ? parseFloat(s.latitude)  : null;
+        const sugLng = s.longitude != null && s.longitude !== '' ? parseFloat(s.longitude) : null;
+        setForm(f => ({
+          ...f,
+          category:    CATEGORIES.includes(s.category) ? s.category : f.category,
+          district:    s.district    || f.district,
+          address:     s.address     || f.address,
+          description: s.description || f.description,
+          entranceFee: s.entranceFee ?? f.entranceFee,
+          safetyStatus: s.safetyStatus && ['safe', 'caution', 'restricted'].includes(s.safetyStatus) ? s.safetyStatus : f.safetyStatus,
+          status: 'published',
+          // Keep existing pin if already placed
+          latitude:  f.latitude  || (sugLat ?? f.latitude),
+          longitude: f.longitude || (sugLng ?? f.longitude),
+        }));
+        if (s.safetyTips) setAiSafetyTip(s.safetyTips);
+      } catch { /* silent — name fill is best-effort */ } finally {
+        setAiNameLoading(false);
+      }
+    }, 800);
   };
 
   return (
@@ -250,12 +283,17 @@ export default function Attractions() {
             {/* Attraction Name */}
             <div>
               <label className="block text-sm font-medium mb-1">Attraction Name</label>
-              <input
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="input w-full"
-                placeholder="Filled by AI after placing pin, or type manually"
-              />
+              <div className="relative">
+                <input
+                  value={form.name}
+                  onChange={e => handleNameChange(e.target.value)}
+                  className="input w-full pr-8"
+                  placeholder="Type a name — AI will auto-fill all fields"
+                />
+                {aiNameLoading && (
+                  <SparklesIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 animate-pulse pointer-events-none" />
+                )}
+              </div>
             </div>
 
             {/* AI safety tip banner */}

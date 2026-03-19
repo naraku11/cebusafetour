@@ -321,7 +321,7 @@ After running `npm run db:seed`:
 | GET | `/api/attractions` | Public | List attractions (filters: category, district, safetyStatus, search) |
 | GET | `/api/attractions/nearby?lat=&lng=` | Public | Nearest attractions by GPS |
 | GET | `/api/attractions/:id` | Public | Attraction detail |
-| POST | `/api/attractions/ai-suggest` | Admin | AI auto-fill from coordinates |
+| POST | `/api/attractions/ai-suggest` | Admin | AI auto-fill — accepts `{ name }` (name-based) or `{ latitude, longitude }` (coordinates) |
 | POST | `/api/attractions` | Admin | Create attraction |
 | PUT | `/api/attractions/:id` | Admin | Update attraction |
 | DELETE | `/api/attractions/:id` | Admin | Archive attraction (soft delete) |
@@ -427,7 +427,8 @@ All AI features require `OPENAI_API_KEY`. Default model: `gpt-4o-mini`.
 
 | Feature | Description |
 |---|---|
-| Attraction AI Suggest | Admin drops a pin — backend reverse-geocodes via Google Maps, then ChatGPT fills name, category, description, safety tips. Coordinates outside Cebu Province are rejected. |
+| Attraction AI Suggest (pin) | Admin drops a pin on the map — backend reverse-geocodes via Google Maps, then ChatGPT fills name, category, district, address, description, entrance fee, and safety tips. Coordinates outside Cebu Province are rejected. |
+| Attraction AI Suggest (name) | Admin types an attraction name — ChatGPT auto-fills all fields (category, district, address, description, entrance fee, safety status, safety tips, coordinates) with an 800 ms debounce. Existing map pin coordinates are preserved. |
 | Advisory AI Suggest | Admin selects an attraction — ChatGPT generates a realistic safety advisory with title, severity, and recommended actions. |
 | Profile Picture Verification | Admin clicks "Verify with AI" — GPT-4o-mini vision checks whether the photo is a real human face. Result saved as `profilePictureVerified` and shown as a badge on the avatar. |
 
