@@ -87,11 +87,11 @@ const TAB_LABELS = {
 function OverviewTab({ role }) {
   const { data: summary } = useQuery({
     queryKey: ['reports-summary'],
-    queryFn: () => api.get('/reports/summary').then(r => r.data),
+    queryFn: () => api.get('/analytics/summary').then(r => r.data),
   });
   const { data: trends } = useQuery({
     queryKey: ['reports-trends'],
-    queryFn: () => api.get('/reports/trends').then(r => r.data),
+    queryFn: () => api.get('/analytics/trends').then(r => r.data),
   });
 
   const showUsers      = role === 'admin_super';
@@ -258,11 +258,11 @@ function OverviewTab({ role }) {
 function UsersTab() {
   const { data: summary } = useQuery({
     queryKey: ['reports-summary'],
-    queryFn: () => api.get('/reports/summary').then(r => r.data),
+    queryFn: () => api.get('/analytics/summary').then(r => r.data),
   });
   const { data: usersSummary } = useQuery({
     queryKey: ['reports-users-summary'],
-    queryFn: () => api.get('/reports/users-summary').then(r => r.data),
+    queryFn: () => api.get('/analytics/users-summary').then(r => r.data),
   });
 
   const statusData = {
@@ -372,7 +372,7 @@ function IncidentsTab() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['reports-incidents', params],
-    queryFn: () => api.get('/reports/incidents', { params }).then(r => r.data),
+    queryFn: () => api.get('/analytics/incidents', { params }).then(r => r.data),
   });
 
   const typeColors = {
@@ -512,7 +512,7 @@ function IncidentsTab() {
 function AdvisoriesTab() {
   const { data } = useQuery({
     queryKey: ['reports-advisories'],
-    queryFn: () => api.get('/reports/advisories').then(r => r.data),
+    queryFn: () => api.get('/analytics/advisories').then(r => r.data),
   });
 
   const severityColors = {
@@ -608,7 +608,7 @@ function AdvisoriesTab() {
 function AttractionsTab() {
   const { data } = useQuery({
     queryKey: ['reports-attractions'],
-    queryFn: () => api.get('/reports/attractions').then(r => r.data),
+    queryFn: () => api.get('/analytics/attractions').then(r => r.data),
   });
 
   const categoryChart = {

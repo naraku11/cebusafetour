@@ -98,11 +98,11 @@ app.get('/health', async (req, res) => {
     ? { status: 'configured' }
     : { status: 'missing', error: 'JWT_SECRET not set' };
 
-  // 5. OpenAI key — show first 12 chars so you can verify which key the server loaded
-  const oaiKey = process.env.OPENAI_API_KEY;
-  checks.openai = oaiKey
-    ? { status: 'configured', keyPrefix: oaiKey.slice(0, 12) + '...' }
-    : { status: 'missing', error: 'OPENAI_API_KEY not set' };
+  // 5. Groq key — show first 12 chars so you can verify which key the server loaded
+  const groqKey = process.env.GROQ_API_KEY;
+  checks.groq = groqKey
+    ? { status: 'configured', keyPrefix: groqKey.slice(0, 12) + '...' }
+    : { status: 'missing', error: 'GROQ_API_KEY not set' };
 
   // Overall status — 'ok' only if DB connected and JWT present
   const healthy = checks.database.status === 'ok' && checks.jwt.status === 'configured';
@@ -125,7 +125,7 @@ app.use('/api/advisories',    advisoriesRoutes);
 app.use('/api/emergency',     emergencyRoutes);
 app.use('/api/users',         usersRoutes);
 app.use('/api/notifications', notificationsRoutes);
-app.use('/api/reports',       reportsRoutes);
+app.use('/api/analytics',     reportsRoutes);
 app.use('/api/reviews',       reviewsRoutes);
 
 // Serve admin panel static files (built into backend/public during deployment)

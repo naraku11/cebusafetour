@@ -26,17 +26,17 @@ const StatCard = ({ label, value, icon: Icon, color }) => (
 export default function Dashboard() {
   const { data: summary } = useQuery({
     queryKey: ['reports-summary'],
-    queryFn: () => api.get('/reports/summary').then(r => r.data),
+    queryFn: () => api.get('/analytics/summary').then(r => r.data),
   });
 
   const { data: incidentsData } = useQuery({
     queryKey: ['incidents-report'],
-    queryFn: () => api.get('/reports/incidents').then(r => r.data),
+    queryFn: () => api.get('/analytics/incidents').then(r => r.data),
   });
 
   const { data: attractionsData } = useQuery({
     queryKey: ['attractions-report'],
-    queryFn: () => api.get('/reports/attractions').then(r => r.data),
+    queryFn: () => api.get('/analytics/attractions').then(r => r.data),
   });
 
   const topAttractions = attractionsData?.attractions?.slice(0, 5) || [];
