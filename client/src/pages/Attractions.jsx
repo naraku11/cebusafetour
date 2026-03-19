@@ -109,11 +109,14 @@ export default function Attractions() {
       if (s.safetyTips) setAiSafetyTip(s.safetyTips);
       toast.success('AI filled in all fields — review and adjust as needed');
     } catch (err) {
+      const status    = err?.response?.status;
       const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
       const serverMsg = err?.response?.data?.error;
       const hint      = err?.response?.data?.hint;
       if (isTimeout) {
         toast.error('Request timed out — the model is too slow. Try phi3 or gemma.', { duration: 8000 });
+      } else if (status === 429 || status === 403) {
+        toast.error(serverMsg || 'Too many AI requests — please wait a few minutes before trying again.', { duration: 8000 });
       } else {
         toast.error(serverMsg || 'AI suggestion failed', { duration: 6000 });
         if (hint) toast(hint, { icon: '💡', duration: 8000 });
@@ -148,7 +151,13 @@ export default function Attractions() {
           longitude: f.longitude || (sugLng ?? f.longitude),
         }));
         if (s.safetyTips) setAiSafetyTip(s.safetyTips);
-      } catch { /* silent — name fill is best-effort */ } finally {
+      } catch (err) {
+        const status = err?.response?.status;
+        if (status === 429 || status === 403) {
+          toast.error(err?.response?.data?.error || 'Too many AI requests — please wait a few minutes.', { duration: 8000 });
+        }
+        // other errors are silent — name fill is best-effort
+      } finally {
         setAiNameLoading(false);
       }
     }, 800);
