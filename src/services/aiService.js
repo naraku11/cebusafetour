@@ -13,26 +13,30 @@ const inCebuBounds = (lat, lng) =>
   lat >= CEBU_BOUNDS.latMin && lat <= CEBU_BOUNDS.latMax &&
   lng >= CEBU_BOUNDS.lngMin && lng <= CEBU_BOUNDS.lngMax;
 
-const COORD_PROMPT = (lat, lng, placeName) =>
+const COORD_PROMPT = (lat, lng, ctx) =>
   `You are a tourism data assistant exclusively for Cebu Province, Philippines.
-The GPS coordinates below point to the following location: "${placeName}".
-Use this place name as the primary reference to accurately fill in the attraction details.
+The GPS coordinates below have been reverse-geocoded and the results are provided.
+Use the pre-filled values exactly as given — do NOT alter them. Only generate the fields marked as (AI).
+
+Pre-filled from Google Maps (copy verbatim):
+- name: "${ctx.placeName}"
+- address: "${ctx.formattedAddress}"
+- district: "${ctx.locality}"
+- latitude: ${lat}
+- longitude: ${lng}
 
 Return a JSON object with these exact fields:
-- "name": the full official name of the attraction (use "${placeName}" as the basis)
-- "category": one of ${CATEGORIES.join(', ')}
-- "district": municipality or city in Cebu Province (e.g. "Moalboal", "Cebu City", "Oslob", "Lapu-Lapu City")
-- "address": full street address or nearest landmark in Cebu
-- "description": 2-3 engaging sentences for tourists describing what makes this specific place special
-- "entranceFee": estimated entrance fee in Philippine Pesos as a number (0 if free)
-- "safetyTips": one short sentence of safety advice specific to this attraction
+- "name": copy "${ctx.placeName}" exactly
+- "category": (AI) one of ${CATEGORIES.join(', ')} — choose the best fit for this attraction
+- "district": copy "${ctx.locality}" exactly
+- "address": copy "${ctx.formattedAddress}" exactly
+- "description": (AI) 2-3 engaging sentences for tourists describing what makes this specific place special
+- "entranceFee": (AI) estimated entrance fee in Philippine Pesos as a number (0 if free)
+- "safetyTips": (AI) one short sentence of safety advice specific to this type of attraction
 - "latitude": ${lat}
 - "longitude": ${lng}
 
-Respond with only valid JSON. No markdown, no explanation, no code fences.
-
-Coordinates: latitude ${lat}, longitude ${lng}
-Place name from reverse geocoding: "${placeName}"`;
+Respond with only valid JSON. No markdown, no explanation, no code fences.`;
 
 const ADVISORY_PROMPT = (area) =>
   `You are a safety advisory writer for CebuSafeTour, a tourism safety app for Cebu Province, Philippines.
@@ -133,17 +137,33 @@ const parseOpenAI = ({ status, body }) => {
 };
 
 /**
+ * Pick the best locality (municipality / city) from address_components.
+ * Prefers locality → administrative_area_level_3 → administrative_area_level_2.
+ */
+const extractLocality = (components = []) => {
+  const pick = (...types) => {
+    for (const type of types) {
+      const c = components.find(c => c.types.includes(type));
+      if (c) return c.long_name;
+    }
+    return '';
+  };
+  return pick('locality', 'administrative_area_level_3', 'administrative_area_level_2');
+};
+
+/**
  * Reverse geocode coordinates using Google Maps Geocoding API.
- * Returns the most relevant place name (POI > establishment > route > locality).
- * Falls back to "lat, lng" string if the API key is missing or the call fails.
+ * Returns { placeName, formattedAddress, locality } — all three used in the AI prompt.
+ * Falls back gracefully when the API key is missing or the call fails.
  */
 const reverseGeocode = (lat, lng) => new Promise((resolve) => {
+  const fallback = { placeName: `${lat}, ${lng}`, formattedAddress: `${lat}, ${lng}`, locality: 'Cebu' };
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return resolve(`${lat}, ${lng}`);
+  if (!apiKey) return resolve(fallback);
 
   const req = https.request({
     hostname: 'maps.googleapis.com',
-    path:     `/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&result_type=point_of_interest|establishment|natural_feature|park`,
+    path:     `/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`,
     method:   'GET',
     timeout:  8_000,
   }, (res) => {
@@ -153,19 +173,31 @@ const reverseGeocode = (lat, lng) => new Promise((resolve) => {
       try {
         const json    = JSON.parse(data);
         const results = json.results ?? [];
-        // Prefer a named POI over a plain address
+        if (!results.length) return resolve(fallback);
+
+        // Pick the most specific POI result first; fall back to full address result
         const poi = results.find(r =>
           r.types?.some(t => ['point_of_interest', 'establishment', 'natural_feature', 'park', 'tourist_attraction'].includes(t))
         );
         const best = poi ?? results[0];
-        resolve(best?.name || best?.formatted_address || `${lat}, ${lng}`);
+
+        // Place name: prefer explicit POI name; fall back to formatted_address
+        const placeName = best?.name || best?.formatted_address || fallback.placeName;
+
+        // Formatted address: from the most detailed result available
+        const formattedAddress = best?.formatted_address || fallback.formattedAddress;
+
+        // Locality: extracted from address_components of the full result (index 0 has most components)
+        const locality = extractLocality(results[0]?.address_components) || 'Cebu';
+
+        resolve({ placeName, formattedAddress, locality });
       } catch {
-        resolve(`${lat}, ${lng}`);
+        resolve(fallback);
       }
     });
   });
-  req.on('timeout', () => { req.destroy(); resolve(`${lat}, ${lng}`); });
-  req.on('error', () => resolve(`${lat}, ${lng}`));
+  req.on('timeout', () => { req.destroy(); resolve(fallback); });
+  req.on('error', () => resolve(fallback));
   req.end();
 });
 
@@ -179,9 +211,9 @@ exports.suggestByCoords = async (lat, lng) => {
     e.code = 'OUTSIDE_CEBU';
     throw e;
   }
-  // Reverse geocode first so the AI gets the actual place name, not just raw coords
-  const placeName = await reverseGeocode(lat, lng);
-  return parseOpenAI(await openaiPost(COORD_PROMPT(lat, lng, placeName)));
+  // Reverse geocode first — returns place name, formatted address, and locality
+  const ctx = await reverseGeocode(lat, lng);
+  return parseOpenAI(await openaiPost(COORD_PROMPT(lat, lng, ctx)));
 };
 
 /**
