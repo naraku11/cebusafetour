@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+
+  <!-- Inner teal water layer for depth -->
+  <path d="M5,27 C6.5,27 7,23 8.5,23 C10,23 10.5,24.5 12,23
+           C13,22 13.5,19 14.5,10.5
+           C15.5,19 16,22 17,23 C18.5,24.5 19,23 20.5,23
+           C22,23 22.5,27 24,27 L24,28 L5,28 Z"
+        fill="#38b2e8" opacity="0.7"/>
+
+  <!-- Main splash wave — white -->
+  <path d="M3,27 C4.5,27 5,21 7.5,21
+           C10,21 11,23.5 13,21
+           C14.5,19.5 15,15 16,7
+           C17,15 17.5,19.5 19,21
+           C21,23.5 22,21 24.5,21
+           C27,21 27.5,27 29,27
+           L29,28 L3,28 Z"
+        fill="white"/>
+
+  <!-- Droplet — left -->
+  <circle cx="13.2" cy="4.8" r="1.5" fill="white"/>
+
+  <!-- Droplet — centre (tallest) -->
+  <circle cx="16" cy="2.8" r="1.8" fill="white"/>
+
+  <!-- Droplet — right -->
+  <circle cx="18.8" cy="4.8" r="1.5" fill="white"/>
+
+  <!-- Ripple arc at base -->
+  <path d="M7,29.5 Q16,28 25,29.5" fill="none" stroke="white" stroke-width="0.9" stroke-opacity="0.5"/>
+</svg>

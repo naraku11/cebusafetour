@@ -1,0 +1,6 @@
+Options -MultiViews
+RewriteEngine On
+
+# Block .builds
+RewriteRule ^\.builds - [F,L]
+
