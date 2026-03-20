@@ -56,8 +56,8 @@ export default function Advisories() {
     mutationFn: (body) => editing
       ? api.put(`/advisories/${editing.id}`, buildPayload(body))
       : api.post('/advisories', buildPayload(body)),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['advisories'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['advisories'] });
       toast.success(editing ? 'Advisory updated' : 'Advisory published & notification sent');
       setShowModal(false); setEditing(null); setForm(defaultForm);
     },
@@ -65,14 +65,14 @@ export default function Advisories() {
 
   const resolveMutation = useMutation({
     mutationFn: (id) => api.patch(`/advisories/${id}/resolve`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['advisories'] }); toast.success('Advisory resolved'); },
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['advisories'] }); toast.success('Advisory resolved'); },
     onError: () => toast.error('Failed to resolve advisory'),
   });
 
   const archiveMutation = useMutation({
     mutationFn: (id) => api.patch(`/advisories/${id}/archive`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['advisories'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['advisories'] });
       setConfirmArchive(null);
       toast.success('Advisory archived');
     },
@@ -81,8 +81,8 @@ export default function Advisories() {
 
   const unarchiveMutation = useMutation({
     mutationFn: (id) => api.patch(`/advisories/${id}/unarchive`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['advisories'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['advisories'] });
       toast.success('Advisory restored to resolved');
     },
     onError: () => toast.error('Failed to restore advisory'),

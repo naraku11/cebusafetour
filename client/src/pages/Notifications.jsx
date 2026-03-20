@@ -41,8 +41,8 @@ export default function Notifications() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/notifications/${id}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['notifications'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Notification deleted');
       setDeleteConfirm(null);
     },
@@ -51,8 +51,8 @@ export default function Notifications() {
 
   const sendMutation = useMutation({
     mutationFn: (body) => api.post('/notifications', body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['notifications'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Notification sent!');
       setForm(defaultForm); setShowCompose(false);
     },

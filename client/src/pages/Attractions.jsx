@@ -36,8 +36,8 @@ export default function Attractions() {
     mutationFn: (body) => editing
       ? api.put(`/attractions/${editing.id}`, body)
       : api.post('/attractions', body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['attractions'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['attractions'] });
       toast.success(editing ? 'Attraction updated' : 'Attraction created');
       setShowModal(false); setEditing(null); setForm(defaultForm); setAiSafetyTip('');
     },
@@ -45,18 +45,18 @@ export default function Attractions() {
 
   const archiveMutation = useMutation({
     mutationFn: (id) => api.delete(`/attractions/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['attractions'] }); toast.success('Attraction archived'); },
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['attractions'] }); toast.success('Attraction archived'); },
   });
 
   const unarchiveMutation = useMutation({
     mutationFn: (id) => api.put(`/attractions/${id}`, { status: 'published' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['attractions'] }); toast.success('Attraction restored to published'); },
+    onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['attractions'] }); toast.success('Attraction restored to published'); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/attractions/${id}/permanent`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['attractions'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['attractions'] });
       toast.success('Attraction permanently deleted');
       setDeleteConfirm(null);
     },
@@ -64,8 +64,8 @@ export default function Attractions() {
 
   const refreshPhotosMutation = useMutation({
     mutationFn: (id) => api.post(`/attractions/${id}/refresh-photos`),
-    onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ['attractions'] });
+    onSuccess: async (res) => {
+      await qc.invalidateQueries({ queryKey: ['attractions'] });
       toast.success(`Fetched ${res.data.count} photo${res.data.count !== 1 ? 's' : ''} from Google Places`);
     },
     onError: (err) => {

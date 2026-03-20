@@ -78,8 +78,8 @@ export default function Emergency() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...body }) => api.patch(`/emergency/incidents/${id}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['incidents'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['incidents'] });
       toast.success('Incident updated');
       setSelected(null);
     },
@@ -88,9 +88,9 @@ export default function Emergency() {
 
   const archiveMutation = useMutation({
     mutationFn: (id) => api.patch(`/emergency/incidents/${id}/archive`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['incidents'] });
-      qc.invalidateQueries({ queryKey: ['incidents-archived'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['incidents'] });
+      await qc.invalidateQueries({ queryKey: ['incidents-archived'] });
       toast.success('Incident archived');
       setConfirmArchive(null);
       setSelected(null);
@@ -100,9 +100,9 @@ export default function Emergency() {
 
   const unarchiveMutation = useMutation({
     mutationFn: (id) => api.patch(`/emergency/incidents/${id}/unarchive`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['incidents'] });
-      qc.invalidateQueries({ queryKey: ['incidents-archived'] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['incidents'] });
+      await qc.invalidateQueries({ queryKey: ['incidents-archived'] });
       toast.success('Incident restored to Resolved');
     },
     onError: () => toast.error('Failed to unarchive incident'),
