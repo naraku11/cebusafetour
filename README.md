@@ -82,10 +82,14 @@ cebusafetour/
 | Admin Portal | React 18 + Vite + Tailwind CSS |
 | Backend API | Node.js + Express 5 |
 | Realtime | Socket.IO 4 (JWT-authenticated rooms) |
+| Database ORM | Prisma (schema-first, query builder) |
 | Database Driver | mysql2 (pure JavaScript) |
 | Database | MySQL 8 (Hostinger) |
 | Server-side Cache | node-cache (in-memory, TTL-based) |
 | Client-side Cache | dio_cache_interceptor (MemCacheStore, honours Cache-Control) |
+| Mobile State | flutter_riverpod (StateNotifierProvider, AsyncNotifierProvider) |
+| Mobile Routing | go_router |
+| Mobile HTTP | Dio + auth interceptor |
 | Auth | JWT + bcryptjs |
 | Push Notifications | Firebase Cloud Messaging (FCM) |
 | Maps | Google Maps API |
@@ -259,8 +263,12 @@ After running `npm run db:seed`:
 | Super Admin | `superadmin@cebusafetour.ph` | `SuperAdmin@123` |
 | Content Manager | `content@cebusafetour.ph` | `Content@123` |
 | Emergency Officer | `emergency@cebusafetour.ph` | `Emergency@123` |
-
-Tourist accounts (password: `Tourist@123`): `kim.jisoo@example.com`, `tanaka.hiroshi@example.com`, `wang.wei@example.com`, `sarah.johnson@example.com`, `maria.santos@example.com`, `emma.muller@example.com`
+| Tourist (Korean) | `kim.jisoo@example.com` | `Tourist@123` |
+| Tourist (Japanese) | `tanaka.hiroshi@example.com` | `Tourist@123` |
+| Tourist (Chinese) | `wang.wei@example.com` | `Tourist@123` |
+| Tourist (American) | `sarah.johnson@example.com` | `Tourist@123` |
+| Tourist (Filipino) | `maria.santos@example.com` | `Tourist@123` |
+| Tourist (German) | `emma.muller@example.com` | `Tourist@123` |
 
 **Seed data:** 10 attractions, 3 advisories, 3 incidents.
 
