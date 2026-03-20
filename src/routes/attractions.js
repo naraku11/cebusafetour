@@ -8,6 +8,11 @@ const TTL = 300; // 5 minutes
 
 router.get('/', cacheResponse(TTL, (req) => `attractions:list:${JSON.stringify(req.query)}`), ctrl.list);
 router.get('/nearby', ctrl.nearby); // not cached — unique per GPS coordinate pair
+
+// Admin-only GET routes must come before /:id to avoid being swallowed by the wildcard
+router.get('/autocomplete', authenticate, requireAdmin, ctrl.autocomplete);
+router.get('/place-detail', authenticate, requireAdmin, ctrl.placeDetail);
+
 router.get('/:id', cacheResponse(TTL, (req) => `attractions:detail:${req.params.id}`), ctrl.get);
 
 // Reviews

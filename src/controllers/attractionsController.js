@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const cache = require('../utils/cache');
 const { sendPushToAll } = require('../services/fcmService');
-const { suggestByCoords } = require('../services/aiService');
+const { suggestByCoords, autocompletePlaces, getPlaceInfo } = require('../services/aiService');
 const { fetchPlacePhotos } = require('../services/placesService');
 
 // JSON fields that must be stringified before writing to DB
@@ -227,4 +227,23 @@ exports.aiSuggest = async (req, res, next) => {
     if (err instanceof SyntaxError)    return res.status(502).json({ error: 'AI returned invalid JSON — try again' });
     return res.status(502).json({ error: err.message || 'AI suggestion failed' });
   }
+};
+
+exports.autocomplete = async (req, res, next) => {
+  try {
+    const { input, lat, lng } = req.query;
+    if (!input?.trim()) return res.json({ predictions: [] });
+    const predictions = await autocompletePlaces(input.trim(), parseFloat(lat) || null, parseFloat(lng) || null);
+    res.json({ predictions });
+  } catch (err) { next(err); }
+};
+
+exports.placeDetail = async (req, res, next) => {
+  try {
+    const { placeId } = req.query;
+    if (!placeId) return res.status(400).json({ error: 'placeId is required' });
+    const info = await getPlaceInfo(placeId);
+    if (!info) return res.status(404).json({ error: 'Place not found' });
+    res.json({ info });
+  } catch (err) { next(err); }
 };

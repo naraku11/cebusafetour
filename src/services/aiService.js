@@ -12,6 +12,20 @@ const inCebuBounds = (lat, lng) =>
   lat >= CEBU_BOUNDS.latMin && lat <= CEBU_BOUNDS.latMax &&
   lng >= CEBU_BOUNDS.lngMin && lng <= CEBU_BOUNDS.lngMax;
 
+// ---------- Haversine distance ----------
+
+/** Straight-line distance in metres between two lat/lng points. */
+const haversineM = (lat1, lng1, lat2, lng2) => {
+  const R = 6_371_000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 // ---------- Google Maps helper ----------
 
 /** Generic GET to maps.googleapis.com. Returns parsed JSON or null on any error. */
@@ -20,7 +34,7 @@ const googleGet = (path) => new Promise((resolve) => {
     { hostname: 'maps.googleapis.com', path, method: 'GET', timeout: 8_000 },
     (res) => {
       let data = '';
-      res.on('data', chunk => { data += chunk; });
+      res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
     }
   );
@@ -39,13 +53,13 @@ const TYPE_MAP = [
   ['park',     ['park', 'campground', 'national_park', 'zoo', 'amusement_park', 'aquarium']],
   ['market',   ['shopping_mall', 'market', 'store']],
   ['church',   ['church', 'place_of_worship']],
-  ['resort',   ['lodging', 'spa', 'campground']],
+  ['resort',   ['lodging', 'spa']],
 ];
 
 /** Map Google place types array to our category string, or null if unknown. */
 const mapCategory = (types = []) => {
   for (const [cat, googleTypes] of TYPE_MAP) {
-    if (types.some(t => googleTypes.includes(t))) return cat;
+    if (types.some((t) => googleTypes.includes(t))) return cat;
   }
   return null;
 };
@@ -58,51 +72,23 @@ const PRICE_TO_FEE = { 0: 0, 1: 50, 2: 150, 3: 300, 4: 500 };
 /** Extract municipality / city from address_components. */
 const extractLocality = (components = []) => {
   for (const type of ['locality', 'administrative_area_level_3', 'administrative_area_level_2']) {
-    const c = components.find(c => c.types.includes(type));
+    const c = components.find((c) => c.types.includes(type));
     if (c) return c.long_name;
   }
   return '';
-};
-
-// ---------- Step 1: Places Nearby Search ----------
-
-/**
- * Find the closest tourist attraction POI to the pin.
- * Returns { placeId, name } or null if nothing found / no API key.
- */
-const nearbySearch = async (lat, lng) => {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return null;
-
-  // Primary: tourist_attraction type, ranked by distance
-  let json = await googleGet(
-    `/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=tourist_attraction&key=${apiKey}`
-  );
-  let result = json?.results?.[0];
-
-  // Fallback: broaden to point_of_interest if nothing found
-  if (!result) {
-    json = await googleGet(
-      `/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=point_of_interest&key=${apiKey}`
-    );
-    result = json?.results?.[0];
-  }
-
-  if (!result) return null;
-  return { placeId: result.place_id, name: result.name };
 };
 
 // ---------- Step 2: Place Details ----------
 
 /**
  * Fetch full structured data for a place_id.
- * Returns { name, formattedAddress, locality, types, editorialSummary, priceLevel } or null.
+ * Returns { name, formattedAddress, locality, types, editorialSummary, priceLevel, lat, lng } or null.
  */
 const placeDetails = async (placeId) => {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) return null;
 
-  const fields = 'name,formatted_address,address_components,types,editorial_summary,price_level';
+  const fields = 'name,formatted_address,address_components,types,editorial_summary,price_level,geometry';
   const json = await googleGet(
     `/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=${fields}&key=${apiKey}`
   );
@@ -116,13 +102,77 @@ const placeDetails = async (placeId) => {
     types:            r.types || [],
     editorialSummary: r.editorial_summary?.overview || '',
     priceLevel:       r.price_level ?? null,
+    lat:              r.geometry?.location?.lat ?? null,
+    lng:              r.geometry?.location?.lng ?? null,
   };
 };
 
-// ---------- Reverse geocode fallback ----------
+// ---------- Step 1: Places Nearby Search (Layer 1) ----------
 
 /**
- * Fallback when Places API finds nothing.
+ * Find the closest prominent tourist POI within 150 m of the pin (300 m fallback).
+ * Rejects results more than 300 m away to avoid returning irrelevant nearby places.
+ * Returns { placeId, name } or null.
+ */
+const nearbySearch = async (lat, lng) => {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return null;
+
+  // Primary: tourist_attraction within 150 m ranked by prominence
+  let json = await googleGet(
+    `/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=150&rankby=prominence&type=tourist_attraction&key=${apiKey}`
+  );
+  let result = json?.results?.[0];
+
+  // Fallback: widen to 300 m, any relevant type
+  if (!result) {
+    json = await googleGet(
+      `/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=300&rankby=prominence&key=${apiKey}`
+    );
+    result = json?.results?.find((r) =>
+      r.types?.some((t) =>
+        ['tourist_attraction', 'natural_feature', 'park', 'point_of_interest', 'place_of_worship'].includes(t)
+      )
+    );
+  }
+
+  if (!result) return null;
+
+  // Distance gate — skip if result is too far from the pin
+  const loc = result.geometry?.location;
+  if (loc && haversineM(lat, lng, loc.lat, loc.lng) > 300) return null;
+
+  return { placeId: result.place_id, name: result.name };
+};
+
+// ---------- Layer 2: Text Search using reverse-geocoded name ----------
+
+/**
+ * Use the reverse-geocoded place name as a text query with location bias.
+ * Far more reliable than Nearby Search for correctly-named but mis-tagged POIs.
+ * Returns { placeId, name } or null.
+ */
+const textSearch = async (name, lat, lng) => {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey || !name || name === `${lat}, ${lng}`) return null;
+
+  const json = await googleGet(
+    `/maps/api/place/textsearch/json?query=${encodeURIComponent(name)}&location=${lat},${lng}&radius=500&key=${apiKey}`
+  );
+  const result = json?.results?.[0];
+  if (!result) return null;
+
+  // Reject if the text-search result is too far from the pin
+  const loc = result.geometry?.location;
+  if (loc && haversineM(lat, lng, loc.lat, loc.lng) > 500) return null;
+
+  return { placeId: result.place_id, name: result.name };
+};
+
+// ---------- Layer 3: Reverse geocode fallback ----------
+
+/**
+ * Fallback when both Places APIs find nothing useful near the pin.
  * Returns { placeName, formattedAddress, locality }.
  */
 const reverseGeocode = async (lat, lng) => {
@@ -134,8 +184,10 @@ const reverseGeocode = async (lat, lng) => {
   const results = json?.results ?? [];
   if (!results.length) return fallback;
 
-  const poi = results.find(r =>
-    r.types?.some(t => ['point_of_interest', 'establishment', 'natural_feature', 'park', 'tourist_attraction'].includes(t))
+  const poi = results.find((r) =>
+    r.types?.some((t) =>
+      ['point_of_interest', 'establishment', 'natural_feature', 'park', 'tourist_attraction'].includes(t)
+    )
   );
   const best = poi ?? results[0];
 
@@ -146,17 +198,17 @@ const reverseGeocode = async (lat, lng) => {
   };
 };
 
-// ---------- Step 3: OpenAI (gap-fill only) ----------
+// ---------- OpenAI prompts ----------
 
 /**
- * Build a lean prompt asking AI only for the fields Google couldn't provide.
+ * Lean prompt — only asks AI for fields Google couldn't provide.
  * ctx: { name, formattedAddress, locality, category, description, entranceFee }
  */
 const COORD_PROMPT = (ctx) => {
   const aiFields = [];
-  if (!ctx.category)            aiFields.push(`- "category": one of ${CATEGORIES.join(', ')} — best fit for "${ctx.name}"`);
-  if (!ctx.description)         aiFields.push('- "description": 2-3 engaging sentences for tourists about what makes this place special');
-  if (ctx.entranceFee === null)  aiFields.push('- "entranceFee": estimated entrance fee in Philippine Pesos as a number (0 if free)');
+  if (!ctx.category)           aiFields.push(`- "category": one of ${CATEGORIES.join(', ')} — best fit for "${ctx.name}"`);
+  if (!ctx.description)        aiFields.push('- "description": 2-3 engaging sentences for tourists about what makes this place special');
+  if (ctx.entranceFee === null) aiFields.push('- "entranceFee": estimated entrance fee in Philippine Pesos as a number (0 if free)');
   aiFields.push('- "safetyTips": one short safety tip specific to this type of attraction');
 
   return `You are a tourism data assistant for Cebu Province, Philippines.
@@ -185,7 +237,6 @@ Attraction or area in Cebu: "${area}"`;
 
 // ---------- OpenAI HTTP ----------
 
-/** POST to OpenAI chat completions. promptOrMessages: string | messages array. */
 const openaiPost = (promptOrMessages) => new Promise((resolve, reject) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -217,7 +268,7 @@ const openaiPost = (promptOrMessages) => new Promise((resolve, reject) => {
     timeout: 30_000,
   }, (res) => {
     let data = '';
-    res.on('data', chunk => { data += chunk; });
+    res.on('data', (chunk) => { data += chunk; });
     res.on('end', () => resolve({ status: res.statusCode, body: data }));
   });
 
@@ -233,7 +284,6 @@ const openaiPost = (promptOrMessages) => new Promise((resolve, reject) => {
   req.end();
 });
 
-/** Parse and error-check an OpenAI response. */
 const parseOpenAI = ({ status, body }) => {
   if (status === 401) {
     const e = new Error('Invalid OpenAI API key — check OPENAI_API_KEY in .env');
@@ -266,13 +316,12 @@ const parseOpenAI = ({ status, body }) => {
 // ---------- Public exports ----------
 
 /**
- * Three-step attraction suggestion from map pin coordinates.
+ * Three-layer attraction suggestion from map pin coordinates.
  *
- * 1. Places Nearby Search  → exact POI name + place_id
- * 2. Place Details          → address, locality, types, editorial_summary, price_level
- * 3. OpenAI (gap-fill only) → category (if unmapped), description (if no editorial), entranceFee (if no price_level), safetyTips
- *
- * Returns { name, category, district, address, description, entranceFee, safetyTips, latitude, longitude }
+ * Layer 1 — Nearby Search  (radius 150 m, tourist_attraction; 300 m fallback + distance gate)
+ * Layer 2 — Text Search    (reverse-geocoded name as query, 500 m bias; distance gate)
+ * Layer 3 — Reverse Geocode (address fallback)
+ * + OpenAI fills only what Google couldn't provide (category, description, entranceFee, safetyTips)
  */
 exports.suggestByCoords = async (lat, lng) => {
   if (!inCebuBounds(lat, lng)) {
@@ -281,36 +330,40 @@ exports.suggestByCoords = async (lat, lng) => {
     throw e;
   }
 
-  // Step 1 — nearest POI
+  // Layer 1 — Nearby Search
   const nearby = await nearbySearch(lat, lng);
+  let details = nearby ? await placeDetails(nearby.placeId) : null;
 
-  // Step 2 — full details (falls back to reverse geocode if Places API returns nothing)
-  let details;
-  if (nearby) {
-    details = await placeDetails(nearby.placeId);
-  }
+  // Layer 2 — Text Search (if Layer 1 found nothing)
   if (!details) {
     const geo = await reverseGeocode(lat, lng);
-    details = {
-      name:             geo.placeName,
-      formattedAddress: geo.formattedAddress,
-      locality:         geo.locality,
-      types:            [],
-      editorialSummary: '',
-      priceLevel:       null,
-    };
+    const textResult = await textSearch(geo.placeName, lat, lng);
+    if (textResult) {
+      details = await placeDetails(textResult.placeId);
+    }
+    // Layer 3 — Reverse Geocode fallback
+    if (!details) {
+      details = {
+        name:             geo.placeName,
+        formattedAddress: geo.formattedAddress,
+        locality:         geo.locality,
+        types:            [],
+        editorialSummary: '',
+        priceLevel:       null,
+        lat:              null,
+        lng:              null,
+      };
+    }
   }
 
-  // Derive what we can from Google data
-  const category    = mapCategory(details.types);                                  // null → AI fills
-  const entranceFee = details.priceLevel !== null ? (PRICE_TO_FEE[details.priceLevel] ?? null) : null; // null → AI fills
-  const description = details.editorialSummary || '';                              // '' → AI fills
+  const category    = mapCategory(details.types);
+  const entranceFee = details.priceLevel !== null ? (PRICE_TO_FEE[details.priceLevel] ?? null) : null;
+  const description = details.editorialSummary || '';
 
-  // Step 3 — AI fills only the gaps
   const ctx = {
-    name:            details.name,
+    name:             details.name,
     formattedAddress: details.formattedAddress,
-    locality:        details.locality || 'Cebu',
+    locality:         details.locality || 'Cebu',
     category,
     description,
     entranceFee,
@@ -318,7 +371,6 @@ exports.suggestByCoords = async (lat, lng) => {
 
   const aiFields = await parseOpenAI(await openaiPost(COORD_PROMPT(ctx)));
 
-  // Merge: Google data is authoritative; AI fills remaining gaps
   return {
     name:        ctx.name,
     category:    ctx.category    ?? aiFields.category    ?? 'other',
@@ -327,14 +379,57 @@ exports.suggestByCoords = async (lat, lng) => {
     description: ctx.description || aiFields.description || '',
     entranceFee: ctx.entranceFee !== null ? ctx.entranceFee : (aiFields.entranceFee ?? 0),
     safetyTips:  aiFields.safetyTips || '',
-    latitude:    lat,
-    longitude:   lng,
+    latitude:    details.lat ?? lat,
+    longitude:   details.lng ?? lng,
+  };
+};
+
+/**
+ * Places Autocomplete — returns up to 5 suggestions for a partial attraction name.
+ * Biased toward Cebu Province (50 km radius).
+ */
+exports.autocompletePlaces = async (input, lat, lng) => {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey || !input?.trim()) return [];
+
+  const loc = lat && lng ? `&location=${lat},${lng}&radius=50000` : '';
+  const json = await googleGet(
+    `/maps/api/place/autocomplete/json?input=${encodeURIComponent(input.trim())}&components=country:ph${loc}&key=${apiKey}`
+  );
+
+  return (json?.predictions || []).slice(0, 5).map((p) => ({
+    placeId:       p.place_id,
+    description:   p.description,
+    mainText:      p.structured_formatting?.main_text      || p.description,
+    secondaryText: p.structured_formatting?.secondary_text || '',
+  }));
+};
+
+/**
+ * Get full structured attraction info for a known place_id (used after autocomplete selection).
+ * Returns a form-ready object or null if the place_id is invalid.
+ */
+exports.getPlaceInfo = async (placeId) => {
+  const details = await placeDetails(placeId);
+  if (!details) return null;
+
+  const category    = mapCategory(details.types);
+  const entranceFee = details.priceLevel !== null ? (PRICE_TO_FEE[details.priceLevel] ?? null) : null;
+
+  return {
+    name:        details.name,
+    category:    category ?? 'other',
+    district:    details.locality || 'Cebu',
+    address:     details.formattedAddress,
+    description: details.editorialSummary || '',
+    entranceFee: entranceFee ?? 0,
+    latitude:    details.lat,
+    longitude:   details.lng,
   };
 };
 
 /**
  * Generate a safety advisory for a named Cebu attraction / area.
- * Returns { title, description, severity, recommendedActions }
  */
 exports.suggestAdvisory = async (area) => {
   if (!area?.trim()) {
@@ -347,7 +442,6 @@ exports.suggestAdvisory = async (area) => {
 
 /**
  * Verify a profile picture URL using OpenAI vision.
- * Returns { isReal: boolean, reason: string }
  */
 exports.verifyProfilePicture = async (url) => {
   if (!url?.trim()) {

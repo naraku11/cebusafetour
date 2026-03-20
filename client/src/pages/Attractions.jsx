@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { PlusIcon, PencilIcon, ArchiveBoxIcon, ArchiveBoxXMarkIcon, SparklesIcon, TrashIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, ArchiveBoxIcon, ArchiveBoxXMarkIcon, SparklesIcon, TrashIcon, PhotoIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import MapPicker from '../components/MapPicker';
 import { useAuthStore } from '../store/authStore';
 
@@ -26,6 +26,13 @@ export default function Attractions() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSafetyTip, setAiSafetyTip] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name } | null
+  const [acInput, setAcInput] = useState('');
+  const [acResults, setAcResults] = useState([]);
+  const [acLoading, setAcLoading] = useState(false);
+  const [acOpen, setAcOpen] = useState(false);
+  const [acFilling, setAcFilling] = useState(false);
+  const acDebounce = useRef(null);
+  const acRef = useRef(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['attractions', filter, search],
@@ -78,10 +85,69 @@ export default function Attractions() {
     setEditing(attraction);
     setForm(attraction || defaultForm);
     setAiSafetyTip('');
+    setAcInput('');
+    setAcResults([]);
+    setAcOpen(false);
     setShowModal(true);
   };
 
   const openEdit = (a) => openModal(a);
+
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handler = (e) => { if (acRef.current && !acRef.current.contains(e.target)) setAcOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const fetchAutocomplete = useCallback((value) => {
+    clearTimeout(acDebounce.current);
+    if (!value.trim()) { setAcResults([]); setAcOpen(false); return; }
+    acDebounce.current = setTimeout(async () => {
+      setAcLoading(true);
+      try {
+        const params = { input: value };
+        if (form.latitude) params.lat = form.latitude;
+        if (form.longitude) params.lng = form.longitude;
+        const { data: res } = await api.get('/attractions/autocomplete', { params, skipToast: true });
+        setAcResults(res.predictions || []);
+        setAcOpen((res.predictions || []).length > 0);
+      } catch { setAcResults([]); }
+      finally { setAcLoading(false); }
+    }, 300);
+  }, [form.latitude, form.longitude]);
+
+  const handleAcInput = (e) => {
+    const v = e.target.value;
+    setAcInput(v);
+    fetchAutocomplete(v);
+  };
+
+  const selectPlace = async (prediction) => {
+    setAcOpen(false);
+    setAcInput(prediction.mainText);
+    setAcFilling(true);
+    try {
+      const { data: res } = await api.get('/attractions/place-detail', { params: { placeId: prediction.placeId }, skipToast: true });
+      const info = res.info;
+      setForm(f => ({
+        ...f,
+        name:        info.name        || f.name,
+        category:    CATEGORIES.includes(info.category) ? info.category : f.category,
+        district:    info.district    || f.district,
+        address:     info.address     || f.address,
+        description: info.description || f.description,
+        entranceFee: info.entranceFee ?? f.entranceFee,
+        latitude:    info.latitude    ?? f.latitude,
+        longitude:   info.longitude   ?? f.longitude,
+      }));
+      toast.success('Fields filled from Google Places');
+    } catch {
+      toast.error('Could not fetch place details');
+    } finally {
+      setAcFilling(false);
+    }
+  };
 
   const handleAiFill = async (lat, lng) => {
     const useLat = lat ?? form.latitude;
@@ -246,6 +312,42 @@ export default function Attractions() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setShowModal(false); setEditing(null); setForm(defaultForm); setAiSafetyTip(''); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold">{editing ? 'Edit Attraction' : 'Add New Attraction'}</h3>
+
+            {/* Places Search Box */}
+            <div ref={acRef} className="relative">
+              <label className="block text-sm font-medium mb-1 text-gray-700">Search a Place <span className="text-gray-400 font-normal">(optional — auto-fills all fields)</span></label>
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  value={acInput}
+                  onChange={handleAcInput}
+                  onFocus={() => acResults.length && setAcOpen(true)}
+                  className="input w-full pl-9 pr-10"
+                  placeholder="Type a place name in Cebu…"
+                  autoComplete="off"
+                />
+                {(acLoading || acFilling) && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                )}
+              </div>
+              {acOpen && acResults.length > 0 && (
+                <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  {acResults.map((p) => (
+                    <li
+                      key={p.placeId}
+                      onMouseDown={() => selectPlace(p)}
+                      className="flex items-start gap-3 px-4 py-3 hover:bg-violet-50 cursor-pointer border-b border-gray-50 last:border-0"
+                    >
+                      <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{p.mainText}</p>
+                        {p.secondaryText && <p className="text-xs text-gray-500 truncate">{p.secondaryText}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             {/* Attraction Name */}
             <div>
