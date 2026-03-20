@@ -44,8 +44,8 @@ export default function Reviews() {
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/reviews/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries(['reviews']);
-      qc.invalidateQueries(['attractions']);
+      qc.invalidateQueries({ queryKey: ['reviews'] });
+      qc.invalidateQueries({ queryKey: ['attractions'] });
       toast.success('Review deleted');
       setDeleteConfirm(null);
     },

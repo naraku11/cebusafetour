@@ -241,7 +241,7 @@ function StaffSection() {
     archived:  staff.filter(s => s.status === 'archived').length,
   };
 
-  const invalidate = () => qc.invalidateQueries(['staff']);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['staff'] });
 
   const createMutation = useMutation({
     mutationFn: (data) => api.post('/users/staff', data),
@@ -519,12 +519,12 @@ function TouristSection() {
   });
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
-  const invalidate = () => { qc.invalidateQueries(['users']); qc.invalidateQueries(['user-stats']); };
+  const invalidate = () => { qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['user-stats'] }); };
 
   const verifyPictureMutation = useMutation({
     mutationFn: (id) => api.post(`/users/${id}/verify-picture`, {}, { skipToast: true }),
     onSuccess: (res, id) => {
-      qc.invalidateQueries(['users']); qc.invalidateQueries(['user', id]);
+      qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['user', id] });
       const { verified, reason } = res.data;
       if (verified) toast.success('Picture verified — real human face');
       else toast.error(`Picture rejected — ${reason}`, { duration: 6000 });
@@ -540,7 +540,7 @@ function TouristSection() {
   const statusMutation = useMutation({
     mutationFn: ({ id, status }) => api.patch(`/users/${id}/status`, { status }),
     onSuccess: (_, { status }) => {
-      invalidate(); if (selected) qc.invalidateQueries(['user', selected]);
+      invalidate(); if (selected) qc.invalidateQueries({ queryKey: ['user', selected] });
       toast.success(`User ${status}`); setConfirm(null);
     },
     onError: (err) => { toast.error(err?.response?.data?.error || 'Action failed'); setConfirm(null); },
@@ -548,13 +548,13 @@ function TouristSection() {
 
   const editMutation = useMutation({
     mutationFn: ({ id, data }) => api.patch(`/users/${id}`, data),
-    onSuccess: (_, { id }) => { invalidate(); qc.invalidateQueries(['user', id]); toast.success('User updated'); },
+    onSuccess: (_, { id }) => { invalidate(); qc.invalidateQueries({ queryKey: ['user', id] }); toast.success('User updated'); },
     onError: (err) => toast.error(err?.response?.data?.error || 'Update failed'),
   });
 
   const manualVerifyMutation = useMutation({
     mutationFn: (id) => api.post(`/users/${id}/verify`),
-    onSuccess: (_, id) => { invalidate(); qc.invalidateQueries(['user', id]); toast.success('Email verified'); setConfirm(null); },
+    onSuccess: (_, id) => { invalidate(); qc.invalidateQueries({ queryKey: ['user', id] }); toast.success('Email verified'); setConfirm(null); },
     onError: (err) => { toast.error(err?.response?.data?.error || 'Verification failed'); setConfirm(null); },
   });
 
