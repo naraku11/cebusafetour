@@ -1,0 +1,282 @@
+// CebuSafeTour — Prisma Schema
+// Run: npx prisma migrate dev --name init
+// Seed: npx prisma db seed
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  tourist
+  admin_super
+  admin_content
+  admin_emergency
+}
+
+enum UserStatus {
+  active
+  suspended
+  banned
+}
+
+enum UserLanguage {
+  en
+  fil
+  zh
+  ko
+  ja
+}
+
+enum AttractionCategory {
+  beach
+  mountain
+  heritage
+  museum
+  park
+  waterfall
+  market
+  church
+  resort
+  other
+}
+
+enum SafetyStatus {
+  safe
+  caution
+  restricted
+}
+
+enum CrowdLevel {
+  low
+  moderate
+  high
+}
+
+enum AttractionStatus {
+  published
+  draft
+  archived
+}
+
+enum AdvisorySeverity {
+  critical
+  warning
+  advisory
+}
+
+enum AdvisorySource {
+  pagasa
+  ndrrmc
+  lgu
+  cdrrmo
+  admin
+}
+
+enum AdvisoryStatus {
+  active
+  resolved
+  archived
+}
+
+enum IncidentType {
+  medical
+  fire
+  crime
+  natural_disaster
+  lost_person
+}
+
+enum IncidentStatus {
+  new
+  in_progress
+  resolved
+  archived
+}
+
+enum NotificationType {
+  safety_alert
+  advisory
+  trip_reminder
+  announcement
+  emergency
+}
+
+enum NotificationPriority {
+  normal
+  high
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  failed
+}
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model User {
+  id                String       @id @default(uuid())
+  name              String
+  email             String       @unique
+  password          String
+  nationality       String?
+  contactNumber     String?      @map("contact_number")
+  role              UserRole     @default(tourist)
+  status            UserStatus   @default(active)
+  fcmToken          String?      @map("fcm_token")
+  language          UserLanguage @default(en)
+  profilePicture         String?      @map("profile_picture")
+  profilePictureVerified Boolean?     @map("profile_picture_verified")
+  isVerified             Boolean      @default(false) @map("is_verified")
+  lastActive        DateTime?    @map("last_active")
+  emergencyContacts Json         @default("[]") @map("emergency_contacts")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  attractionsCreated   Attraction[]   @relation("AttractionCreator")
+  advisoriesCreated    Advisory[]     @relation("AdvisoryCreator")
+  incidentsReported    Incident[]     @relation("IncidentReporter")
+  notificationsCreated Notification[] @relation("NotificationCreator")
+  reviews              Review[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Attraction {
+  id                    String             @id @default(uuid())
+  name                  String
+  category              AttractionCategory
+  description           String?  @db.Text
+  district              String?
+  address               String?
+  latitude              Decimal            @db.Decimal(10, 8)
+  longitude             Decimal            @db.Decimal(11, 8)
+  photos                Json               @default("[]")
+  operatingHours        Json               @default("{}") @map("operating_hours")
+  entranceFee           Decimal            @default(0) @db.Decimal(10, 2) @map("entrance_fee")
+  contactInfo           Json               @default("{}") @map("contact_info")
+  safetyStatus          SafetyStatus       @default(safe) @map("safety_status")
+  crowdLevel            CrowdLevel         @default(low) @map("crowd_level")
+  accessibilityFeatures Json               @default("[]") @map("accessibility_features")
+  nearbyFacilities      Json               @default("{}") @map("nearby_facilities")
+  averageRating         Decimal            @default(0) @db.Decimal(3, 2) @map("average_rating")
+  totalReviews          Int                @default(0) @map("total_reviews")
+  totalVisits           Int                @default(0) @map("total_visits")
+  totalSaves            Int                @default(0) @map("total_saves")
+  status                AttractionStatus   @default(draft)
+  createdBy             String?            @map("created_by")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  creator User?    @relation("AttractionCreator", fields: [createdBy], references: [id])
+  reviews  Review[]
+
+  @@index([status])
+  @@index([category])
+  @@index([safetyStatus])
+  @@index([district])
+  @@index([totalVisits(sort: Desc)])
+  @@map("attractions")
+}
+
+model Advisory {
+  id                 String           @id @default(uuid())
+  title              String
+  description        String           @db.Text
+  severity           AdvisorySeverity
+  source             AdvisorySource   @default(admin)
+  affectedArea       Json             @default("{}") @map("affected_area")
+  recommendedActions String?          @db.Text @map("recommended_actions")
+  startDate          DateTime         @map("start_date")
+  endDate            DateTime?        @map("end_date")
+  status             AdvisoryStatus   @default(active)
+  notificationSent   Boolean          @default(false) @map("notification_sent")
+  acknowledgedBy     Json             @default("[]") @map("acknowledged_by")
+  createdBy          String?          @map("created_by")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  creator User? @relation("AdvisoryCreator", fields: [createdBy], references: [id])
+
+  @@index([status])
+  @@index([severity])
+  @@index([startDate, endDate])
+  @@map("advisories")
+}
+
+model Incident {
+  id              String         @id @default(uuid())
+  type            IncidentType
+  description     String?        @db.Text
+  latitude        Decimal        @db.Decimal(10, 8)
+  longitude       Decimal        @db.Decimal(11, 8)
+  nearestLandmark String?        @map("nearest_landmark")
+  reportedBy      String?        @map("reported_by")
+  reporterContact String?        @map("reporter_contact")
+  status          IncidentStatus @default(new)
+  assignedTo      String?        @map("assigned_to")
+  responderNotes  String?        @db.Text @map("responder_notes")
+  attachments     Json           @default("[]")
+  resolvedAt      DateTime?      @map("resolved_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  reporter User? @relation("IncidentReporter", fields: [reportedBy], references: [id])
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+  @@map("incidents")
+}
+
+model Notification {
+  id          String               @id @default(uuid())
+  title       String
+  body        String           @db.Text
+  type        NotificationType
+  priority    NotificationPriority @default(normal)
+  target      Json                 @default("{\"type\":\"all\"}")
+  scheduledAt DateTime?            @map("scheduled_at")
+  sentAt      DateTime?            @map("sent_at")
+  status      NotificationStatus   @default(pending)
+  relatedId   String?              @map("related_id")
+  relatedType String?              @map("related_type")
+  createdBy   String?              @map("created_by")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  creator User? @relation("NotificationCreator", fields: [createdBy], references: [id])
+
+  @@index([status])
+  @@index([type])
+  @@map("notifications")
+}
+
+model Review {
+  id           String     @id @default(uuid())
+  attractionId String     @map("attraction_id")
+  userId       String     @map("user_id")
+  rating       Int        // 1–5
+  comment      String?    @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([attractionId, userId])
+  @@index([attractionId])
+  @@map("reviews")
+}
