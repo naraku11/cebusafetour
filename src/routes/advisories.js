@@ -1,9 +1,12 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/advisoriesController');
 const { authenticate, requireAdmin, requireRole } = require('../middleware/auth');
+const { cacheResponse } = require('../middleware/cache');
 
-router.get('/', ctrl.list);
-router.get('/:id', ctrl.get);
+const TTL = 120; // 2 minutes — safety info should stay fresh
+
+router.get('/', cacheResponse(TTL, (req) => `advisories:list:${JSON.stringify(req.query)}`), ctrl.list);
+router.get('/:id', cacheResponse(TTL, (req) => `advisories:detail:${req.params.id}`), ctrl.get);
 
 // Admin only
 router.post('/ai-suggest', authenticate, requireAdmin, ctrl.aiSuggest);

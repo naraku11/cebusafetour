@@ -89,8 +89,22 @@ exports.forgotPassword = async (req, res, next) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore.set(`reset_${email}`, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
-    await sendOtpEmail(email, user.name, otp, 'reset');
-    res.json({ message: 'OTP sent to your email' });
+
+    let emailSent = true;
+    try {
+      await sendOtpEmail(email, user.name, otp, 'reset');
+    } catch (emailErr) {
+      emailSent = false;
+      const logger = require('../utils/logger');
+      logger.error(`Failed to send reset OTP email to ${email}: ${emailErr.message}`);
+    }
+
+    res.json({
+      message: emailSent
+        ? 'OTP sent to your email'
+        : 'Email delivery failed — please try again in a moment.',
+      emailSent,
+    });
   } catch (err) { next(err); }
 };
 

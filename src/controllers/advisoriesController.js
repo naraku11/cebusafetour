@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
+const cache  = require('../utils/cache');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestAdvisory } = require('../services/aiService');
 const socket = require('../services/socketService');
@@ -77,6 +78,7 @@ exports.create = async (req, res, next) => {
     advisory.notificationSent = true;
 
     socket.emitToAll('advisory:new', { advisory });
+    cache.invalidatePrefix('advisories:');
     res.status(201).json({ advisory });
   } catch (err) { next(err); }
 };
@@ -118,6 +120,7 @@ exports.update = async (req, res, next) => {
     }
 
     socket.emitToAll('advisory:updated', { advisory });
+    cache.invalidatePrefix('advisories:');
     res.json({ advisory });
   } catch (err) { next(err); }
 };
@@ -145,6 +148,7 @@ exports.resolve = async (req, res, next) => {
     await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     const resolved = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: resolved });
+    cache.invalidatePrefix('advisories:');
     res.json({ message: 'Advisory resolved' });
   } catch (err) { next(err); }
 };
@@ -156,6 +160,7 @@ exports.archive = async (req, res, next) => {
     await db.run("UPDATE advisories SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     const archived = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: archived });
+    cache.invalidatePrefix('advisories:');
     res.json({ message: 'Advisory archived' });
   } catch (err) { next(err); }
 };
@@ -167,6 +172,7 @@ exports.unarchive = async (req, res, next) => {
     await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     const restored = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: restored });
+    cache.invalidatePrefix('advisories:');
     res.json({ message: 'Advisory restored to resolved' });
   } catch (err) { next(err); }
 };

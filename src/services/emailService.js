@@ -6,6 +6,7 @@ const transporter = nodemailer.createTransport({
   port: parseInt(process.env.SMTP_PORT || '465'),
   secure: process.env.SMTP_SECURE === 'true',   // true for port 465 (SSL), false for 587 (STARTTLS)
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  tls: { rejectUnauthorized: false },           // Hostinger shared cert may not match hostname
 });
 
 exports.sendOtpEmail = async (to, name, otp, type = 'verify') => {
@@ -75,7 +76,8 @@ exports.sendOtpEmail = async (to, name, otp, type = 'verify') => {
 </html>`;
 
   try {
-    await transporter.sendMail({ from: process.env.EMAIL_FROM, to, subject, html });
+    const from = `CebuSafeTour <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`;
+    await transporter.sendMail({ from, to, subject, html });
     logger.info(`OTP email sent to ${to}`);
   } catch (err) {
     logger.error('Email send error:', err);

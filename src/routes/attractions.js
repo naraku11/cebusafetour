@@ -2,10 +2,13 @@ const router = require('express').Router();
 const ctrl = require('../controllers/attractionsController');
 const reviews = require('../controllers/reviewsController');
 const { authenticate, requireAdmin, requireRole } = require('../middleware/auth');
+const { cacheResponse } = require('../middleware/cache');
 
-router.get('/', ctrl.list);
-router.get('/nearby', ctrl.nearby);
-router.get('/:id', ctrl.get);
+const TTL = 300; // 5 minutes
+
+router.get('/', cacheResponse(TTL, (req) => `attractions:list:${JSON.stringify(req.query)}`), ctrl.list);
+router.get('/nearby', ctrl.nearby); // not cached — unique per GPS coordinate pair
+router.get('/:id', cacheResponse(TTL, (req) => `attractions:detail:${req.params.id}`), ctrl.get);
 
 // Reviews
 router.get('/:id/reviews', reviews.list);
