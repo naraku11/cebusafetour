@@ -12,7 +12,7 @@ A tourism safety platform for Cebu, Philippines. Tourists explore attractions sa
 │   Flutter — Android / iOS  │       React 18 + Vite + Tailwind     │
 ├────────────────────────────┴──────────────────────────────────────┤
 │                    REST API  +  Socket.IO                         │
-│              Node.js / Express 5  ·  mysql2  ·  node-cache        │
+│        Node.js / Express 5  ·  mysql2  ·  node-cache  ·  gzip     │
 ├───────────────────────────────────────────────────────────────────┤
 │   MySQL (Hostinger)  ·  Firebase (FCM)  ·  OpenAI  ·  SMTP       │
 └───────────────────────────────────────────────────────────────────┘
@@ -46,6 +46,18 @@ cebusafetour/
 │   └── utils/
 │       ├── cache.js            # node-cache singleton + invalidatePrefix()
 │       └── logger.js
+├── tests/                      # Jest + Supertest integration tests
+│   ├── helpers/
+│   │   ├── app.js              # Express app loader with mocked dependencies
+│   │   └── mocks.js            # DB, Firebase, FCM, email, AI mock setup
+│   ├── auth.test.js
+│   ├── attractions.test.js
+│   ├── advisories.test.js
+│   ├── emergency.test.js
+│   ├── reviews.test.js
+│   ├── middleware.test.js
+│   └── setup.js
+├── jest.config.js
 ├── prisma/
 │   ├── schema.prisma           # Database schema reference
 │   ├── seed.js                 # Seed script
@@ -85,7 +97,9 @@ cebusafetour/
 | Database ORM | Prisma (schema-first, query builder) |
 | Database Driver | mysql2 (pure JavaScript) |
 | Database | MySQL 8 (Hostinger) |
+| HTTP Compression | compression (gzip / deflate) |
 | Server-side Cache | node-cache (in-memory, TTL-based) |
+| Testing | Jest 29 + Supertest |
 | Client-side Cache | dio_cache_interceptor (MemCacheStore, honours Cache-Control) |
 | Mobile State | flutter_riverpod (StateNotifierProvider, AsyncNotifierProvider) |
 | Mobile Routing | go_router |
@@ -106,16 +120,19 @@ cebusafetour/
 
 Read-heavy public endpoints are cached in memory. On any write, the relevant prefix is immediately invalidated so the next request fetches fresh data.
 
-| Endpoint | TTL | Cache key |
+| Endpoint / Layer | TTL | Cache key |
 |---|---|---|
 | `GET /api/attractions` | 5 min | `attractions:list:<query>` |
 | `GET /api/attractions/:id` | 5 min | `attractions:detail:<id>` |
 | `GET /api/advisories` | 2 min | `advisories:list:<query>` |
 | `GET /api/advisories/:id` | 2 min | `advisories:detail:<id>` |
+| Auth middleware (user lookup) | 2 min | `auth_user:<userId>` |
 
 Every response includes `X-Cache: HIT` or `X-Cache: MISS` and `Cache-Control: public, max-age=<ttl>`. Cache stats (keys, hits, misses, hit rate) are visible at `GET /health`.
 
 `GET /api/attractions/nearby` is **not cached** — results are unique per GPS coordinate pair.
+
+The auth middleware caches the authenticated user for 2 minutes after the first DB lookup, avoiding a `SELECT * FROM users` query on every authenticated request.
 
 ### Client-side (dio_cache_interceptor)
 
@@ -371,7 +388,7 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/api/attractions/:id/reviews` | Public | Reviews for an attraction |
+| GET | `/api/attractions/:id/reviews` | Public | Reviews for an attraction (paginated, max 100/page) |
 | POST | `/api/attractions/:id/reviews` | Tourist | Submit or update own review |
 | DELETE | `/api/attractions/:id/reviews/me` | Tourist | Delete own review |
 
@@ -484,6 +501,66 @@ The red **SOS** floating action button is visible on every screen. Suspended/ban
 | Cloud Messaging (FCM) | Push notifications to mobile app |
 
 > If Firebase credentials are missing, the server starts normally — FCM is silently skipped and `/health` reports `firebase: { status: "missing" }`.
+
+---
+
+## Testing
+
+Tests use **Jest** + **Supertest** with fully mocked external dependencies (MySQL, Firebase, FCM, SMTP, OpenAI, Google Places). No running database or services are required.
+
+```bash
+npm test              # Run all tests
+npx jest --verbose    # Verbose output
+npx jest auth         # Run a single suite
+```
+
+**Test suites (89 tests across 6 suites):**
+
+| Suite | Tests | Covers |
+|---|---|---|
+| `auth.test.js` | 19 | Register, OTP verify, login, password reset, FCM token |
+| `attractions.test.js` | 20 | CRUD, filtering, pagination, nearby, AI suggest, photo refresh |
+| `advisories.test.js` | 16 | CRUD, resolve, archive/unarchive, AI suggest, permissions |
+| `emergency.test.js` | 15 | Report incident, list/detail, update, archive, nearby services |
+| `reviews.test.js` | 14 | Create/update (upsert), delete own, admin list/delete, ratings validation |
+| `middleware.test.js` | 5 | JWT auth, role guards, suspended account handling |
+
+---
+
+## Performance Optimizations
+
+### HTTP Compression
+
+All responses are gzip/deflate compressed via `compression` middleware — reduces JSON payload sizes by 60-80%.
+
+### Column Projection
+
+List endpoints select only required columns instead of `SELECT *`, reducing data transfer for attractions (excludes heavy JSON blobs like `operating_hours`, `contact_info`, `accessibility_features`, `nearby_facilities` on list views), incidents, and notifications.
+
+### Pagination Guards
+
+- Reviews list: capped at 100 per page (default 50)
+- User incidents: capped at 100 rows
+- All other list endpoints already paginated (default 20)
+
+### OTP Cleanup
+
+Expired OTPs are automatically purged from the in-memory Map every 5 minutes to prevent unbounded memory growth.
+
+### Database Indexes
+
+Apply the performance indexes migration after deploying:
+
+```sql
+-- prisma/migrations/20260323_add_performance_indexes/migration.sql
+CREATE INDEX incidents_reported_by_idx ON incidents(reported_by);
+CREATE INDEX users_nationality_idx ON users(nationality);
+CREATE INDEX users_created_at_idx ON users(created_at DESC);
+CREATE INDEX reviews_user_id_idx ON reviews(user_id);
+CREATE INDEX advisories_created_at_idx ON advisories(created_at DESC);
+```
+
+These cover frequently-queried columns that lacked indexes: user incidents lookups, nationality filtering, report date ranges, and review foreign key joins.
 
 ---
 
