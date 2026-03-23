@@ -1,5 +1,10 @@
-const jwt = require('jsonwebtoken');
-const db  = require('../config/db');
+const jwt   = require('jsonwebtoken');
+const db    = require('../config/db');
+const cache = require('../utils/cache');
+
+// Cache authenticated user data for 2 minutes to avoid a DB query on every request.
+// Cache is keyed by user ID; invalidated on profile/status changes.
+const USER_CACHE_TTL = 120; // seconds
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -9,7 +14,14 @@ const authenticate = async (req, res, next) => {
   try {
     const token   = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user    = await db.findOne('SELECT * FROM users WHERE id = ? LIMIT 1', [decoded.id]);
+
+    const cacheKey = `auth_user:${decoded.id}`;
+    let user = cache.get(cacheKey);
+    if (!user) {
+      user = await db.findOne('SELECT * FROM users WHERE id = ? LIMIT 1', [decoded.id]);
+      if (user) cache.set(cacheKey, user, USER_CACHE_TTL);
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }

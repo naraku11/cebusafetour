@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)",
+      "Bash(node -e \"require\\(''jest''\\)\")",
+      "Bash(npm ls:*)",
+      "Bash(echo $NODE_ENV)",
+      "Bash(node_modules/.bin/jest --no-cache --verbose)"
+    ]
+  }
+}

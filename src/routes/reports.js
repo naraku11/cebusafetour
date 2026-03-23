@@ -106,7 +106,7 @@ router.get('/incidents', authenticate, requireAdmin, async (req, res, next) => {
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const [incidents, total, byType, byStatus] = await Promise.all([
-      db.findMany(`SELECT * FROM incidents ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, take, skip]),
+      db.findMany(`SELECT id, type, description, latitude, longitude, nearest_landmark, reported_by, status, assigned_to, resolved_at, created_at, updated_at FROM incidents ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, take, skip]),
       count(`SELECT COUNT(*) as n FROM incidents ${where}`, params),
       db.findMany(`SELECT type, COUNT(*) as n FROM incidents ${where} GROUP BY type`, params),
       db.findMany(`SELECT status, COUNT(*) as n FROM incidents ${where} GROUP BY status`, params),

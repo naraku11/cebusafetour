@@ -9,13 +9,14 @@ try { initFirebase(); } catch (e) {
   console.warn('Firebase init failed (non-fatal):', e.message);
 }
 
-const http    = require('http');
-const fs      = require('fs');
-const express = require('express');
-const cors    = require('cors');
-const helmet  = require('helmet');
-const morgan  = require('morgan');
-const rateLimit = require('express-rate-limit');
+const http        = require('http');
+const fs          = require('fs');
+const express     = require('express');
+const compression = require('compression');
+const cors        = require('cors');
+const helmet      = require('helmet');
+const morgan      = require('morgan');
+const rateLimit   = require('express-rate-limit');
 
 const authRoutes          = require('./routes/auth');
 const attractionsRoutes   = require('./routes/attractions');
@@ -44,6 +45,9 @@ app.set('trust proxy', 1);
 
 // Attach Socket.IO
 socket.init(server);
+
+// Compress all HTTP responses (gzip/brotli)
+app.use(compression());
 
 // Security & parsing middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
@@ -189,20 +193,22 @@ process.on('SIGINT',  () => _shutdown('SIGINT'));
 // arrives, preventing cold-start timeouts on the hosting proxy.
 const PORT = process.env.PORT || 5000;
 
-(async () => {
-  // Pre-warm the mysql2 connection pool before accepting HTTP traffic
-  try {
-    const conn = await db.getConnection();
-    conn.release();
-    logger.info('MySQL database connected successfully');
-  } catch (e) {
-    logger.error(`Database connection FAILED: ${e.message}`);
-    // Continue anyway — individual requests will surface DB errors properly.
-  }
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    // Pre-warm the mysql2 connection pool before accepting HTTP traffic
+    try {
+      const conn = await db.getConnection();
+      conn.release();
+      logger.info('MySQL database connected successfully');
+    } catch (e) {
+      logger.error(`Database connection FAILED: ${e.message}`);
+      // Continue anyway — individual requests will surface DB errors properly.
+    }
 
-  server.listen(PORT, () => {
-    logger.info(`CebuSafeTour API running on port ${PORT}`);
-  });
-})();
+    server.listen(PORT, () => {
+      logger.info(`CebuSafeTour API running on port ${PORT}`);
+    });
+  })();
+}
 
 module.exports = app;

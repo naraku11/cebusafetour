@@ -1,12 +1,17 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const cache = require('../utils/cache');
+const logger = require('../utils/logger');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestByCoords, autocompletePlaces, getPlaceInfo } = require('../services/aiService');
 const { fetchPlacePhotos } = require('../services/placesService');
 
 // JSON fields that must be stringified before writing to DB
 const JSON_FIELDS = new Set(['photos', 'operatingHours', 'contactInfo', 'accessibilityFeatures', 'nearbyFacilities']);
+
+// Lightweight columns for list endpoints — excludes large JSON blobs
+const LIST_COLS = `id, name, category, description, district, address, latitude, longitude,
+  photos, safety_status, crowd_level, average_rating, total_reviews, total_visits, status`;
 
 // camelCase → snake_case column map for attractions
 const COL_MAP = {
@@ -38,7 +43,7 @@ exports.list = async (req, res, next) => {
 
     const [attractions, countRow] = await Promise.all([
       db.findMany(
-        `SELECT * FROM attractions WHERE ${where} ORDER BY name ASC LIMIT ? OFFSET ?`,
+        `SELECT ${LIST_COLS} FROM attractions WHERE ${where} ORDER BY name ASC LIMIT ? OFFSET ?`,
         [...params, take, skip]
       ),
       db.findOne(`SELECT COUNT(*) as n FROM attractions WHERE ${where}`, params),
@@ -54,7 +59,8 @@ exports.get = async (req, res, next) => {
     if (!attraction) return res.status(404).json({ error: 'Attraction not found' });
 
     // Fire-and-forget visit increment
-    db.run('UPDATE attractions SET total_visits = total_visits + 1 WHERE id = ?', [attraction.id]).catch(() => {});
+    db.run('UPDATE attractions SET total_visits = total_visits + 1 WHERE id = ?', [attraction.id])
+      .catch(err => logger.warn('Failed to increment visit count:', err.message));
 
     res.json({ attraction });
   } catch (err) { next(err); }
@@ -99,7 +105,7 @@ exports.create = async (req, res, next) => {
         if (urls.length) {
           await db.run('UPDATE attractions SET photos = ? WHERE id = ?', [JSON.stringify(urls), id]);
         }
-      }).catch(() => {});
+      }).catch(err => logger.warn(`Auto-fetch photos failed for ${attraction.name}:`, err.message));
     }
 
     cache.invalidatePrefix('attractions:');
@@ -171,7 +177,7 @@ exports.nearby = async (req, res, next) => {
     const r    = parseFloat(radius);
 
     const attractions = await db.findMany(
-      `SELECT *, (
+      `SELECT ${LIST_COLS}, (
          6371 * acos(
            cos(radians(?)) * cos(radians(latitude))
            * cos(radians(longitude) - radians(?))

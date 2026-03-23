@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
+const logger = require('../utils/logger');
 const { sendPushToAll, sendPushToUsers } = require('../services/fcmService');
 const socket = require('../services/socketService');
 
@@ -49,7 +50,8 @@ exports.list = async (req, res, next) => {
 
     const [notifications, countRow] = await Promise.all([
       db.findMany(
-        `SELECT * FROM notifications ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        `SELECT id, title, body, type, priority, target, status, sent_at, created_by, created_at
+         FROM notifications ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [...params, take, skip]
       ),
       db.findOne(`SELECT COUNT(*) as n FROM notifications ${where}`, params),
@@ -88,7 +90,8 @@ const dispatchNotification = async (notification) => {
       "UPDATE notifications SET status = 'sent', sent_at = ?, updated_at = ? WHERE id = ?",
       [new Date(), new Date(), notification.id]
     );
-  } catch {
+  } catch (err) {
+    logger.error(`Notification dispatch failed for ${notification.id}:`, err.message);
     await db.run(
       "UPDATE notifications SET status = 'failed', updated_at = ? WHERE id = ?",
       [new Date(), notification.id]

@@ -26,14 +26,19 @@ const recalcAttractionStats = async (attractionId) => {
 exports.list = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = Math.min(parseInt(limit), 100); // cap at 100
+
     const rows = await db.findMany(
-      `SELECT r.*,
+      `SELECT r.id, r.attraction_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at,
               u.id as u_id, u.name as u_name, u.profile_picture as u_profile_picture
        FROM reviews r
        JOIN users u ON u.id = r.user_id
        WHERE r.attraction_id = ?
-       ORDER BY r.created_at DESC`,
-      [id]
+       ORDER BY r.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [id, take, skip]
     );
     res.json({ reviews: rows.map(mapWithUser) });
   } catch (err) { next(err); }

@@ -6,6 +6,14 @@ const { sendOtpEmail } = require('../services/emailService');
 
 const otpStore = new Map(); // In production use Redis
 
+// Periodically purge expired OTPs to prevent unbounded Map growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of otpStore) {
+    if (now > val.expiresAt) otpStore.delete(key);
+  }
+}, 5 * 60 * 1000).unref(); // every 5 minutes, unref so it doesn't block shutdown
+
 const generateToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',

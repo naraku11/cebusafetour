@@ -1,11 +1,21 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
+const logger = require('../utils/logger');
 const { sendPushToAdmins } = require('../services/fcmService');
 const { getFirestore } = require('../config/firebase');
 const socket = require('../services/socketService');
 
-// Safe fire-and-forget Firestore call — swallows both sync throws and async rejections
-const firestore = (fn) => { try { fn(getFirestore()); } catch (_) {} };
+// Safe fire-and-forget Firestore call — logs errors instead of silently swallowing
+const firestore = (fn) => {
+  try {
+    const result = fn(getFirestore());
+    if (result && typeof result.catch === 'function') {
+      result.catch(err => logger.warn('Firestore write failed:', err.message));
+    }
+  } catch (err) {
+    logger.warn('Firestore call failed:', err.message);
+  }
+};
 
 // Build a row with a nested reporter object from a JOIN result
 const mapWithReporter = row => ({
@@ -73,7 +83,9 @@ exports.myIncidents = async (req, res, next) => {
     if (status) { conditions.push('status = ?'); params.push(status); }
 
     const incidents = await db.findMany(
-      `SELECT * FROM incidents WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`,
+      `SELECT id, type, description, latitude, longitude, nearest_landmark, status,
+              assigned_to, resolved_at, created_at, updated_at
+       FROM incidents WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC LIMIT 100`,
       params
     );
     res.json({ incidents });

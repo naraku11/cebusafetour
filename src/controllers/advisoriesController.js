@@ -1,9 +1,15 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const cache  = require('../utils/cache');
+const logger = require('../utils/logger');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestAdvisory } = require('../services/aiService');
 const socket = require('../services/socketService');
+
+// Columns for advisory list — all columns are small, keep full set
+const ADVISORY_LIST_COLS = `id, title, description, severity, source, affected_area,
+  recommended_actions, start_date, end_date, status, notification_sent,
+  created_by, created_at, updated_at`;
 
 exports.list = async (req, res, next) => {
   try {
@@ -21,7 +27,7 @@ exports.list = async (req, res, next) => {
 
     const [advisories, countRow] = await Promise.all([
       db.findMany(
-        `SELECT * FROM advisories ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        `SELECT ${ADVISORY_LIST_COLS} FROM advisories ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [...params, take, skip]
       ),
       db.findOne(`SELECT COUNT(*) as n FROM advisories ${where}`, params),
