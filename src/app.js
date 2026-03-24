@@ -61,8 +61,15 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
-app.use(express.json({ limit: '10mb' }));
+app.use(morgan(
+  process.env.NODE_ENV === 'production' ? 'short' : 'combined',
+  {
+    stream: { write: msg => logger.info(msg.trim()) },
+    // In production, only log errors (4xx/5xx) to save disk & CPU
+    skip: (_req, res) => process.env.NODE_ENV === 'production' && res.statusCode < 400,
+  }
+));
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Auth rate limiting — strict (brute-force protection)
@@ -80,8 +87,8 @@ app.use(rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 }));
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Serve uploaded files with cache headers
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'), { maxAge: '7d' }));
 
 // Health check — tests all critical services
 app.get('/health', async (req, res) => {
@@ -156,7 +163,7 @@ app.use('/api/reviews',       reviewsRoutes);
 // Serve admin panel static files (built into backend/public during deployment)
 const adminDist = path.join(__dirname, '..', 'public');
 if (fs.existsSync(adminDist)) {
-  app.use(express.static(adminDist));
+  app.use(express.static(adminDist, { maxAge: '1d' }));
   // SPA fallback — all non-API routes return index.html
   app.get('/{*splat}', (_req, res) => res.sendFile(path.join(adminDist, 'index.html')));
 } else {

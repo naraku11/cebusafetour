@@ -12,17 +12,22 @@ const buildMessage = (tokens, { title, body, data = {} }) => ({
 
 exports.sendPushToAll = async (payload) => {
   try {
-    const users  = await db.findMany(
-      `SELECT fcm_token FROM users WHERE status = 'active' AND fcm_token IS NOT NULL`
-    );
-    const tokens = users.map(u => u.fcmToken).filter(Boolean);
-    if (!tokens.length) return;
-
-    for (let i = 0; i < tokens.length; i += 500) {
-      const batch = tokens.slice(i, i + 500);
-      await getMessaging().sendEachForMulticast(buildMessage(batch, payload));
+    let offset = 0, total = 0;
+    const BATCH = 500;
+    // Paginate from DB in batches instead of loading all tokens into memory
+    while (true) {
+      const rows = await db.findMany(
+        `SELECT fcm_token FROM users WHERE status = 'active' AND fcm_token IS NOT NULL LIMIT ? OFFSET ?`,
+        [BATCH, offset]
+      );
+      const tokens = rows.map(u => u.fcmToken).filter(Boolean);
+      if (!tokens.length) break;
+      await getMessaging().sendEachForMulticast(buildMessage(tokens, payload));
+      total += tokens.length;
+      if (rows.length < BATCH) break;
+      offset += BATCH;
     }
-    logger.info(`Push sent to ${tokens.length} users`);
+    if (total) logger.info(`Push sent to ${total} users`);
   } catch (err) {
     logger.error('FCM sendPushToAll error:', err);
   }

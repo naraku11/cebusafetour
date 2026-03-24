@@ -17,7 +17,22 @@
       "Read(//c/Users/navit/AppData/Local/Pub/Cache/**)",
       "Read(//c/src/**)",
       "Read(//c/Users/navit/**)",
-      "Read(//dev/**)"
+      "Read(//dev/**)",
+      "Bash(flutter clean:*)",
+      "Read(//d/flutter/bin/**)",
+      "Read(//f/Upload/Projects/deploy/cebusafetour/$LOCALAPPDATA/flutter/bin/**)",
+      "Bash(cmd.exe /c \"where flutter\")",
+      "Bash(cmd.exe /c \"flutter --version\")",
+      "Bash(powershell.exe -Command \"Get-Command flutter -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" clean:*)",
+      "Bash(./gradlew --stop)",
+      "Read(//d/FlutterSDK/flutter/packages/flutter_tools/gradle/**)",
+      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" --version)",
+      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" pub:*)",
+      "Bash(./gradlew :app:dependencies --configuration releaseCompileClasspath)",
+      "Bash(./gradlew buildEnvironment)",
+      "Bash(./gradlew :app:buildEnvironment)",
+      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" build:*)"
     ]
   }
 }

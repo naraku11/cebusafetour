@@ -12,6 +12,10 @@ function init(httpServer) {
   io = new Server(httpServer, {
     cors: { origin: corsAllowed, credentials: true },
     transports: ['websocket', 'polling'],
+    pingInterval: 30000,      // check connection every 30s (default 25s)
+    pingTimeout: 10000,       // disconnect if no pong in 10s
+    maxHttpBufferSize: 1e5,   // 100KB max message (default 1MB)
+    perMessageDeflate: false,  // disable compression to save CPU
   });
 
   // Auth middleware

@@ -11,6 +11,9 @@ function buildPool(prismaUrl) {
     uri: u.toString(),
     connectionLimit: limit,
     connectTimeout: timeout,
+    idleTimeout: 30_000,          // release idle connections after 30s
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10_000,
     typeCast(field, next) {
       // Auto-parse JSON columns
       if (field.type === 'JSON') {

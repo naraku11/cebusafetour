@@ -22,14 +22,14 @@ class Advisory {
   });
 
   factory Advisory.fromJson(Map<String, dynamic> json) => Advisory(
-    id: json['id'],
-    title: json['title'],
-    description: json['description'],
-    severity: json['severity'],
-    source: json['source'],
-    status: json['status'],
-    recommendedActions: json['recommendedActions'],
-    startDate: DateTime.parse(json['startDate']),
-    endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
+    id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+    title: json['title']?.toString() ?? '',
+    description: json['description']?.toString() ?? '',
+    severity: json['severity']?.toString() ?? 'advisory',
+    source: json['source']?.toString() ?? '',
+    status: json['status']?.toString() ?? 'active',
+    recommendedActions: (json['recommendedActions'] ?? json['recommended_actions'])?.toString(),
+    startDate: DateTime.tryParse((json['startDate'] ?? json['start_date'] ?? json['created_at'])?.toString() ?? '') ?? DateTime.now(),
+    endDate: (json['endDate'] ?? json['end_date']) != null ? DateTime.tryParse((json['endDate'] ?? json['end_date']).toString()) : null,
   );
 }

@@ -4,15 +4,26 @@ const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const { sendOtpEmail } = require('../services/emailService');
 
-const otpStore = new Map(); // In production use Redis
+const otpStore = new Map();
+const OTP_MAX_ENTRIES = 500; // hard cap to prevent memory exhaustion
 
-// Periodically purge expired OTPs to prevent unbounded Map growth
+// Purge expired OTPs every 60s (was 5 min — too slow under load)
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of otpStore) {
     if (now > val.expiresAt) otpStore.delete(key);
   }
-}, 5 * 60 * 1000).unref(); // every 5 minutes, unref so it doesn't block shutdown
+}, 60_000).unref();
+
+// Safe setter — evicts oldest entries when cap is reached
+function otpSet(key, val) {
+  if (otpStore.size >= OTP_MAX_ENTRIES) {
+    // Delete the first (oldest) entry
+    const first = otpStore.keys().next().value;
+    otpStore.delete(first);
+  }
+  otpStore.set(key, val);
+}
 
 const generateToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
@@ -39,7 +50,7 @@ exports.register = async (req, res, next) => {
     );
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+    otpSet(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
     let emailSent = true;
     try {
@@ -96,7 +107,7 @@ exports.forgotPassword = async (req, res, next) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(`reset_${email}`, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+    otpSet(`reset_${email}`, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
 
     let emailSent = true;
     try {
@@ -138,7 +149,7 @@ exports.resendOtp = async (req, res, next) => {
     if (user.isVerified) return res.status(400).json({ error: 'Email already verified' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+    otpSet(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
     await sendOtpEmail(email, user.name, otp);
     res.json({ message: 'OTP resent to your email' });
   } catch (err) { next(err); }
