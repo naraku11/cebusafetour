@@ -290,7 +290,7 @@ function UsersTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total',     value: summary?.users?.total,        color: 'bg-gray-100 text-gray-700' },
           { label: 'Active',    value: summary?.users?.active,        color: 'bg-green-100 text-green-700' },
@@ -726,8 +726,8 @@ export default function Reports() {
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-1 -mb-px">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="flex gap-1 -mb-px min-w-max">
           {tabs.map(tab => (
             <button
               key={tab}

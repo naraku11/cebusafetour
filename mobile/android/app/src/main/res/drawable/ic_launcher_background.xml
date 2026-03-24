@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Light blue-white gradient — matches the wave icon's light background -->
+    <gradient
+        android:type="linear"
+        android:startColor="#FFFFFF"
+        android:endColor="#DBEAFE"
+        android:angle="135" />
+</shape>

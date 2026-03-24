@@ -168,7 +168,7 @@ export default function Emergency() {
 
       {/* Stat summary cards — hidden in archive view */}
       {viewMode !== 'archive' && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {TABS.map(tab => {
             const s = STAT_STYLES[tab.id];
             return (
@@ -264,8 +264,8 @@ function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onS
   return (
     <div>
       {/* Tab bar */}
-      <div className="border-b border-gray-200 mb-4">
-        <nav className="flex gap-1 -mb-px">
+      <div className="border-b border-gray-200 mb-4 overflow-x-auto">
+        <nav className="flex gap-1 -mb-px min-w-max">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -305,7 +305,7 @@ function TabsView({ tabs, activeTab, onTabChange, counts, incidents, tabCfg, onS
 
 function KanbanView({ byStatus, tabs, onSelect, onArchive, canArchive }) {
   return (
-    <div className="grid lg:grid-cols-3 gap-4 items-start">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
       {tabs.map(tab => {
         const incidents = byStatus(tab.id);
         return (

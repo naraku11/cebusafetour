@@ -6,7 +6,17 @@
       "Bash(node -e \"require\\(''jest''\\)\")",
       "Bash(npm ls:*)",
       "Bash(echo $NODE_ENV)",
-      "Bash(node_modules/.bin/jest --no-cache --verbose)"
+      "Bash(node_modules/.bin/jest --no-cache --verbose)",
+      "Bash(npm list:*)",
+      "Bash(xargs ls:*)",
+      "Bash(node scripts/build.js)",
+      "Bash(flutter analyze:*)",
+      "Bash(where flutter:*)",
+      "Read(//c/Users/navit/flutter/bin/**)",
+      "Read(//c/flutter/bin/**)",
+      "Read(//c/Users/navit/AppData/Local/Pub/Cache/**)",
+      "Read(//c/src/**)",
+      "Read(//c/Users/navit/**)"
     ]
   }
 }

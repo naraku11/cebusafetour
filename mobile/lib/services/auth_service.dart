@@ -1,0 +1,159 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path/path.dart' as p;
+import 'api_service.dart';
+import '../models/user.dart';
+import '../utils/exceptions.dart';
+
+/// Safely extracts the `error` string from a Dio error response.
+/// Works even if the body is HTML (String) instead of JSON (Map).
+String _errorMsg(DioException e, String fallback) {
+  if (e.type == DioExceptionType.connectionTimeout ||
+      e.type == DioExceptionType.receiveTimeout ||
+      e.type == DioExceptionType.sendTimeout) {
+    return 'Connection timed out. Check your internet and try again.';
+  }
+  if (e.type == DioExceptionType.connectionError) {
+    return 'Cannot reach the server. Check your internet connection.';
+  }
+  final data = e.response?.data;
+  if (data is Map) return data['error'] as String? ?? fallback;
+  return fallback;
+}
+
+class AuthService {
+  final _api = ApiService();
+  final _storage = const FlutterSecureStorage();
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final res = await _api.post('/auth/login', data: {'email': email, 'password': password});
+      final data = res.data as Map<String, dynamic>;
+      await _storage.write(key: 'auth_token', value: data['token']);
+      return data;
+    } on AccountSuspendedException {
+      rethrow;
+    } on DioException catch (e) {
+      throw Exception(_errorMsg(e, 'Login failed. Please try again.'));
+    }
+  }
+
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String password,
+    String? nationality,
+    String? contactNumber,
+  }) async {
+    try {
+      final res = await _api.post('/auth/register', data: {
+        'name': name, 'email': email, 'password': password,
+        'nationality': nationality, 'contactNumber': contactNumber,
+      });
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final message = e.response?.data is Map
+          ? e.response!.data['error'] as String?
+          : null;
+      if (statusCode == 409) {
+        throw Exception(message ?? 'This email is already registered. Please sign in instead.');
+      }
+      throw Exception(_errorMsg(e, message ?? 'Registration failed. Please try again.'));
+    }
+  }
+
+  Future<bool> verifyOtp(String email, String otp) async {
+    try {
+      final res = await _api.post('/auth/verify-otp', data: {'email': email, 'otp': otp});
+      final data = res.data as Map<String, dynamic>;
+      if (data['token'] != null) {
+        await _storage.write(key: 'auth_token', value: data['token']);
+      }
+      return true;
+    } on DioException catch (e) {
+      throw Exception(_errorMsg(e, 'Verification failed. Please try again.'));
+    }
+  }
+
+  Future<UserModel?> getMe() async {
+    try {
+      final res = await _api.get('/auth/me');
+      return UserModel.fromJson((res.data as Map<String, dynamic>)['user']);
+    } on AccountSuspendedException {
+      rethrow; // Let AuthNotifier handle force-logout
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: 'auth_token');
+  }
+
+  Future<String?> getToken() => _storage.read(key: 'auth_token');
+
+  Future<void> updateFcmToken(String token) async {
+    await _api.patch('/auth/fcm-token', data: {'fcmToken': token});
+  }
+
+  Future<UserModel> updateProfile({
+    String? name,
+    String? nationality,
+    String? contactNumber,
+    String? language,
+    List<Map<String, dynamic>>? emergencyContacts,
+  }) async {
+    final res = await _api.patch('/users/me', data: {
+      if (name != null) 'name': name,
+      if (nationality != null) 'nationality': nationality,
+      if (contactNumber != null) 'contactNumber': contactNumber,
+      if (language != null) 'language': language,
+      if (emergencyContacts != null) 'emergencyContacts': emergencyContacts,
+    });
+    return UserModel.fromJson((res.data as Map<String, dynamic>)['user']);
+  }
+
+  Future<void> resendOtp(String email) async {
+    try {
+      await _api.post('/auth/resend-otp', data: {'email': email});
+    } on DioException catch (e) {
+      throw Exception(_errorMsg(e, 'Failed to resend code. Please try again.'));
+    }
+  }
+
+  /// Returns true if the OTP email was sent, false if delivery failed.
+  Future<bool> forgotPassword(String email) async {
+    try {
+      final res = await _api.post('/auth/forgot-password', data: {'email': email});
+      return (res.data as Map?)?['emailSent'] as bool? ?? true;
+    } on DioException catch (e) {
+      throw Exception(_errorMsg(e, 'Failed to send reset code. Please try again.'));
+    }
+  }
+
+  Future<void> resetPassword(String email, String otp, String newPassword) async {
+    try {
+      await _api.post('/auth/reset-password', data: {
+        'email': email,
+        'otp': otp,
+        'newPassword': newPassword,
+      });
+    } on DioException catch (e) {
+      throw Exception(_errorMsg(e, 'Password reset failed. Please try again.'));
+    }
+  }
+
+  /// Upload a new profile picture. Returns the updated [UserModel].
+  Future<UserModel> updateProfilePicture(File file) async {
+    final formData = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(
+        file.path,
+        filename: p.basename(file.path),
+      ),
+    });
+    final res = await _api.postFormData('/users/me/profile-picture', formData: formData);
+    return UserModel.fromJson((res.data as Map<String, dynamic>)['user']);
+  }
+}

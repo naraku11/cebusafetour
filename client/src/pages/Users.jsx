@@ -285,7 +285,7 @@ function StaffSection() {
   return (
     <div className="space-y-5">
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Total Staff',  value: counts.total,     color: 'text-violet-600' },
           { label: 'Active',       value: counts.active,    color: 'text-green-600' },
@@ -581,7 +581,7 @@ function TouristSection() {
   return (
     <div className="space-y-5">
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Total Tourists', value: stats?.total,     color: 'text-blue-600' },
           { label: 'Active',         value: stats?.active,    color: 'text-green-600' },
@@ -754,7 +754,7 @@ function TouristSection() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div><p className="text-gray-400 text-xs">Name</p><p className="font-medium">{userDetail.user.name}</p></div>
                   <div><p className="text-gray-400 text-xs">Email</p><p>{userDetail.user.email}</p></div>
                   <div><p className="text-gray-400 text-xs">Nationality</p><p>{userDetail.user.nationality || '—'}</p></div>
@@ -844,7 +844,7 @@ export default function Users() {
       </div>
 
       {/* Section switcher */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {SECTIONS.map(s => {
           const Icon = s.icon;
           const active = section === s.key;

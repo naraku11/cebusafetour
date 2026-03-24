@@ -148,7 +148,7 @@ export default function Advisories() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Safety Advisories</h2>
           <p className="text-gray-500 text-sm">{data?.total ?? 0} advisories</p>
@@ -180,7 +180,7 @@ export default function Advisories() {
         <div className="space-y-4">
           {data?.advisories?.map(advisory => (
             <div key={advisory.id} className={`card ${advisory.status === 'archived' ? 'opacity-75' : ''}`}>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">{SEVERITY_ICONS[advisory.severity]}</span>
@@ -191,7 +191,7 @@ export default function Advisories() {
                     )}
                   </div>
                   <p className="text-gray-600 text-sm mb-3">{advisory.description}</p>
-                  <div className="flex gap-4 text-xs text-gray-500">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                     <span>Source: <strong>{advisory.source?.toUpperCase()}</strong></span>
                     <span>From: <strong>{format(new Date(advisory.startDate), 'MMM d, yyyy')}</strong></span>
                     {advisory.endDate && <span>Until: <strong>{format(new Date(advisory.endDate), 'MMM d, yyyy')}</strong></span>}
@@ -303,7 +303,7 @@ export default function Advisories() {
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Severity</label>
                   <select value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))} className="input">

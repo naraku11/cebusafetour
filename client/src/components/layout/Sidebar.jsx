@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/authStore';
 import {
   HomeIcon, MapPinIcon, ExclamationTriangleIcon,
   ShieldExclamationIcon, UsersIcon, BellIcon,
-  DocumentChartBarIcon, StarIcon,
+  DocumentChartBarIcon, StarIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 // Each nav item declares which roles can see it
@@ -24,16 +24,23 @@ const ROLE_META = {
   admin_emergency: { label: 'Emergency Officer', dot: 'bg-red-400'    },
 };
 
-export default function Sidebar() {
+export default function Sidebar({ open, onClose }) {
   const { user } = useAuthStore();
   const role = user?.role ?? '';
   const meta = ROLE_META[role] ?? { label: role, dot: 'bg-gray-400' };
   const navItems = ALL_NAV.filter(item => item.roles.includes(role));
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col shrink-0">
-      {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-700">
+    <aside
+      className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col shrink-0
+        transform transition-transform duration-200 ease-in-out
+        md:relative md:translate-x-0
+        ${open ? 'translate-x-0' : '-translate-x-full'}
+      `}
+    >
+      {/* Logo + mobile close */}
+      <div className="px-6 py-5 border-b border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🏖</span>
           <div>
@@ -41,6 +48,12 @@ export default function Sidebar() {
             <p className="text-gray-400 text-xs">Admin Portal</p>
           </div>
         </div>
+        <button
+          onClick={onClose}
+          className="md:hidden p-1 text-gray-400 hover:text-white rounded-lg"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Logged-in role badge */}
@@ -60,6 +73,7 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive

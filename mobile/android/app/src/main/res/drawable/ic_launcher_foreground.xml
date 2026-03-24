@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CebuSafeTour app icon foreground — Splash Wave
+  Recreates the curling ocean wave: dark navy outer curl, light-blue barrel,
+  white foam crest, three layered blue stripes, and water droplets.
+  Safe zone: 72dp centered in 108dp canvas (18–90 on each axis).
+  Curl center: (42, 44)  outer-r: 24  inner-r: 14
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── Barrel interior — light blue half-disc fills the hollow of the curl ── -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M42,30
+            C34.3,30 28,36.3 28,44
+            C28,51.7 34.3,58 42,58
+            Z"/>
+
+    <!-- ── Soft light-blue body — blends curl into the wave stripes ── -->
+    <path
+        android:fillColor="#64B5F6"
+        android:alpha="0.45"
+        android:pathData="M42,20
+            C28.7,20 18,30.7 18,44
+            C18,57.3 28.7,68 42,68
+            C48,68 54,66 58,62
+            C64,64 72,67 82,72
+            L82,68
+            C72,63 64,60 58,58
+            C60,54 62,49 62,44
+            C62,30.7 52.6,20 42,20 Z"/>
+
+    <!-- ── Dark navy C-curl ring (outer arc, the breaking-wave shell) ── -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M42,20
+            C28.7,20 18,30.7 18,44
+            C18,57.3 28.7,68 42,68
+            L42,58
+            C34.3,58 28,51.7 28,44
+            C28,36.3 34.3,30 42,30
+            Z"/>
+
+    <!-- ── White foam at the crest top ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:alpha="0.92"
+        android:pathData="M42,20
+            C52,20 60,26 62,34
+            C58,28 52,24 42,23
+            Z"/>
+
+    <!-- ── Stripe 1 — dark navy (topmost / closest to curl base) ── -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M36,63
+            C50,59 64,61 80,67
+            L80,74
+            C64,68 50,66 36,70
+            Z"/>
+
+    <!-- ── Stripe 2 — dark-medium blue ── -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M34,72
+            C48,68 64,70 80,76
+            L80,83
+            C64,77 48,75 34,79
+            Z"/>
+
+    <!-- ── Stripe 3 — medium blue (bottom stripe) ── -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M32,81
+            C48,77 64,79 80,85
+            L80,90
+            C64,85 48,83 32,87
+            Z"/>
+
+    <!-- ── White highlight lines on stripes (gives the layered sheen) ── -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeAlpha="0.55"
+        android:pathData="M42,67 Q60,64 76,69"/>
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeAlpha="0.55"
+        android:pathData="M40,76 Q58,73 74,78"/>
+
+    <!-- ── Water droplets — light blue spray near the crest ── -->
+    <!-- Droplet left -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M62,28 A3.5,3.5 0 1,0 69,28 A3.5,3.5 0 1,0 62,28Z"/>
+    <!-- Droplet centre-top (tallest) -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M67,20 A4,4 0 1,0 75,20 A4,4 0 1,0 67,20Z"/>
+    <!-- Droplet right -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M74,28 A3,3 0 1,0 80,28 A3,3 0 1,0 74,28Z"/>
+    <!-- Droplet small -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M71,35 A2.2,2.2 0 1,0 75.4,35 A2.2,2.2 0 1,0 71,35Z"/>
+
+</vector>

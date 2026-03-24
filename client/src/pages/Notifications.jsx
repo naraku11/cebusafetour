@@ -73,7 +73,7 @@ export default function Notifications() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Announcements & Notifications</h2>
           <p className="text-gray-500 text-sm">{data?.total ?? 0} total</p>
@@ -185,7 +185,7 @@ export default function Notifications() {
                 <label className="block text-sm font-medium mb-1">Message</label>
                 <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} className="input h-24 resize-none" placeholder="Notification body..." />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Type</label>
                   <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="input">

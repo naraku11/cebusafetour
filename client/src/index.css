@@ -5,6 +5,11 @@
 @layer base {
   body {
     @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Ensure buttons and inputs have adequate touch targets */
+  button, a, select, [role="button"] {
+    min-height: 32px;
   }
 }
 

@@ -1,0 +1,85 @@
+class AppConstants {
+  // Production: Hostinger domain where the Node.js backend is deployed
+  // Local dev (Android emulator):          'http://10.0.2.2:5000'
+  // Local dev (physical device, same Wi-Fi): 'http://YOUR_LOCAL_IP:5000'
+  static const String serverUrl = 'https://cebusafetour.fun';
+  static const String baseUrl   = '$serverUrl/api';
+
+  static const String appName = 'CebuSafeTour';
+
+  // Fallback emergency contacts used when the API is unreachable
+  static const emergencyContacts = [
+    {'name': 'PNP Emergency Hotline',             'number': '911'},
+    {'name': 'BFP Fire Emergency',                'number': '(032) 255-0911'},
+    {'name': 'Philippine Red Cross',              'number': '143'},
+    {'name': 'CDRRMO Cebu City',                  'number': '(032) 255-3068'},
+    {'name': 'Vicente Sotto Memorial Hospital',   'number': '(032) 253-9891'},
+    {'name': 'Chong Hua Hospital (Fuente)',        'number': '(032) 255-8000'},
+    {'name': 'Cebu Doctors University Hospital',  'number': '(032) 255-5555'},
+    {'name': 'Lapu-Lapu City Police',             'number': '(032) 340-5060'},
+    {'name': 'Lapu-Lapu City Fire Station',       'number': '(032) 340-6055'},
+    {'name': 'DRRMO Lapu-Lapu City',              'number': '(032) 340-1188'},
+    {'name': 'Philippine Coast Guard Cebu',       'number': '(032) 232-7321'},
+    {'name': 'PDRRMO Cebu Province',              'number': '(032) 254-3060'},
+  ];
+
+  static const languages = [
+    {'code': 'en',  'label': 'English'},
+    {'code': 'fil', 'label': 'Filipino'},
+    {'code': 'ceb', 'label': 'Cebuano'},
+    {'code': 'zh',  'label': '中文 (Chinese)'},
+    {'code': 'ko',  'label': '한국어 (Korean)'},
+    {'code': 'ja',  'label': '日本語 (Japanese)'},
+    {'code': 'ar',  'label': 'العربية (Arabic)'},
+    {'code': 'es',  'label': 'Español (Spanish)'},
+    {'code': 'fr',  'label': 'Français (French)'},
+    {'code': 'de',  'label': 'Deutsch (German)'},
+    {'code': 'pt',  'label': 'Português (Portuguese)'},
+    {'code': 'ru',  'label': 'Русский (Russian)'},
+    {'code': 'hi',  'label': 'हिन्दी (Hindi)'},
+    {'code': 'th',  'label': 'ภาษาไทย (Thai)'},
+    {'code': 'vi',  'label': 'Tiếng Việt (Vietnamese)'},
+    {'code': 'id',  'label': 'Bahasa Indonesia'},
+    {'code': 'ms',  'label': 'Bahasa Melayu (Malay)'},
+    {'code': 'it',  'label': 'Italiano (Italian)'},
+    {'code': 'nl',  'label': 'Nederlands (Dutch)'},
+    {'code': 'tr',  'label': 'Türkçe (Turkish)'},
+    {'code': 'pl',  'label': 'Polski (Polish)'},
+    {'code': 'uk',  'label': 'Українська (Ukrainian)'},
+    {'code': 'sv',  'label': 'Svenska (Swedish)'},
+    {'code': 'da',  'label': 'Dansk (Danish)'},
+    {'code': 'no',  'label': 'Norsk (Norwegian)'},
+    {'code': 'fi',  'label': 'Suomi (Finnish)'},
+    {'code': 'el',  'label': 'Ελληνικά (Greek)'},
+    {'code': 'he',  'label': 'עברית (Hebrew)'},
+    {'code': 'bn',  'label': 'বাংলা (Bengali)'},
+    {'code': 'ur',  'label': 'اردو (Urdu)'},
+    {'code': 'ta',  'label': 'தமிழ் (Tamil)'},
+    {'code': 'my',  'label': 'မြန်မာ (Burmese)'},
+    {'code': 'km',  'label': 'ខ្មែរ (Khmer)'},
+    {'code': 'lo',  'label': 'ລາວ (Lao)'},
+    {'code': 'mn',  'label': 'Монгол (Mongolian)'},
+    {'code': 'sw',  'label': 'Kiswahili (Swahili)'},
+    {'code': 'ro',  'label': 'Română (Romanian)'},
+    {'code': 'hu',  'label': 'Magyar (Hungarian)'},
+    {'code': 'cs',  'label': 'Čeština (Czech)'},
+    {'code': 'sk',  'label': 'Slovenčina (Slovak)'},
+    {'code': 'hr',  'label': 'Hrvatski (Croatian)'},
+    {'code': 'bg',  'label': 'Български (Bulgarian)'},
+    {'code': 'sr',  'label': 'Српски (Serbian)'},
+    {'code': 'lt',  'label': 'Lietuvių (Lithuanian)'},
+    {'code': 'lv',  'label': 'Latviešu (Latvian)'},
+    {'code': 'et',  'label': 'Eesti (Estonian)'},
+    {'code': 'sl',  'label': 'Slovenščina (Slovenian)'},
+    {'code': 'af',  'label': 'Afrikaans'},
+    {'code': 'fa',  'label': 'فارسی (Persian)'},
+    {'code': 'ne',  'label': 'नेपाली (Nepali)'},
+    {'code': 'si',  'label': 'සිංහල (Sinhala)'},
+    {'code': 'ka',  'label': 'ქართული (Georgian)'},
+    {'code': 'hy',  'label': 'Հայերեն (Armenian)'},
+    {'code': 'az',  'label': 'Azərbaycan (Azerbaijani)'},
+    {'code': 'kk',  'label': 'Қазақ (Kazakh)'},
+    {'code': 'uz',  'label': 'Oʻzbekcha (Uzbek)'},
+    {'code': 'tl',  'label': 'Tagalog'},
+  ];
+}
