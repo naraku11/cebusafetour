@@ -32,7 +32,9 @@
       "Bash(./gradlew :app:dependencies --configuration releaseCompileClasspath)",
       "Bash(./gradlew buildEnvironment)",
       "Bash(./gradlew :app:buildEnvironment)",
-      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" build:*)"
+      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" build:*)",
+      "Bash(npm prune:*)",
+      "Bash(\"D:/FlutterSDK/flutter/bin/flutter\" create:*)"
     ]
   }
 }
