@@ -16,7 +16,8 @@
       "Read(//c/flutter/bin/**)",
       "Read(//c/Users/navit/AppData/Local/Pub/Cache/**)",
       "Read(//c/src/**)",
-      "Read(//c/Users/navit/**)"
+      "Read(//c/Users/navit/**)",
+      "Read(//dev/**)"
     ]
   }
 }
