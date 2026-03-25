@@ -1,7 +1,5 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
-import { ArrowRightOnRectangleIcon, UserCircleIcon, ArrowPathIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, UserCircleIcon, Bars3Icon } from '@heroicons/react/24/outline';
 
 const ROLE_BADGE = {
   admin_super:     { label: 'Super Admin',       className: 'bg-violet-100 text-violet-700' },
@@ -11,15 +9,7 @@ const ROLE_BADGE = {
 
 export default function Header({ onMenuClick }) {
   const { user, logout } = useAuthStore();
-  const qc = useQueryClient();
-  const [refreshing, setRefreshing] = useState(false);
   const badge = ROLE_BADGE[user?.role] ?? { label: user?.role ?? '', className: 'bg-gray-100 text-gray-600' };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await qc.invalidateQueries();
-    setRefreshing(false);
-  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 gap-3">
@@ -38,15 +28,6 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          title="Refresh all data"
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
-        >
-          <ArrowPathIcon className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
-        </button>
         <div className="hidden sm:flex items-center gap-2.5">
           <UserCircleIcon className="w-7 h-7 text-gray-400" />
           <div className="text-right">

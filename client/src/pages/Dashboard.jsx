@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import {
   UsersIcon, MapPinIcon, ShieldExclamationIcon, ExclamationTriangleIcon,
   ArrowTrendingUpIcon, ArrowTrendingDownIcon, CheckCircleIcon,
@@ -57,7 +58,24 @@ const statusColors = {
   resolved: 'bg-green-100 text-green-700',
 };
 
+const ROLE_LABELS = {
+  admin_super: 'Super Admin',
+  admin_content: 'Content Manager',
+  admin_emergency: 'Emergency Officer',
+};
+
 export default function Dashboard() {
+  const { user } = useAuthStore();
+  const role = user?.role || '';
+  const isSuper     = role === 'admin_super';
+  const isContent   = role === 'admin_content';
+  const isEmergency = role === 'admin_emergency';
+
+  const canSeeUsers       = isSuper;
+  const canSeeAttractions = isSuper || isContent;
+  const canSeeIncidents   = isSuper || isEmergency;
+  const canSeeAdvisories  = true; // all admin roles
+
   const { data: summary, isLoading: loadingSummary } = useQuery({
     queryKey: ['reports-summary'],
     queryFn: () => api.get('/reports/summary').then(r => r.data),
@@ -68,18 +86,21 @@ export default function Dashboard() {
     queryKey: ['reports-trends'],
     queryFn: () => api.get('/reports/trends').then(r => r.data),
     staleTime: 60_000,
+    enabled: isSuper,
   });
 
   const { data: incidentsData } = useQuery({
     queryKey: ['reports-incidents'],
     queryFn: () => api.get('/reports/incidents').then(r => r.data),
     staleTime: 60_000,
+    enabled: canSeeIncidents,
   });
 
   const { data: attractionsData } = useQuery({
     queryKey: ['reports-attractions'],
     queryFn: () => api.get('/reports/attractions').then(r => r.data),
     staleTime: 60_000,
+    enabled: canSeeAttractions,
   });
 
   const s = summary || {};
@@ -87,18 +108,54 @@ export default function Dashboard() {
   const recentIncidents = incidentsData?.incidents?.slice(0, 5) || [];
   const byType = incidentsData?.byType || [];
 
+  // Build stat cards based on role
+  const statCards = [];
+  if (canSeeUsers) {
+    statCards.push(
+      <StatCard key="users" label="Total Users" value={s.users?.total ?? 0}
+        sub={`${s.users?.active ?? 0} active`} icon={UsersIcon} color="bg-sky-500"
+        trend={s.users?.newThisMonth} />
+    );
+  }
+  if (canSeeAttractions) {
+    statCards.push(
+      <StatCard key="attractions" label="Attractions" value={s.attractions?.total ?? 0}
+        sub={`${s.attractions?.safe ?? 0} safe`} icon={MapPinIcon} color="bg-teal-500" />
+    );
+  }
+  if (canSeeIncidents) {
+    statCards.push(
+      <StatCard key="incidents" label="Incidents" value={s.incidents?.total ?? 0}
+        sub={`${s.incidents?.active ?? 0} active`} icon={ShieldExclamationIcon} color="bg-orange-500"
+        trend={s.incidents?.thisMonth} />
+    );
+  }
+  if (canSeeAdvisories) {
+    statCards.push(
+      <StatCard key="advisories" label="Advisories" value={s.advisories?.active ?? 0}
+        sub={s.advisories?.critical ? `${s.advisories.critical} critical` : 'None critical'}
+        icon={ExclamationTriangleIcon} color="bg-red-500" />
+    );
+  }
+
+  const gridCols = statCards.length <= 2 ? 'grid-cols-1 sm:grid-cols-2'
+    : statCards.length === 3 ? 'grid-cols-1 sm:grid-cols-3'
+    : 'grid-cols-2 lg:grid-cols-4';
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-500 text-sm">Overview of CebuSafeTour activity</p>
+        <p className="text-gray-500 text-sm">
+          {ROLE_LABELS[role] || 'Admin'} — Overview
+        </p>
       </div>
 
       {/* Stats Grid */}
       {loadingSummary ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => (
+        <div className={`grid ${gridCols} gap-3`}>
+          {[...Array(statCards.length || 2)].map((_, i) => (
             <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 h-24 animate-pulse">
               <div className="h-3 bg-gray-200 rounded w-20 mb-3" />
               <div className="h-6 bg-gray-200 rounded w-12" />
@@ -106,42 +163,11 @@ export default function Dashboard() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            label="Total Users"
-            value={s.users?.total ?? 0}
-            sub={`${s.users?.active ?? 0} active`}
-            icon={UsersIcon}
-            color="bg-sky-500"
-            trend={s.users?.newThisMonth}
-          />
-          <StatCard
-            label="Attractions"
-            value={s.attractions?.total ?? 0}
-            sub={`${s.attractions?.safe ?? 0} safe`}
-            icon={MapPinIcon}
-            color="bg-teal-500"
-          />
-          <StatCard
-            label="Incidents"
-            value={s.incidents?.total ?? 0}
-            sub={`${s.incidents?.active ?? 0} active`}
-            icon={ShieldExclamationIcon}
-            color="bg-orange-500"
-            trend={s.incidents?.thisMonth}
-          />
-          <StatCard
-            label="Advisories"
-            value={s.advisories?.active ?? 0}
-            sub={s.advisories?.critical ? `${s.advisories.critical} critical` : 'None critical'}
-            icon={ExclamationTriangleIcon}
-            color="bg-red-500"
-          />
-        </div>
+        <div className={`grid ${gridCols} gap-3`}>{statCards}</div>
       )}
 
-      {/* Quick Stats Row */}
-      {s.incidents && (
+      {/* Quick Stats Row — incidents-related, shown for super & emergency */}
+      {canSeeIncidents && s.incidents && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 text-center">
             <CheckCircleIcon className="w-5 h-5 text-green-500 mx-auto mb-1" />
@@ -163,8 +189,8 @@ export default function Dashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Trends Line Chart */}
-        {trends && (
+        {/* Trends Line Chart — super admin only */}
+        {isSuper && trends && (
           <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
             <h3 className="font-semibold text-gray-900 mb-3 text-sm">6-Month Trends</h3>
             <div className="h-52">
@@ -177,18 +203,14 @@ export default function Dashboard() {
                       data: trends.incidents,
                       borderColor: '#f97316',
                       backgroundColor: 'rgba(249,115,22,0.08)',
-                      fill: true,
-                      tension: 0.3,
-                      pointRadius: 3,
+                      fill: true, tension: 0.3, pointRadius: 3,
                     },
                     {
                       label: 'New Users',
                       data: trends.users,
                       borderColor: '#0ea5e9',
                       backgroundColor: 'rgba(14,165,233,0.08)',
-                      fill: true,
-                      tension: 0.3,
-                      pointRadius: 3,
+                      fill: true, tension: 0.3, pointRadius: 3,
                     },
                   ],
                 }}
@@ -203,34 +225,59 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Incident Types Bar Chart */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Incidents by Type</h3>
-          <div className="h-52">
-            {byType.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-gray-400 text-sm">No data yet</div>
+        {/* Incident Types Bar Chart — super & emergency */}
+        {canSeeIncidents && (
+          <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
+            <h3 className="font-semibold text-gray-900 mb-3 text-sm">Incidents by Type</h3>
+            <div className="h-52">
+              {byType.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-gray-400 text-sm">No data yet</div>
+              ) : (
+                <Bar
+                  data={{
+                    labels: byType.map(t => t.type.replace('_', ' ')),
+                    datasets: [{
+                      label: 'Count',
+                      data: byType.map(t => t.count),
+                      backgroundColor: ['#0ea5e9', '#f97316', '#ef4444', '#8b5cf6', '#14b8a6'],
+                      borderRadius: 6,
+                    }],
+                  }}
+                  options={chartOpts}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Safety Doughnut — super & content (shown in chart row for content when no incidents chart) */}
+        {canSeeAttractions && (
+          <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
+            <h3 className="font-semibold text-gray-900 mb-3 text-sm">Safety Status</h3>
+            {s.attractions ? (
+              <div className="h-52">
+                <Doughnut
+                  data={{
+                    labels: ['Safe', 'Caution', 'Danger'],
+                    datasets: [{
+                      data: [s.attractions.safe, s.attractions.caution, s.attractions.danger],
+                      backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                      borderWidth: 0,
+                    }],
+                  }}
+                  options={doughnutOpts}
+                />
+              </div>
             ) : (
-              <Bar
-                data={{
-                  labels: byType.map(t => t.type.replace('_', ' ')),
-                  datasets: [{
-                    label: 'Count',
-                    data: byType.map(t => t.count),
-                    backgroundColor: ['#0ea5e9', '#f97316', '#ef4444', '#8b5cf6', '#14b8a6'],
-                    borderRadius: 6,
-                  }],
-                }}
-                options={chartOpts}
-              />
+              <div className="h-52 flex items-center justify-center text-gray-400 text-sm">Loading...</div>
             )}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Bottom Row: Attractions + Safety */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Top Attractions */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
+      {/* Top Attractions — super & content */}
+      {canSeeAttractions && (
+        <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
           <h3 className="font-semibold text-gray-900 mb-3 text-sm">Top Attractions</h3>
           {topAttractions.length === 0 ? (
             <p className="text-gray-400 text-sm text-center py-8">No data yet</p>
@@ -256,68 +303,48 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      )}
 
-        {/* Safety Doughnut */}
+      {/* Recent Incidents Table — super & emergency */}
+      {canSeeIncidents && (
         <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Safety Status</h3>
-          {s.attractions ? (
-            <div className="h-48">
-              <Doughnut
-                data={{
-                  labels: ['Safe', 'Caution', 'Danger'],
-                  datasets: [{
-                    data: [s.attractions.safe, s.attractions.caution, s.attractions.danger],
-                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-                    borderWidth: 0,
-                  }],
-                }}
-                options={doughnutOpts}
-              />
-            </div>
+          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Recent Incidents</h3>
+          {recentIncidents.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-6">No incidents reported</p>
           ) : (
-            <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Loading...</div>
+            <div className="overflow-x-auto -mx-4 sm:-mx-5">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b border-gray-100">
+                    <th className="pb-2.5 pl-4 sm:pl-5 font-medium">Type</th>
+                    <th className="pb-2.5 font-medium">Location</th>
+                    <th className="pb-2.5 font-medium">Status</th>
+                    <th className="pb-2.5 pr-4 sm:pr-5 font-medium">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {recentIncidents.map(inc => (
+                    <tr key={inc.id} className="hover:bg-gray-50/50">
+                      <td className="py-2.5 pl-4 sm:pl-5 capitalize">{(inc.type || '').replace('_', ' ')}</td>
+                      <td className="py-2.5 text-gray-500 max-w-[180px] truncate">
+                        {inc.nearestLandmark || (inc.latitude ? `${Number(inc.latitude).toFixed(4)}, ${Number(inc.longitude).toFixed(4)}` : '—')}
+                      </td>
+                      <td className="py-2.5">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[inc.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {(inc.status || '').replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 sm:pr-5 text-gray-500 whitespace-nowrap">
+                        {inc.createdAt ? new Date(inc.createdAt).toLocaleDateString() : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
-
-      {/* Recent Incidents Table */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 shadow-sm">
-        <h3 className="font-semibold text-gray-900 mb-3 text-sm">Recent Incidents</h3>
-        {recentIncidents.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-6">No incidents reported</p>
-        ) : (
-          <div className="overflow-x-auto -mx-4 sm:-mx-5">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead>
-                <tr className="text-left text-gray-500 border-b border-gray-100">
-                  <th className="pb-2.5 pl-4 sm:pl-5 font-medium">Type</th>
-                  <th className="pb-2.5 font-medium">Location</th>
-                  <th className="pb-2.5 font-medium">Status</th>
-                  <th className="pb-2.5 pr-4 sm:pr-5 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {recentIncidents.map(inc => (
-                  <tr key={inc.id} className="hover:bg-gray-50/50">
-                    <td className="py-2.5 pl-4 sm:pl-5 capitalize">{(inc.type || '').replace('_', ' ')}</td>
-                    <td className="py-2.5 text-gray-500 max-w-[180px] truncate">
-                      {inc.nearestLandmark || (inc.latitude ? `${Number(inc.latitude).toFixed(4)}, ${Number(inc.longitude).toFixed(4)}` : '—')}
-                    </td>
-                    <td className="py-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[inc.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {(inc.status || '').replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="py-2.5 pr-4 sm:pr-5 text-gray-500 whitespace-nowrap">
-                      {inc.createdAt ? new Date(inc.createdAt).toLocaleDateString() : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
