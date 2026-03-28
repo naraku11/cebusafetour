@@ -37,6 +37,11 @@ class AppNotification {
     receivedAt: DateTime.parse(json['sentAt'] as String? ?? json['createdAt'] as String),
   );
 
+  AppNotification copyWith({bool? isRead}) => AppNotification(
+    id: id, title: title, body: body, type: type, priority: priority,
+    receivedAt: receivedAt, isRead: isRead ?? this.isRead,
+  );
+
   /// Whether this notification should show a full-screen emergency overlay
   bool get isEmergency => type == 'emergency';
 

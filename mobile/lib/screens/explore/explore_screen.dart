@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,14 +16,30 @@ class ExploreScreen extends ConsumerStatefulWidget {
 
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   String _search = '';
+  String _debouncedSearch = '';
   String _category = '';
   String _safetyStatus = '';
+  Timer? _debounce;
 
-  final _categories = ['', 'beach', 'mountain', 'heritage', 'museum', 'park', 'waterfall', 'market', 'church', 'resort'];
+  final _categories = const ['', 'beach', 'mountain', 'heritage', 'museum', 'park', 'waterfall', 'market', 'church', 'resort'];
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _search = value;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _debouncedSearch = _search);
+    });
+  }
 
   String _buildQuery() {
     final parts = <String>[];
-    if (_search.isNotEmpty) parts.add('search=${Uri.encodeComponent(_search)}');
+    if (_debouncedSearch.isNotEmpty) parts.add('search=${Uri.encodeComponent(_debouncedSearch)}');
     if (_category.isNotEmpty) parts.add('category=$_category');
     if (_safetyStatus.isNotEmpty) parts.add('safetyStatus=$_safetyStatus');
     return parts.join('&');
@@ -41,7 +58,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              onChanged: (v) => setState(() => _search = v),
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: l.searchAttractions,
                 prefixIcon: const Icon(Icons.search),

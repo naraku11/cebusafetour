@@ -46,8 +46,8 @@ app.set('trust proxy', 1);
 // Attach Socket.IO
 socket.init(server);
 
-// Compress all HTTP responses (gzip/brotli)
-app.use(compression());
+// Compress HTTP responses >1 KB (skip tiny payloads where overhead exceeds benefit)
+app.use(compression({ threshold: 1024 }));
 
 // Security & parsing middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));

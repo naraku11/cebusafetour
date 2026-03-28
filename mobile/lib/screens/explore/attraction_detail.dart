@@ -164,12 +164,13 @@ class AttractionDetail extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
-                // Reviews section
-                _ReviewsSection(attractionId: attractionId),
-
-                const SizedBox(height: 80),
               ])),
             ),
+
+            // Reviews section — lazy-loaded via SliverList.builder
+            _ReviewsSliver(attractionId: attractionId),
+
+            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
           ]),
           const Positioned(bottom: 24, right: 24, child: EmergencyFab()),
         ]),
@@ -328,9 +329,9 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
 
 // ── Reviews List Section ───────────────────────────────────────────────────────
 
-class _ReviewsSection extends ConsumerWidget {
+class _ReviewsSliver extends ConsumerWidget {
   final String attractionId;
-  const _ReviewsSection({required this.attractionId});
+  const _ReviewsSliver({required this.attractionId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -338,25 +339,39 @@ class _ReviewsSection extends ConsumerWidget {
     final l = AppLocalizations.of(context);
 
     return reviewsAsync.when(
-      loading: () => const Center(child: Padding(
-        padding: EdgeInsets.all(16),
-        child: CircularProgressIndicator(),
-      )),
-      error: (_, __) => const SizedBox.shrink(),
+      loading: () => const SliverToBoxAdapter(
+        child: Center(child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(),
+        )),
+      ),
+      error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
       data: (reviews) {
         if (reviews.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: Center(
-              child: Text(l.noReviewsYet, style: TextStyle(color: Colors.grey.shade500)),
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: Center(
+                child: Text(l.noReviewsYet, style: TextStyle(color: Colors.grey.shade500)),
+              ),
             ),
           );
         }
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(l.reviews, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 12),
-          ...reviews.map((r) => _ReviewTile(review: r, attractionId: attractionId)),
-        ]);
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverList.builder(
+            itemCount: reviews.length + 1, // +1 for the header
+            itemBuilder: (ctx, i) {
+              if (i == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(l.reviews, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                );
+              }
+              return _ReviewTile(review: reviews[i - 1], attractionId: attractionId);
+            },
+          ),
+        );
       },
     );
   }

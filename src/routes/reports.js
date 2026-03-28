@@ -19,72 +19,108 @@ const monthLabel = (offsetFromNow) => {
 const count = (sql, params = []) => db.findOne(sql, params).then(r => r.n);
 
 // ── GET /reports/summary ─────────────────────────────────────────────────────
+// Consolidated: 16 COUNT queries → 4 grouped queries (one per table)
 router.get('/summary', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
-    const [
-      totalUsers, activeUsers, suspendedUsers, bannedUsers, newUsersThisMonth,
-      totalAttractions, safeAttractions, cautionAttractions,
-      totalIncidents, activeIncidents, resolvedIncidents, incidentsToday, incidentsThisMonth,
-      totalAdvisories, activeAdvisories, criticalAdvisories,
-    ] = await Promise.all([
-      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist'`),
-      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND status = 'active'`),
-      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND status = 'suspended'`),
-      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND status = 'banned'`),
-      count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND created_at >= ?`, [monthStart]),
-      count(`SELECT COUNT(*) as n FROM attractions WHERE status = 'published'`),
-      count(`SELECT COUNT(*) as n FROM attractions WHERE status = 'published' AND safety_status = 'safe'`),
-      count(`SELECT COUNT(*) as n FROM attractions WHERE status = 'published' AND safety_status = 'caution'`),
-      count(`SELECT COUNT(*) as n FROM incidents`),
-      count(`SELECT COUNT(*) as n FROM incidents WHERE status IN ('new', 'in_progress')`),
-      count(`SELECT COUNT(*) as n FROM incidents WHERE status = 'resolved'`),
-      count(`SELECT COUNT(*) as n FROM incidents WHERE created_at >= ?`, [todayStart]),
-      count(`SELECT COUNT(*) as n FROM incidents WHERE created_at >= ?`, [monthStart]),
-      count(`SELECT COUNT(*) as n FROM advisories`),
-      count(`SELECT COUNT(*) as n FROM advisories WHERE status = 'active'`),
-      count(`SELECT COUNT(*) as n FROM advisories WHERE status = 'active' AND severity = 'critical'`),
+    const [userStats, attrStats, incidentStats, advisoryStats] = await Promise.all([
+      db.findOne(
+        `SELECT
+           COUNT(*) as total,
+           SUM(status = 'active') as active,
+           SUM(status = 'suspended') as suspended,
+           SUM(status = 'banned') as banned,
+           SUM(created_at >= ?) as newThisMonth
+         FROM users WHERE role = 'tourist'`,
+        [monthStart]
+      ),
+      db.findOne(
+        `SELECT
+           COUNT(*) as total,
+           SUM(safety_status = 'safe') as safe,
+           SUM(safety_status = 'caution') as caution
+         FROM attractions WHERE status = 'published'`
+      ),
+      db.findOne(
+        `SELECT
+           COUNT(*) as total,
+           SUM(status IN ('new', 'in_progress')) as active,
+           SUM(status = 'resolved') as resolved,
+           SUM(created_at >= ?) as today,
+           SUM(created_at >= ?) as thisMonth
+         FROM incidents`,
+        [todayStart, monthStart]
+      ),
+      db.findOne(
+        `SELECT
+           COUNT(*) as total,
+           SUM(status = 'active') as active,
+           SUM(status = 'active' AND severity = 'critical') as critical
+         FROM advisories`
+      ),
     ]);
 
+    const totalIncidents = Number(incidentStats.total);
+    const resolvedIncidents = Number(incidentStats.resolved);
     const resolveRate = totalIncidents > 0 ? Math.round((resolvedIncidents / totalIncidents) * 100) : 0;
 
     res.json({
-      users:       { total: totalUsers, active: activeUsers, suspended: suspendedUsers, banned: bannedUsers, newThisMonth: newUsersThisMonth },
-      attractions: { total: totalAttractions, safe: safeAttractions, caution: cautionAttractions, danger: totalAttractions - safeAttractions - cautionAttractions },
-      incidents:   { total: totalIncidents, active: activeIncidents, resolved: resolvedIncidents, today: incidentsToday, thisMonth: incidentsThisMonth, resolveRate },
-      advisories:  { total: totalAdvisories, active: activeAdvisories, critical: criticalAdvisories },
+      users:       { total: Number(userStats.total), active: Number(userStats.active), suspended: Number(userStats.suspended), banned: Number(userStats.banned), newThisMonth: Number(userStats.newThisMonth) },
+      attractions: { total: Number(attrStats.total), safe: Number(attrStats.safe), caution: Number(attrStats.caution), danger: Number(attrStats.total) - Number(attrStats.safe) - Number(attrStats.caution) },
+      incidents:   { total: totalIncidents, active: Number(incidentStats.active), resolved: resolvedIncidents, today: Number(incidentStats.today), thisMonth: Number(incidentStats.thisMonth), resolveRate },
+      advisories:  { total: Number(advisoryStats.total), active: Number(advisoryStats.active), critical: Number(advisoryStats.critical) },
     });
   } catch (err) { next(err); }
 });
 
 // ── GET /reports/trends ──────────────────────────────────────────────────────
+// Consolidated: 18 queries → 3 (one per table with GROUP BY month)
 router.get('/trends', authenticate, requireAdmin, async (req, res, next) => {
   try {
     const MONTHS  = 6;
     const offsets = Array.from({ length: MONTHS }, (_, i) => MONTHS - 1 - i); // [5,4,3,2,1,0]
+    const { start: rangeStart } = monthRange(MONTHS - 1);
+    const { end: rangeEnd } = monthRange(0);
 
-    const [incidentCounts, advisoryCounts, userCounts] = await Promise.all([
-      Promise.all(offsets.map(o => {
-        const { start, end } = monthRange(o);
-        return count('SELECT COUNT(*) as n FROM incidents WHERE created_at >= ? AND created_at <= ?', [start, end]);
-      })),
-      Promise.all(offsets.map(o => {
-        const { start, end } = monthRange(o);
-        return count('SELECT COUNT(*) as n FROM advisories WHERE created_at >= ? AND created_at <= ?', [start, end]);
-      })),
-      Promise.all(offsets.map(o => {
-        const { start, end } = monthRange(o);
-        return count(`SELECT COUNT(*) as n FROM users WHERE role = 'tourist' AND created_at >= ? AND created_at <= ?`, [start, end]);
-      })),
+    const [incidentRows, advisoryRows, userRows] = await Promise.all([
+      db.findMany(
+        `SELECT DATE_FORMAT(created_at, '%Y-%m') as m, COUNT(*) as n
+         FROM incidents WHERE created_at >= ? AND created_at <= ?
+         GROUP BY m ORDER BY m`,
+        [rangeStart, rangeEnd]
+      ),
+      db.findMany(
+        `SELECT DATE_FORMAT(created_at, '%Y-%m') as m, COUNT(*) as n
+         FROM advisories WHERE created_at >= ? AND created_at <= ?
+         GROUP BY m ORDER BY m`,
+        [rangeStart, rangeEnd]
+      ),
+      db.findMany(
+        `SELECT DATE_FORMAT(created_at, '%Y-%m') as m, COUNT(*) as n
+         FROM users WHERE role = 'tourist' AND created_at >= ? AND created_at <= ?
+         GROUP BY m ORDER BY m`,
+        [rangeStart, rangeEnd]
+      ),
     ]);
+
+    // Build month keys for the 6-month window and fill counts (default 0)
+    const monthKeys = offsets.map(o => {
+      const { start } = monthRange(o);
+      return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const toCountMap = (rows) => {
+      const map = {};
+      for (const r of rows) map[r.m] = Number(r.n);
+      return monthKeys.map(k => map[k] || 0);
+    };
 
     res.json({
       labels:     offsets.map(o => monthLabel(o)),
-      incidents:  incidentCounts,
-      advisories: advisoryCounts,
-      users:      userCounts,
+      incidents:  toCountMap(incidentRows),
+      advisories: toCountMap(advisoryRows),
+      users:      toCountMap(userRows),
     });
   } catch (err) { next(err); }
 });

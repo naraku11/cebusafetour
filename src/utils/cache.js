@@ -7,7 +7,7 @@ const NodeCache = require('node-cache');
  * checkperiod → expired keys are pruned every 120 s
  * useClones   → false avoids deep-clone overhead on every get/set
  */
-const cache = new NodeCache({ stdTTL: 0, checkperiod: 120, useClones: false, maxKeys: 500 });
+const cache = new NodeCache({ stdTTL: 0, checkperiod: 120, useClones: true, maxKeys: 2000 });
 
 /**
  * Delete all cache keys whose names start with `prefix`.

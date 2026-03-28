@@ -14,18 +14,24 @@ exports.sendPushToAll = async (payload) => {
   try {
     let offset = 0, total = 0;
     const BATCH = 500;
-    // Paginate from DB in batches instead of loading all tokens into memory
+    const PARALLEL = 3; // send up to 3 batches concurrently
     while (true) {
       const rows = await db.findMany(
         `SELECT fcm_token FROM users WHERE status = 'active' AND fcm_token IS NOT NULL LIMIT ? OFFSET ?`,
-        [BATCH, offset]
+        [BATCH * PARALLEL, offset]
       );
       const tokens = rows.map(u => u.fcmToken).filter(Boolean);
       if (!tokens.length) break;
-      await getMessaging().sendEachForMulticast(buildMessage(tokens, payload));
+
+      // Split into sub-batches and send in parallel
+      const batches = [];
+      for (let i = 0; i < tokens.length; i += BATCH) {
+        batches.push(tokens.slice(i, i + BATCH));
+      }
+      await Promise.all(batches.map(b => getMessaging().sendEachForMulticast(buildMessage(b, payload))));
       total += tokens.length;
-      if (rows.length < BATCH) break;
-      offset += BATCH;
+      if (rows.length < BATCH * PARALLEL) break;
+      offset += BATCH * PARALLEL;
     }
     if (total) logger.info(`Push sent to ${total} users`);
   } catch (err) {
@@ -35,10 +41,11 @@ exports.sendPushToAll = async (payload) => {
 
 exports.sendPushToUsers = async (tokens, payload) => {
   try {
+    const batches = [];
     for (let i = 0; i < tokens.length; i += 500) {
-      const batch = tokens.slice(i, i + 500);
-      await getMessaging().sendEachForMulticast(buildMessage(batch, payload));
+      batches.push(tokens.slice(i, i + 500));
     }
+    await Promise.all(batches.map(b => getMessaging().sendEachForMulticast(buildMessage(b, payload))));
   } catch (err) {
     logger.error('FCM sendPushToUsers error:', err);
   }

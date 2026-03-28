@@ -2,9 +2,9 @@ const jwt   = require('jsonwebtoken');
 const db    = require('../config/db');
 const cache = require('../utils/cache');
 
-// Cache authenticated user data for 2 minutes to avoid a DB query on every request.
+// Cache authenticated user data for 5 minutes to avoid a DB query on every request.
 // Cache is keyed by user ID; invalidated on profile/status changes.
-const USER_CACHE_TTL = 120; // seconds
+const USER_CACHE_TTL = 300; // seconds
 
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;

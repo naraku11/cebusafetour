@@ -149,9 +149,8 @@ exports.aiSuggest = async (req, res) => {
 
 exports.resolve = async (req, res, next) => {
   try {
-    const existing = await db.findOne('SELECT id FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
-    if (!existing) return res.status(404).json({ error: 'Advisory not found' });
-    await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    const result = await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
     const resolved = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: resolved });
     cache.invalidatePrefix('advisories:');
@@ -161,9 +160,8 @@ exports.resolve = async (req, res, next) => {
 
 exports.archive = async (req, res, next) => {
   try {
-    const existing = await db.findOne('SELECT id FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
-    if (!existing) return res.status(404).json({ error: 'Advisory not found' });
-    await db.run("UPDATE advisories SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    const result = await db.run("UPDATE advisories SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
     const archived = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: archived });
     cache.invalidatePrefix('advisories:');
@@ -173,9 +171,8 @@ exports.archive = async (req, res, next) => {
 
 exports.unarchive = async (req, res, next) => {
   try {
-    const existing = await db.findOne('SELECT id FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
-    if (!existing) return res.status(404).json({ error: 'Advisory not found' });
-    await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    const result = await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
     const restored = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: restored });
     cache.invalidatePrefix('advisories:');

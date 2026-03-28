@@ -70,8 +70,8 @@ const dispatchNotification = async (notification) => {
       await sendPushToAll(fcmPayload);
     } else if (target.type === 'nationality') {
       const users  = await db.findMany(
-        'SELECT fcm_token FROM users WHERE nationality LIKE ? AND fcm_token IS NOT NULL',
-        [`%${target.value}%`]
+        'SELECT fcm_token FROM users WHERE nationality = ? AND fcm_token IS NOT NULL',
+        [target.value]
       );
       const tokens = users.map(u => u.fcmToken).filter(Boolean);
       if (tokens.length) await sendPushToUsers(tokens, fcmPayload);

@@ -12,15 +12,21 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _navigated = false;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), _navigate);
+    // Minimum branding display so splash doesn't flash away instantly
+    Future.delayed(const Duration(milliseconds: 800), () => _tryNavigate());
   }
 
-  void _navigate() {
-    if (!mounted) return;
+  void _tryNavigate() {
+    if (_navigated || !mounted) return;
     final state = ref.read(authProvider);
+    // Wait until auth finishes loading before navigating
+    if (state.isLoading) return;
+    _navigated = true;
     if (state.token != null) {
       context.go('/home');
     } else {
@@ -30,6 +36,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch auth state so we navigate as soon as loading finishes
+    final auth = ref.watch(authProvider);
+    if (!auth.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _tryNavigate());
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(

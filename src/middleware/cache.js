@@ -13,11 +13,14 @@ const cache = require('../utils/cache');
  * @param {(req) => string}  [keyFn] Custom cache-key function.
  *                                   Defaults to `<path>:<JSON query>`.
  */
+// Normalize query params so ?a=1&b=2 and ?b=2&a=1 share the same cache key
+const sortedQuery = (q) => JSON.stringify(Object.keys(q).sort().reduce((o, k) => { o[k] = q[k]; return o; }, {}));
+
 function cacheResponse(ttl, keyFn) {
   return (req, res, next) => {
     const key = keyFn
       ? keyFn(req)
-      : `${req.path}:${JSON.stringify(req.query)}`;
+      : `${req.path}:${sortedQuery(req.query)}`;
 
     const hit = cache.get(key);
     if (hit !== undefined) {

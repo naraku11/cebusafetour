@@ -23,6 +23,8 @@ class NotificationsState {
       );
 }
 
+final _api = ApiService();
+
 class NotificationsNotifier extends Notifier<NotificationsState> {
   StreamSubscription<RemoteMessage>? _sub;
 
@@ -39,7 +41,7 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
   Future<void> _fetchPublic() async {
     state = state.copyWith(isLoading: true);
     try {
-      final res = await ApiService().get('/notifications/public');
+      final res = await _api.get('/notifications/public');
       final list = (res.data['notifications'] as List)
           .map((e) => AppNotification.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -56,7 +58,7 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
   }
 
   void markAllRead() {
-    final updated = state.notifications.map((n) => n..isRead = true).toList();
+    final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
     state = state.copyWith(notifications: updated);
   }
 

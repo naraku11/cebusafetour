@@ -2,7 +2,7 @@ const mysql = require('mysql2/promise');
 
 function buildPool(prismaUrl) {
   const u = new URL(prismaUrl);
-  const limit   = parseInt(u.searchParams.get('connection_limit') || '5', 10);
+  const limit   = parseInt(u.searchParams.get('connection_limit') || '10', 10);
   const timeout = parseInt(u.searchParams.get('connect_timeout') || '10', 10) * 1000;
   // Strip Prisma-specific query params before passing URI to mysql2
   ['connection_limit', 'connect_timeout', 'socket_timeout'].forEach(p => u.searchParams.delete(p));
@@ -11,7 +11,7 @@ function buildPool(prismaUrl) {
     uri: u.toString(),
     connectionLimit: limit,
     connectTimeout: timeout,
-    idleTimeout: 30_000,          // release idle connections after 30s
+    idleTimeout: 60_000,          // release idle connections after 60s
     enableKeepAlive: true,
     keepAliveInitialDelay: 10_000,
     typeCast(field, next) {
