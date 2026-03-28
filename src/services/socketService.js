@@ -1,9 +1,15 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 
 let io = null;
 
 const ADMIN_ROLES = ['admin_super', 'admin_content', 'admin_emergency'];
+
+// Max concurrent WebSocket connections — keeps TCP socket count predictable on Hostinger.
+// Admin portal (few tabs) + mobile tourists online at once.  Reject new connections
+// beyond this to protect the process budget.
+const MAX_CONNECTIONS = parseInt(process.env.WS_MAX_CONNECTIONS || '25', 10);
 
 function init(httpServer) {
   const corsAllowed = (process.env.CORS_ORIGINS || 'http://localhost:5173')
@@ -16,6 +22,15 @@ function init(httpServer) {
     pingTimeout: 10000,       // disconnect if no pong in 10s
     maxHttpBufferSize: 1e5,   // 100KB max message (default 1MB)
     perMessageDeflate: false,  // disable compression to save CPU
+  });
+
+  // Connection-limit middleware — reject before auth to avoid wasted JWT work
+  io.use((socket, next) => {
+    if (io.engine.clientsCount >= MAX_CONNECTIONS) {
+      logger.warn(`Socket.IO connection rejected — at capacity (${MAX_CONNECTIONS})`);
+      return next(new Error('Server at capacity, please retry later'));
+    }
+    next();
   });
 
   // Auth middleware

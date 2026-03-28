@@ -5,10 +5,12 @@ const { sendPushToAdmins } = require('../services/fcmService');
 const { getFirestore } = require('../config/firebase');
 const socket = require('../services/socketService');
 
-// Safe fire-and-forget Firestore call — logs errors instead of silently swallowing
+// Safe fire-and-forget Firestore call — skips if Firebase not configured
 const firestore = (fn) => {
   try {
-    const result = fn(getFirestore());
+    const db = getFirestore();
+    if (!db) return; // Firebase not configured
+    const result = fn(db);
     if (result && typeof result.catch === 'function') {
       result.catch(err => logger.warn('Firestore write failed:', err.message));
     }

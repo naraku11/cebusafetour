@@ -12,9 +12,12 @@ const buildMessage = (tokens, { title, body, data = {} }) => ({
 
 exports.sendPushToAll = async (payload) => {
   try {
+    const messaging = getMessaging();
+    if (!messaging) return; // Firebase not configured
+
     let offset = 0, total = 0;
     const BATCH = 500;
-    const PARALLEL = 3; // send up to 3 batches concurrently
+    const PARALLEL = 2; // send up to 2 batches concurrently (conserve processes on Hostinger)
     while (true) {
       const rows = await db.findMany(
         `SELECT fcm_token FROM users WHERE status = 'active' AND fcm_token IS NOT NULL LIMIT ? OFFSET ?`,
@@ -28,7 +31,7 @@ exports.sendPushToAll = async (payload) => {
       for (let i = 0; i < tokens.length; i += BATCH) {
         batches.push(tokens.slice(i, i + BATCH));
       }
-      await Promise.all(batches.map(b => getMessaging().sendEachForMulticast(buildMessage(b, payload))));
+      await Promise.all(batches.map(b => messaging.sendEachForMulticast(buildMessage(b, payload))));
       total += tokens.length;
       if (rows.length < BATCH * PARALLEL) break;
       offset += BATCH * PARALLEL;
@@ -41,11 +44,14 @@ exports.sendPushToAll = async (payload) => {
 
 exports.sendPushToUsers = async (tokens, payload) => {
   try {
+    const messaging = getMessaging();
+    if (!messaging) return;
+
     const batches = [];
     for (let i = 0; i < tokens.length; i += 500) {
       batches.push(tokens.slice(i, i + 500));
     }
-    await Promise.all(batches.map(b => getMessaging().sendEachForMulticast(buildMessage(b, payload))));
+    await Promise.all(batches.map(b => messaging.sendEachForMulticast(buildMessage(b, payload))));
   } catch (err) {
     logger.error('FCM sendPushToUsers error:', err);
   }
@@ -53,12 +59,15 @@ exports.sendPushToUsers = async (tokens, payload) => {
 
 exports.sendPushToAdmins = async (payload) => {
   try {
+    const messaging = getMessaging();
+    if (!messaging) return;
+
     const admins = await db.findMany(
       `SELECT fcm_token FROM users WHERE role IN ('admin_super', 'admin_emergency') AND fcm_token IS NOT NULL`
     );
     const tokens = admins.map(u => u.fcmToken).filter(Boolean);
     if (tokens.length) {
-      await getMessaging().sendEachForMulticast(buildMessage(tokens, payload));
+      await messaging.sendEachForMulticast(buildMessage(tokens, payload));
     }
   } catch (err) {
     logger.error('FCM sendPushToAdmins error:', err);

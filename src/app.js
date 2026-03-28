@@ -4,10 +4,22 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-const { initFirebase } = require('./config/firebase');
-try { initFirebase(); } catch (e) {
-  console.warn('Firebase init failed (non-fatal):', e.message);
-}
+// Firebase is lazy-initialized on first use (FCM send or Firestore write).
+// This avoids holding gRPC connections open at startup on Hostinger.
+
+// ── Hostinger Process Budget (Business Web Hosting: 40 max) ─────────────
+// | Component               | Processes | Notes                          |
+// |-------------------------|-----------|--------------------------------|
+// | Node.js main            |     1     | Always running                 |
+// | MySQL pool (idle→max)   |   0 – 5   | idleTimeout 30s reclaims fast  |
+// | Firebase gRPC (lazy)    |   0 – 2   | Only when FCM/Firestore fires  |
+// | SMTP (transient)        |   0 – 1   | Connection per email send      |
+// | Socket.IO clients       |   0 – 25  | Capped by WS_MAX_CONNECTIONS   |
+// |-------------------------|-----------|--------------------------------|
+// | Baseline (idle)         |    ~2     | Node + 1 keep-alive DB conn    |
+// | Typical (moderate load) |   ~12     | Node + 3 DB + 2 WS + extras   |
+// | Peak (all services)     |   ~34     | Within 40-process limit        |
+// ─────────────────────────────────────────────────────────────────────────
 
 const http        = require('http');
 const fs          = require('fs');
@@ -194,10 +206,8 @@ const _shutdown = async (signal) => {
 process.on('SIGTERM', () => _shutdown('SIGTERM'));
 process.on('SIGINT',  () => _shutdown('SIGINT'));
 
-// ── Start: pre-warm Prisma binary engine BEFORE accepting HTTP traffic ────────
-// On Hostinger, the binary engine can take several seconds to spawn on first
-// use.  Connecting here ensures the engine is ready before the first request
-// arrives, preventing cold-start timeouts on the hosting proxy.
+// ── Start: pre-warm database pool BEFORE accepting HTTP traffic ───────────────
+// Establishes one connection early so the pool is ready for the first request.
 const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== 'test') {

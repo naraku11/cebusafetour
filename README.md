@@ -622,7 +622,7 @@ Report endpoints use aggregated `SUM(condition)` expressions instead of individu
 
 ### Parallel FCM Dispatch
 
-Push notifications are sent in parallel batches (up to 3 concurrent batches of 500 tokens) instead of sequential one-at-a-time delivery.
+Push notifications are sent in parallel batches (up to 2 concurrent batches of 500 tokens) instead of sequential one-at-a-time delivery, balancing throughput against Hostinger's process budget.
 
 ### Column Projection
 
@@ -640,7 +640,7 @@ Expired OTPs are automatically purged from the in-memory Map every 5 minutes to 
 
 ### Database Connection Pool
 
-Default connection limit raised to 10 (from 5). Idle timeout set to 60 seconds for better connection reuse under sustained load.
+Connection pool limited to 5 connections with a 30-second idle timeout. Idle connections are released quickly to free processes on Hostinger, while keep-alive ensures the pool doesn't cold-start on every request burst.
 
 ### Database Indexes
 
@@ -669,6 +669,25 @@ These cover frequently-queried columns that lacked indexes: user incidents looku
 - **Lazy review loading** — attraction detail screen uses `SliverList.builder` for reviews instead of materializing all review widgets at once
 - **Immutable state updates** — notification `markAllRead` uses `copyWith` instead of direct mutation to prevent stale reference bugs
 - **Smart splash screen** — navigates as soon as auth loads (minimum 800ms branding display) instead of a fixed 2-second delay
+
+---
+
+## Hostinger Process Limits
+
+Hostinger Business Web Hosting enforces a **40 concurrent process** limit. Every persistent connection (DB pool, WebSocket, gRPC channel) counts as a process. The system is tuned to stay well within this budget:
+
+| Component | Processes | How it's controlled |
+|---|---|---|
+| Node.js main | 1 | Always running |
+| MySQL pool | 0 – 5 | `connection_limit=5` in DATABASE_URL, `idleTimeout: 30s` releases idle connections |
+| Firebase gRPC | 0 – 2 | Lazy-initialized on first FCM/Firestore call, not at startup |
+| SMTP | 0 – 1 | Transient connection per email send |
+| Socket.IO clients | 0 – 25 | Capped by `WS_MAX_CONNECTIONS` env var (default 25) |
+| FCM parallel batches | 0 – 2 | `PARALLEL = 2` in fcmService.js |
+
+**Typical load:** ~12 processes. **Peak (all services active):** ~34 processes — safely under the 40 limit.
+
+To adjust the WebSocket cap, set `WS_MAX_CONNECTIONS` in your environment variables. Connections beyond the limit receive an error and should retry.
 
 ---
 
