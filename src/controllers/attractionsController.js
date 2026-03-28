@@ -1,6 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
-const cache = require('../utils/cache');
 const logger = require('../utils/logger');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestByCoords, autocompletePlaces, getPlaceInfo } = require('../services/aiService');
@@ -108,7 +107,7 @@ exports.create = async (req, res, next) => {
       }).catch(err => logger.warn(`Auto-fetch photos failed for ${attraction.name}:`, err.message));
     }
 
-    cache.invalidatePrefix('attractions:');
+
 
     // Notify mobile users about the new attraction (only if published)
     if ((body.status || 'draft') === 'published') {
@@ -164,7 +163,7 @@ exports.update = async (req, res, next) => {
       }).catch(err => logger.warn('Push for published attraction failed:', err.message));
     }
 
-    cache.invalidatePrefix('attractions:');
+
     res.json({ attraction });
   } catch (err) { next(err); }
 };
@@ -174,7 +173,7 @@ exports.remove = async (req, res, next) => {
     const existing = await db.findOne('SELECT id FROM attractions WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Attraction not found' });
     await db.run("UPDATE attractions SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
-    cache.invalidatePrefix('attractions:');
+
     res.json({ message: 'Attraction archived' });
   } catch (err) { next(err); }
 };
@@ -184,7 +183,7 @@ exports.destroy = async (req, res, next) => {
     const existing = await db.findOne('SELECT id FROM attractions WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Attraction not found' });
     await db.run('DELETE FROM attractions WHERE id = ?', [req.params.id]);
-    cache.invalidatePrefix('attractions:');
+
     res.json({ message: 'Attraction permanently deleted' });
   } catch (err) { next(err); }
 };
@@ -226,7 +225,7 @@ exports.refreshPhotos = async (req, res, next) => {
 
     await db.run('UPDATE attractions SET photos = ?, updated_at = ? WHERE id = ?', [JSON.stringify(urls), new Date(), req.params.id]);
     const updated = await db.findOne('SELECT * FROM attractions WHERE id = ? LIMIT 1', [req.params.id]);
-    cache.invalidatePrefix('attractions:');
+
     res.json({ attraction: updated, count: urls.length });
   } catch (err) {
     if (err.code === 'NO_MAPS_KEY') return res.status(503).json({ error: err.message, hint: 'Set GOOGLE_MAPS_API_KEY in .env' });

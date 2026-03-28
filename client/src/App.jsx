@@ -12,12 +12,13 @@ import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import Reviews from './pages/Reviews';
+import Help from './pages/Help';
 
 // Pages each role is allowed to access
 const ROLE_PAGES = {
-  admin_super:     ['/dashboard', '/attractions', '/reviews', '/advisories', '/emergency', '/users', '/notifications', '/reports'],
-  admin_content:   ['/dashboard', '/attractions', '/reviews', '/advisories',                          '/notifications', '/reports'],
-  admin_emergency: ['/dashboard',                                             '/emergency',            '/notifications', '/reports'],
+  admin_super:     ['/dashboard', '/attractions', '/reviews', '/advisories', '/emergency', '/users', '/notifications', '/reports', '/help'],
+  admin_content:   ['/dashboard', '/attractions', '/reviews', '/advisories',                          '/notifications', '/reports', '/help'],
+  admin_emergency: ['/dashboard',                                             '/emergency',            '/notifications', '/reports', '/help'],
 };
 
 // First page to land on after login, per role
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="users"        element={<RoleRoute path="/users">        <Users />       </RoleRoute>} />
         <Route path="notifications" element={<RoleRoute path="/notifications"><Notifications /></RoleRoute>} />
         <Route path="reports"      element={<RoleRoute path="/reports">      <Reports />     </RoleRoute>} />
+        <Route path="help"         element={<RoleRoute path="/help">         <Help />        </RoleRoute>} />
       </Route>
     </Routes>
   );

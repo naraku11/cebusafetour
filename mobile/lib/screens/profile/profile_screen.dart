@@ -272,6 +272,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       const Divider(height: 1),
 
       ListTile(
+        leading: const Icon(Icons.help_outline, color: Color(0xFF0EA5E9)),
+        title: Text(l.helpAndFaq),
+        subtitle: Text(l.helpSearchHint),
+        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+        onTap: () => context.push('/help'),
+      ),
+      const Divider(height: 1),
+
+      ListTile(
         leading: const Icon(Icons.logout, color: Colors.red),
         title: Text(l.logOut, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
         onTap: () async {

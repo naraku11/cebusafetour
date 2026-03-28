@@ -64,8 +64,8 @@ cebusafetour/
 │   └── seed.sql                # Raw SQL seed (idempotent INSERT IGNORE)
 ├── client/                     # React admin panel source
 │   └── src/
-│       ├── pages/              # Dashboard, Attractions, Advisories, Emergency,
-│       │                       #   Users, Notifications, Reports
+│       ├── pages/              # Dashboard, Attractions, Reviews, Advisories,
+│       │                       #   Emergency, Users, Notifications, Reports, Help
 │       ├── components/
 │       ├── hooks/
 │       │   └── useRealtimeSync.js   # React Query invalidation via Socket.IO
@@ -77,6 +77,36 @@ cebusafetour/
 ├── uploads/
 │   └── avatars/                # User profile pictures (served statically)
 ├── mobile/                     # Flutter mobile app
+│   └── lib/
+│       ├── main.dart           # Entry point — Firebase init
+│       ├── app.dart            # MaterialApp, notification popup listener
+│       ├── models/             # Data models (app_notification, advisory, etc.)
+│       ├── providers/          # Riverpod state (auth, attractions, advisories,
+│       │                       #   notifications, language, locale)
+│       ├── screens/
+│       │   ├── auth/           # Login, register, OTP, forgot/reset password
+│       │   ├── home/           # Dashboard with quick actions
+│       │   ├── explore/        # Attraction list + detail
+│       │   ├── emergency/      # Emergency reporting
+│       │   ├── advisories/     # Advisory list
+│       │   ├── trip_planner/   # Trip planning
+│       │   ├── profile/        # User profile + emergency contacts
+│       │   ├── notifications/  # Notification history
+│       │   └── help/           # Help & FAQ
+│       ├── services/
+│       │   ├── api_service.dart         # Dio HTTP + cache interceptor
+│       │   ├── auth_service.dart        # Auth API calls
+│       │   └── notification_service.dart # FCM init + foreground stream
+│       ├── widgets/
+│       │   ├── notification_popup.dart  # Rich popup overlay system
+│       │   ├── emergency_fab.dart       # SOS floating button
+│       │   └── ...
+│       ├── utils/
+│       │   ├── router.dart     # GoRouter route definitions
+│       │   ├── theme.dart      # Material 3 theme + colors
+│       │   └── constants.dart  # API base URL + config
+│       └── l10n/
+│           └── app_localizations.dart   # 55 languages, self-contained
 ├── public/                     # Built React app (generated at deploy, gitignored)
 ├── package.json
 ├── .env                        # Production environment variables
@@ -122,15 +152,11 @@ Read-heavy public endpoints are cached in memory. On any write, the relevant pre
 
 | Endpoint / Layer | TTL | Cache key |
 |---|---|---|
-| `GET /api/attractions` | 5 min | `attractions:list:<query>` |
-| `GET /api/attractions/:id` | 5 min | `attractions:detail:<id>` |
 | `GET /api/advisories` | 2 min | `advisories:list:<query>` |
 | `GET /api/advisories/:id` | 2 min | `advisories:detail:<id>` |
 | Auth middleware (user lookup) | 2 min | `auth_user:<userId>` |
 
 Every response includes `X-Cache: HIT` or `X-Cache: MISS` and `Cache-Control: public, max-age=<ttl>`. Cache stats (keys, hits, misses, hit rate) are visible at `GET /health`.
-
-`GET /api/attractions/nearby` is **not cached** — results are unique per GPS coordinate pair.
 
 The auth middleware caches the authenticated user for 2 minutes after the first DB lookup, avoiding a `SELECT * FROM users` query on every authenticated request.
 
@@ -310,9 +336,9 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/api/attractions` | Public | List (filters: category, district, safetyStatus, search) — cached 5 min |
-| GET | `/api/attractions/nearby?lat=&lng=` | Public | Nearest by GPS — not cached |
-| GET | `/api/attractions/:id` | Public | Detail — cached 5 min |
+| GET | `/api/attractions` | Public | List (filters: category, district, safetyStatus, search) |
+| GET | `/api/attractions/nearby?lat=&lng=` | Public | Nearest by GPS |
+| GET | `/api/attractions/:id` | Public | Detail |
 | POST | `/api/attractions/ai-suggest` | Admin | AI auto-fill from coordinates |
 | POST | `/api/attractions` | Admin | Create |
 | PUT | `/api/attractions/:id` | Admin | Update |
@@ -371,7 +397,9 @@ After running `npm run db:seed`:
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | POST | `/api/notifications` | Admin | Send / schedule push notification |
-| GET | `/api/notifications` | Admin | Notification log |
+| GET | `/api/notifications` | Admin | Notification log (paginated, filterable by status/type) |
+| GET | `/api/notifications/public` | Tourist | Recent sent announcements (max 50) |
+| DELETE | `/api/notifications/:id` | Admin | Delete notification |
 
 ### Reports
 
@@ -388,6 +416,8 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
+| GET | `/api/reviews` | Admin | All reviews (filterable, paginated) |
+| DELETE | `/api/reviews/:id` | Admin | Delete any review |
 | GET | `/api/attractions/:id/reviews` | Public | Reviews for an attraction (paginated, max 100/page) |
 | POST | `/api/attractions/:id/reviews` | Tourist | Submit or update own review |
 | DELETE | `/api/attractions/:id/reviews/me` | Tourist | Delete own review |
@@ -413,6 +443,45 @@ After running `npm run db:seed`:
 
 ---
 
+## Notification System
+
+Admins send notifications from the admin portal. Each notification has a **type**, **priority**, and **target audience**. The mobile app displays notifications differently based on these properties.
+
+### Notification Types
+
+| Type | Sender | Mobile Display |
+|---|---|---|
+| `emergency` | Emergency Officer / Super Admin | Full-screen red overlay with pulsing icon and haptic feedback. Must be explicitly dismissed. |
+| `safety_alert` | Content Manager / Super Admin | Prominent slide-down orange banner, stays 8 seconds, swipeable |
+| `advisory` | Content Manager / Super Admin | Amber slide-down banner, 5 seconds auto-dismiss |
+| `announcement` | Any admin | Blue slide-down banner, 5 seconds auto-dismiss |
+| `trip_reminder` | Any admin | Teal slide-down banner, 5 seconds auto-dismiss |
+
+### Priority Levels
+
+| Priority | Behavior |
+|---|---|
+| `normal` | Standard delivery, respects device silent mode |
+| `high` | Bypasses silent mode (Android `high` / iOS APNS priority `10`), banner stays 8 seconds |
+
+### Target Audience
+
+| Target | Description |
+|---|---|
+| All Users | Broadcasts to every active user with an FCM token |
+| By Nationality | Sends to users matching a specific nationality |
+| Specific User | Sends to an individually selected user |
+
+### Flow
+
+1. Admin composes notification in admin portal (title, body, type, priority, target)
+2. Backend stores notification and dispatches via FCM
+3. FCM delivers to mobile devices with `cebusafetour_alerts` channel
+4. **Foreground**: Custom overlay popup appears based on type/priority
+5. **Background/Terminated**: System notification tray; tapping opens the notifications screen
+
+---
+
 ## AI Features
 
 Requires `OPENAI_API_KEY`. Default model: `gpt-4o-mini`.
@@ -434,52 +503,66 @@ Requires `OPENAI_API_KEY`. Default model: `gpt-4o-mini`.
 | Login | `/login` | Public |
 | Dashboard | `/dashboard` | All admins |
 | Attractions | `/attractions` | Super + Content |
+| Reviews | `/reviews` | Super + Content |
 | Advisories | `/advisories` | Super + Content |
 | Emergency & Incident Center | `/emergency` | Super + Emergency |
 | Users | `/users` | Super Admin only |
 | Notifications | `/notifications` | All admins |
 | Reports | `/reports` | All admins |
+| Help & FAQ | `/help` | All admins |
 
 ### Roles
 
 | Role | Access |
 |---|---|
 | `admin_super` | Full access — all pages |
-| `admin_content` | Dashboard, Attractions, Advisories, Notifications, Reports |
-| `admin_emergency` | Dashboard, Emergency Center, Notifications, Reports |
+| `admin_content` | Dashboard, Attractions, Reviews, Advisories, Notifications, Reports, Help & FAQ |
+| `admin_emergency` | Dashboard, Emergency Center, Notifications, Reports, Help & FAQ |
 
 ### Reports
 
 | Tab | Super | Content | Emergency |
 |---|---|---|---|
-| Overview | ✅ | ✅ | ✅ |
-| Users | ✅ | — | — |
-| Incidents | ✅ | — | ✅ |
-| Advisories | ✅ | ✅ | — |
-| Attractions | ✅ | ✅ | — |
+| Overview | Y | Y | Y |
+| Users | Y | — | — |
+| Incidents | Y | — | Y |
+| Advisories | Y | Y | — |
+| Attractions | Y | Y | — |
+
+### Help & FAQ
+
+The Help & FAQ page provides searchable documentation for admin users:
+
+- **Quick-Start Guides** — Step-by-step workflows for managing attractions, handling emergencies, issuing advisories, and sending notifications
+- **FAQ Sections** — 30+ questions across 9 categories: Getting Started, Attractions, Advisories, Emergency Center, Reviews, Users, Notifications, Reports, and Troubleshooting
+- **Contact Support** — Email, phone, and technical support contacts
+- **System Information** — Platform version and tech stack overview
+- **Tips & Best Practices** — Operational guidance for admins
 
 ---
 
 ## Mobile App Screens
 
-| Screen | Description |
-|---|---|
-| Splash | Auto-redirects based on stored auth token |
-| Login | Email + password, language selector (12 languages), suspended-account banner |
-| Register | Name, email, password, nationality, contact |
-| OTP Verify | 6-digit code; 60 s resend countdown |
-| Forgot / Reset Password | OTP-based password reset flow |
-| Home Dashboard | Quick actions, active advisories, SOS FAB |
-| Explore | Search + filter attractions by category and safety status |
-| Attraction Detail | Photos, safety badge, crowd level, hours, directions, reviews |
-| Emergency | Type selection + GPS capture + one-tap call to services |
-| Advisories | Severity-sorted list with bottom sheet detail |
-| Trip Planner | Date picker + attraction checklist + drag-to-reorder itinerary |
-| Profile | Avatar, verification badge, emergency contacts, logout |
+| Screen | Route | Description |
+|---|---|---|
+| Splash | `/splash` | Auto-redirects based on stored auth token |
+| Login | `/auth/login` | Email + password, language selector |
+| Register | `/auth/register` | Name, email, password, nationality, contact |
+| OTP Verify | `/auth/otp` | 6-digit code; 60 s resend countdown |
+| Forgot / Reset Password | `/auth/forgot-password` | OTP-based password reset flow |
+| Home Dashboard | `/home` | Quick actions (Explore, Advisories, Trip Planner, Emergency, Help), active advisories, SOS FAB |
+| Explore | `/explore` | Search + filter attractions by category and safety status |
+| Attraction Detail | `/explore/:id` | Photos, safety badge, crowd level, hours, directions, reviews |
+| Emergency | `/emergency` | Type selection + GPS capture + one-tap call to services |
+| Advisories | `/advisories` | Severity-sorted list with bottom sheet detail |
+| Trip Planner | `/trip-planner` | Date picker + attraction checklist + drag-to-reorder itinerary |
+| Profile | `/profile` | Avatar, verification badge, emergency contacts, help link, logout |
+| Notifications | `/notifications` | Card-based notification history with type labels and priority badges |
+| Help & FAQ | `/help` | 3-tab help screen: FAQ (searchable), Guide (step-by-step), Contact (emergency numbers + safety tips) |
 
-The red **SOS** floating action button is visible on every screen. Suspended/banned accounts see an "Account Restricted" banner at login.
+The red **SOS** floating action button is visible on the home screen. Suspended/banned accounts see an "Account Restricted" banner at login.
 
-**Localization:** 12 languages — English, Chinese, Korean, Japanese, German, Spanish, French, Arabic, Hindi, Russian, Filipino, Indonesian. Language is selected on the login screen and persisted locally.
+**Localization:** 55 languages — English, Chinese, Korean, Japanese, German, Spanish, French, Arabic, Hindi, Russian, Filipino, Indonesian, Thai, Vietnamese, Malay, Portuguese, Italian, Dutch, Turkish, Polish, Ukrainian, Swedish, Danish, Norwegian, Finnish, Greek, Hebrew, Bengali, Tamil, Romanian, Hungarian, Czech, Urdu, Burmese, Khmer, Lao, Mongolian, Swahili, Slovak, Croatian, Bulgarian, Serbian, Lithuanian, Latvian, Estonian, Slovenian, Afrikaans, Persian, Nepali, Sinhala, Georgian, Armenian, Azerbaijani, Kazakh, Uzbek. Language is selected on the home screen flag icon and persisted locally.
 
 ---
 

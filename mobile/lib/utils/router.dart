@@ -15,6 +15,7 @@ import '../screens/advisories/advisories_screen.dart';
 import '../screens/trip_planner/trip_planner_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
+import '../screens/help/help_faq_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -73,6 +74,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/trip-planner', builder: (ctx, _) => const TripPlannerScreen()),
       GoRoute(path: '/profile', builder: (ctx, _) => const ProfileScreen()),
       GoRoute(path: '/notifications', builder: (ctx, _) => const NotificationsScreen()),
+      GoRoute(path: '/help', builder: (ctx, _) => const HelpFaqScreen()),
     ],
   );
 });

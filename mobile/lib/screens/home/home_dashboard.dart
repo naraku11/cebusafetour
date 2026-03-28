@@ -52,6 +52,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
       {'icon': Icons.warning_amber_outlined, 'label': l.advisories, 'route': '/advisories', 'color': const Color(0xFFF59E0B)},
       {'icon': Icons.map_outlined, 'label': l.tripPlanner, 'route': '/trip-planner', 'color': const Color(0xFF14B8A6)},
       {'icon': Icons.local_hospital_outlined, 'label': l.emergency, 'route': '/emergency', 'color': const Color(0xFFEF4444)},
+      {'icon': Icons.help_outline, 'label': l.helpAndFaq, 'route': '/help', 'color': const Color(0xFF8B5CF6)},
     ];
 
     return PopScope<Object?>(

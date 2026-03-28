@@ -190,6 +190,119 @@ class AppLocalizations {
   String get deleteReviewConfirm => _t('deleteReviewConfirm');
   String get delete => _t('delete');
 
+  // ── Help & FAQ ────────────────────────────────────────────────────────────
+  String get helpAndFaq => _t('helpAndFaq');
+  String get helpTabFaq => _t('helpTabFaq');
+  String get helpTabGuide => _t('helpTabGuide');
+  String get helpTabContact => _t('helpTabContact');
+  String get helpSearchHint => _t('helpSearchHint');
+  String get helpNoResults => _t('helpNoResults');
+  String get helpTryDifferent => _t('helpTryDifferent');
+  String get helpGettingStarted => _t('helpGettingStarted');
+  String get helpSafetyFeatures => _t('helpSafetyFeatures');
+  String get helpExploring => _t('helpExploring');
+  String get helpAccountProfile => _t('helpAccountProfile');
+  String get helpNotifications => _t('helpNotifications');
+  String get helpTroubleshooting => _t('helpTroubleshooting');
+  // FAQ questions & answers
+  String get faqWhatIsCebuSafeTour => _t('faqWhatIsCebuSafeTour');
+  String get faqWhatIsCebuSafeTourAnswer => _t('faqWhatIsCebuSafeTourAnswer');
+  String get faqHowToCreateAccount => _t('faqHowToCreateAccount');
+  String get faqHowToCreateAccountAnswer => _t('faqHowToCreateAccountAnswer');
+  String get faqIsAppFree => _t('faqIsAppFree');
+  String get faqIsAppFreeAnswer => _t('faqIsAppFreeAnswer');
+  String get faqLanguageSupport => _t('faqLanguageSupport');
+  String get faqLanguageSupportAnswer => _t('faqLanguageSupportAnswer');
+  String get faqSafetyStatuses => _t('faqSafetyStatuses');
+  String get faqSafetyStatusesAnswer => _t('faqSafetyStatusesAnswer');
+  String get faqAdvisoryAlerts => _t('faqAdvisoryAlerts');
+  String get faqAdvisoryAlertsAnswer => _t('faqAdvisoryAlertsAnswer');
+  String get faqEmergencyReport => _t('faqEmergencyReport');
+  String get faqEmergencyReportAnswer => _t('faqEmergencyReportAnswer');
+  String get faqEmergencyContacts => _t('faqEmergencyContacts');
+  String get faqEmergencyContactsAnswer => _t('faqEmergencyContactsAnswer');
+  String get faqCrowdLevel => _t('faqCrowdLevel');
+  String get faqCrowdLevelAnswer => _t('faqCrowdLevelAnswer');
+  String get faqFindAttractions => _t('faqFindAttractions');
+  String get faqFindAttractionsAnswer => _t('faqFindAttractionsAnswer');
+  String get faqTripPlanner => _t('faqTripPlanner');
+  String get faqTripPlannerAnswer => _t('faqTripPlannerAnswer');
+  String get faqReviews => _t('faqReviews');
+  String get faqReviewsAnswer => _t('faqReviewsAnswer');
+  String get faqGetDirections => _t('faqGetDirections');
+  String get faqGetDirectionsAnswer => _t('faqGetDirectionsAnswer');
+  String get faqEditProfile => _t('faqEditProfile');
+  String get faqEditProfileAnswer => _t('faqEditProfileAnswer');
+  String get faqChangePhoto => _t('faqChangePhoto');
+  String get faqChangePhotoAnswer => _t('faqChangePhotoAnswer');
+  String get faqResetPassword => _t('faqResetPassword');
+  String get faqResetPasswordAnswer => _t('faqResetPasswordAnswer');
+  String get faqDeleteAccount => _t('faqDeleteAccount');
+  String get faqDeleteAccountAnswer => _t('faqDeleteAccountAnswer');
+  String get faqNotificationTypes => _t('faqNotificationTypes');
+  String get faqNotificationTypesAnswer => _t('faqNotificationTypesAnswer');
+  String get faqEnableNotifications => _t('faqEnableNotifications');
+  String get faqEnableNotificationsAnswer => _t('faqEnableNotificationsAnswer');
+  String get faqMissedNotification => _t('faqMissedNotification');
+  String get faqMissedNotificationAnswer => _t('faqMissedNotificationAnswer');
+  String get faqAppNotLoading => _t('faqAppNotLoading');
+  String get faqAppNotLoadingAnswer => _t('faqAppNotLoadingAnswer');
+  String get faqLocationNotWorking => _t('faqLocationNotWorking');
+  String get faqLocationNotWorkingAnswer => _t('faqLocationNotWorkingAnswer');
+  String get faqOfflineUse => _t('faqOfflineUse');
+  String get faqOfflineUseAnswer => _t('faqOfflineUseAnswer');
+  // Guide strings
+  String get guideHeaderTitle => _t('guideHeaderTitle');
+  String get guideHeaderSubtitle => _t('guideHeaderSubtitle');
+  String get guideExploreTitle => _t('guideExploreTitle');
+  String get guideExploreStep1 => _t('guideExploreStep1');
+  String get guideExploreStep2 => _t('guideExploreStep2');
+  String get guideExploreStep3 => _t('guideExploreStep3');
+  String get guideExploreStep4 => _t('guideExploreStep4');
+  String get guideExploreStep5 => _t('guideExploreStep5');
+  String get guideSafetyTitle => _t('guideSafetyTitle');
+  String get guideSafetyStep1 => _t('guideSafetyStep1');
+  String get guideSafetyStep2 => _t('guideSafetyStep2');
+  String get guideSafetyStep3 => _t('guideSafetyStep3');
+  String get guideSafetyStep4 => _t('guideSafetyStep4');
+  String get guideEmergencyTitle => _t('guideEmergencyTitle');
+  String get guideEmergencyStep1 => _t('guideEmergencyStep1');
+  String get guideEmergencyStep2 => _t('guideEmergencyStep2');
+  String get guideEmergencyStep3 => _t('guideEmergencyStep3');
+  String get guideEmergencyStep4 => _t('guideEmergencyStep4');
+  String get guideEmergencyStep5 => _t('guideEmergencyStep5');
+  String get guideTripTitle => _t('guideTripTitle');
+  String get guideTripStep1 => _t('guideTripStep1');
+  String get guideTripStep2 => _t('guideTripStep2');
+  String get guideTripStep3 => _t('guideTripStep3');
+  String get guideTripStep4 => _t('guideTripStep4');
+  String get guideReviewTitle => _t('guideReviewTitle');
+  String get guideReviewStep1 => _t('guideReviewStep1');
+  String get guideReviewStep2 => _t('guideReviewStep2');
+  String get guideReviewStep3 => _t('guideReviewStep3');
+  // Contact strings
+  String get contactHeaderTitle => _t('contactHeaderTitle');
+  String get contactHeaderSubtitle => _t('contactHeaderSubtitle');
+  String get contactEmailTitle => _t('contactEmailTitle');
+  String get contactEmailDetail => _t('contactEmailDetail');
+  String get contactPhoneTitle => _t('contactPhoneTitle');
+  String get contactPhoneDetail => _t('contactPhoneDetail');
+  String get contactEmergencyTitle => _t('contactEmergencyTitle');
+  String get contactEmergencyDetail => _t('contactEmergencyDetail');
+  String get contactLocalEmergency => _t('contactLocalEmergency');
+  String get contactPNP => _t('contactPNP');
+  String get contactBFP => _t('contactBFP');
+  String get contactCebuDocHospital => _t('contactCebuDocHospital');
+  String get contactRedCross => _t('contactRedCross');
+  String get contactCoastGuard => _t('contactCoastGuard');
+  String get contactCDRRMO => _t('contactCDRRMO');
+  String get contactSafetyTipsTitle => _t('contactSafetyTipsTitle');
+  String get contactTip1 => _t('contactTip1');
+  String get contactTip2 => _t('contactTip2');
+  String get contactTip3 => _t('contactTip3');
+  String get contactTip4 => _t('contactTip4');
+  String get contactTip5 => _t('contactTip5');
+
   // ── Dynamic string methods ─────────────────────────────────────────────────
 
   String greeting(String name) => _sub('greeting', {'name': name});
@@ -351,6 +464,123 @@ class AppLocalizations {
       'contactCount': '{n} contact(s)',
       'travelerCount': '{n} traveler(s)',
       'noResultsFor': 'No results for "{q}"',
+      // Help & FAQ
+      'helpAndFaq': 'Help & FAQ',
+      'helpTabFaq': 'FAQ',
+      'helpTabGuide': 'Guide',
+      'helpTabContact': 'Contact',
+      'helpSearchHint': 'Search frequently asked questions...',
+      'helpNoResults': 'No matching questions found',
+      'helpTryDifferent': 'Try different search terms',
+      'helpGettingStarted': 'Getting Started',
+      'helpSafetyFeatures': 'Safety Features',
+      'helpExploring': 'Exploring Cebu',
+      'helpAccountProfile': 'Account & Profile',
+      'helpNotifications': 'Notifications',
+      'helpTroubleshooting': 'Troubleshooting',
+      // FAQ — Getting Started
+      'faqWhatIsCebuSafeTour': 'What is CebuSafeTour?',
+      'faqWhatIsCebuSafeTourAnswer': 'CebuSafeTour is a tourism safety app designed to help travelers explore Cebu safely. It provides real-time safety advisories, attraction information with safety ratings, emergency reporting, trip planning tools, and direct access to local emergency services. Whether you\'re a first-time visitor or a seasoned traveler, the app keeps you informed and protected throughout your Cebu adventure.',
+      'faqHowToCreateAccount': 'How do I create an account?',
+      'faqHowToCreateAccountAnswer': 'Tap "Sign Up" on the login screen. Enter your full name, email address, nationality, and create a password (minimum 8 characters). After submitting, you\'ll receive a 6-digit OTP code via email. Enter the code to verify your account. Once verified, you can start exploring Cebu safely!',
+      'faqIsAppFree': 'Is the app free to use?',
+      'faqIsAppFreeAnswer': 'Yes! CebuSafeTour is completely free to download and use. All features including safety advisories, attraction browsing, emergency reporting, trip planning, and notifications are available at no cost. Our mission is to make every tourist\'s visit to Cebu safe and enjoyable.',
+      'faqLanguageSupport': 'What languages are supported?',
+      'faqLanguageSupportAnswer': 'CebuSafeTour supports over 50 languages including English, Filipino, Chinese, Korean, Japanese, Spanish, French, German, Arabic, Hindi, Russian, Thai, Vietnamese, Indonesian, Malay, Portuguese, Italian, and many more. You can change your language anytime from the home screen by tapping the flag icon, or from your profile settings.',
+      // FAQ — Safety Features
+      'faqSafetyStatuses': 'What do the safety status colors mean?',
+      'faqSafetyStatusesAnswer': 'Each attraction has a color-coded safety status:\n\n\u2022 Green (Safe) — The attraction is open and safe to visit. No known hazards or restrictions.\n\n\u2022 Yellow (Caution) — Exercise caution. There may be minor risks, weather advisories, or temporary conditions to be aware of.\n\n\u2022 Red (Restricted) — The attraction is currently closed or unsafe. Avoid visiting until the status is updated.',
+      'faqAdvisoryAlerts': 'How do safety advisory alerts work?',
+      'faqAdvisoryAlertsAnswer': 'Safety advisories are issued by local authorities (PAGASA, NDRRMC, LGU, CDRRMO) or CebuSafeTour administrators. They are classified by severity:\n\n\u2022 Critical — Immediate danger (typhoons, earthquakes, flooding). Take action now.\n\u2022 Warning — Significant risk. Prepare and adjust your plans.\n\u2022 Advisory — General caution. Be aware but no urgent action needed.\n\nYou\'ll receive push notifications for all advisories. Check the Advisories section for full details and recommended actions.',
+      'faqEmergencyReport': 'How do I report an emergency?',
+      'faqEmergencyReportAnswer': 'Tap the red emergency button (SOS) on the home screen. Select the incident type (Medical, Fire, Crime, Natural Disaster, or Lost Person), describe the situation, and confirm your location. Your report is sent instantly to the CebuSafeTour emergency response team and local authorities. You can also attach photos for additional context. Your GPS coordinates and contact information are shared automatically to speed up response.',
+      'faqEmergencyContacts': 'What are emergency contacts and how do I add them?',
+      'faqEmergencyContactsAnswer': 'Emergency contacts are people you trust who can be reached in case of an emergency during your trip. Go to Profile > Emergency Contacts to add names, phone numbers, and relationships. These contacts can be notified if you report an emergency, providing an extra layer of safety.',
+      'faqCrowdLevel': 'What does the crowd level indicator show?',
+      'faqCrowdLevelAnswer': 'The crowd level indicator helps you plan the best time to visit:\n\n\u2022 Low — Few visitors, plenty of space to explore comfortably.\n\u2022 Moderate — Normal tourist activity, may have some waiting at popular spots.\n\u2022 High — Very busy with large crowds, expect longer wait times.\n\nCrowd levels are updated regularly based on reports and seasonal patterns.',
+      // FAQ — Exploring
+      'faqFindAttractions': 'How do I find attractions to visit?',
+      'faqFindAttractionsAnswer': 'Tap "Explore" from the home screen. You can browse all Cebu attractions with photos, ratings, and safety statuses. Use the search bar to find specific places, or filter by category (beaches, mountains, heritage sites, museums, parks, waterfalls, markets, churches, resorts). Each attraction page shows detailed information including operating hours, entrance fees, directions, reviews, and safety tips.',
+      'faqTripPlanner': 'How does the Trip Planner work?',
+      'faqTripPlannerAnswer': 'The Trip Planner helps you organize your Cebu itinerary:\n\n1. Set your travel dates and number of travelers\n2. Browse and add attractions to your trip\n3. The planner creates a day-by-day itinerary\n4. Save your itinerary for offline reference\n\nThe planner takes into account attraction safety statuses and any active advisories to help you plan a safe and enjoyable trip.',
+      'faqReviews': 'Can I leave reviews for attractions?',
+      'faqReviewsAnswer': 'Yes! After visiting an attraction, you can rate it from 1 to 5 stars and write a review. Your feedback helps other travelers make informed decisions. Tap on any attraction, scroll to the Reviews section, and tap "Rate this Place". You can submit one review per attraction and update it anytime.',
+      'faqGetDirections': 'How do I get directions to an attraction?',
+      'faqGetDirectionsAnswer': 'On any attraction detail page, tap "Get Directions". This opens your preferred maps app (Google Maps, Apple Maps, etc.) with turn-by-turn navigation from your current location to the attraction. Make sure location services are enabled on your device for accurate directions.',
+      // FAQ — Account & Profile
+      'faqEditProfile': 'How do I edit my profile?',
+      'faqEditProfileAnswer': 'Go to Profile > Edit Profile. You can update your name, nationality, and contact number. Your email cannot be changed as it\'s used for authentication. All changes are saved immediately and reflected across the app.',
+      'faqChangePhoto': 'How do I change my profile photo?',
+      'faqChangePhotoAnswer': 'Go to Profile and tap on your avatar photo. You can take a new photo with your camera or choose one from your gallery. Photos are reviewed for verification. You\'ll see a verification badge once your photo is approved.',
+      'faqResetPassword': 'How do I reset my password?',
+      'faqResetPasswordAnswer': 'On the login screen, tap "Forgot Password?". Enter your registered email address. You\'ll receive a 6-digit OTP code. Enter the code to verify your identity, then create a new password (minimum 8 characters). The OTP expires after 10 minutes for security.',
+      'faqDeleteAccount': 'Can I delete my account?',
+      'faqDeleteAccountAnswer': 'To request account deletion, please contact our support team at support@cebusafetour.com with your registered email address. Your account and all associated data (reviews, incident reports, profile information) will be permanently removed within 30 days of the request.',
+      // FAQ — Notifications
+      'faqNotificationTypes': 'What types of notifications will I receive?',
+      'faqNotificationTypesAnswer': 'You may receive these notification types:\n\n\u2022 Safety Alerts — Urgent safety information for your area\n\u2022 Advisory Updates — New or updated safety advisories\n\u2022 Trip Reminders — Reminders about your planned trips\n\u2022 Announcements — General platform news and updates\n\u2022 Emergency Broadcasts — Critical emergency messages\n\nAll notifications appear in the Notifications tab and are also sent as push notifications to your device.',
+      'faqEnableNotifications': 'How do I enable push notifications?',
+      'faqEnableNotificationsAnswer': 'When you first open the app, you\'ll be asked to allow notifications — tap "Allow". If you accidentally denied them, go to your device Settings > Apps > CebuSafeTour > Notifications and enable them. Push notifications are essential for receiving timely safety alerts and emergency broadcasts.',
+      'faqMissedNotification': 'I missed a notification. Where can I find it?',
+      'faqMissedNotificationAnswer': 'All notifications are stored in the Notifications tab (bell icon on the home screen). You can scroll through your notification history to find any alerts you may have missed. Unread notifications show a red badge count on the bell icon.',
+      // FAQ — Troubleshooting
+      'faqAppNotLoading': 'The app is not loading properly. What should I do?',
+      'faqAppNotLoadingAnswer': 'Try these steps:\n\n1. Check your internet connection (Wi-Fi or mobile data)\n2. Close and reopen the app\n3. Clear the app cache in your device settings\n4. Update to the latest version from the app store\n5. Restart your device\n\nIf the problem persists, contact support@cebusafetour.com with your device model and Android/iOS version.',
+      'faqLocationNotWorking': 'My location is not being detected. How do I fix it?',
+      'faqLocationNotWorkingAnswer': 'Make sure location services are enabled:\n\n1. Go to device Settings > Location and turn it on\n2. Open App Settings for CebuSafeTour and grant location permission\n3. Choose "Allow while using the app" for best results\n4. Ensure you\'re not in Airplane mode\n5. Try going outdoors for better GPS signal\n\nLocation is needed for emergency reporting, finding nearby attractions, and getting directions.',
+      'faqOfflineUse': 'Can I use the app offline?',
+      'faqOfflineUseAnswer': 'Some features work offline with cached data (previously viewed attractions, saved itineraries). However, real-time features require an internet connection:\n\n\u2022 Safety advisory updates\n\u2022 Emergency reporting\n\u2022 Push notifications\n\u2022 New attraction data and photos\n\u2022 Reviews and ratings\n\nWe recommend staying connected for the most up-to-date safety information.',
+      // Guide strings
+      'guideHeaderTitle': 'How to Use CebuSafeTour',
+      'guideHeaderSubtitle': 'Step-by-step guides to help you get the most out of the app',
+      'guideExploreTitle': 'Exploring Attractions',
+      'guideExploreStep1': 'Open the app and tap "Explore" from the home screen Quick Actions',
+      'guideExploreStep2': 'Browse attractions or use the search bar to find specific places',
+      'guideExploreStep3': 'Check the safety status badge (Green = Safe, Yellow = Caution, Red = Restricted)',
+      'guideExploreStep4': 'Tap an attraction to view full details, photos, reviews, and safety information',
+      'guideExploreStep5': 'Use "Get Directions" to navigate to the attraction using your maps app',
+      'guideSafetyTitle': 'Staying Safe',
+      'guideSafetyStep1': 'Check the Advisories section regularly for safety updates in Cebu',
+      'guideSafetyStep2': 'Enable push notifications to receive real-time safety alerts',
+      'guideSafetyStep3': 'Always check an attraction\'s safety status before visiting',
+      'guideSafetyStep4': 'Add emergency contacts in your Profile for quick access during emergencies',
+      'guideEmergencyTitle': 'Reporting Emergencies',
+      'guideEmergencyStep1': 'Tap the red SOS emergency button on the home screen',
+      'guideEmergencyStep2': 'Select the type of emergency (Medical, Fire, Crime, Natural Disaster, Lost Person)',
+      'guideEmergencyStep3': 'Describe the situation and confirm your location on the map',
+      'guideEmergencyStep4': 'Optionally attach photos for additional context',
+      'guideEmergencyStep5': 'Submit the report — emergency responders will be notified immediately',
+      'guideTripTitle': 'Planning Your Trip',
+      'guideTripStep1': 'Go to Trip Planner from the Quick Actions menu',
+      'guideTripStep2': 'Set your travel dates and number of travelers',
+      'guideTripStep3': 'Browse and add attractions to build your itinerary',
+      'guideTripStep4': 'Save your itinerary to access it anytime, even offline',
+      'guideReviewTitle': 'Writing Reviews',
+      'guideReviewStep1': 'Visit an attraction and open its detail page in the app',
+      'guideReviewStep2': 'Scroll to the Reviews section and tap "Rate this Place"',
+      'guideReviewStep3': 'Select your star rating (1-5) and optionally write a comment, then submit',
+      // Contact strings
+      'contactHeaderTitle': 'Need Help?',
+      'contactHeaderSubtitle': 'Reach out to us or contact local emergency services',
+      'contactEmailTitle': 'Email Support',
+      'contactEmailDetail': 'Response within 24 hours',
+      'contactPhoneTitle': 'Phone Support',
+      'contactPhoneDetail': 'Available 24/7 for urgent issues',
+      'contactEmergencyTitle': 'Emergency Hotline',
+      'contactEmergencyDetail': 'Philippine National Emergency Number',
+      'contactLocalEmergency': 'Cebu Emergency Numbers',
+      'contactPNP': 'PNP Cebu City (Police)',
+      'contactBFP': 'BFP Cebu City (Fire)',
+      'contactCebuDocHospital': 'Cebu Doctors\' Hospital',
+      'contactRedCross': 'Philippine Red Cross — Cebu',
+      'contactCoastGuard': 'Philippine Coast Guard — Cebu',
+      'contactCDRRMO': 'Cebu City DRRMO',
+      'contactSafetyTipsTitle': 'General Safety Tips',
+      'contactTip1': 'Always keep a copy of your passport and travel documents in a separate bag.',
+      'contactTip2': 'Stay hydrated and use sunscreen — Cebu has a tropical climate year-round.',
+      'contactTip3': 'Use registered transportation services and avoid unlicensed vehicles.',
+      'contactTip4': 'Keep valuables secure and be aware of your surroundings in crowded areas.',
+      'contactTip5': 'Download offline maps before visiting remote areas with limited signal.',
     },
 
     // ── Chinese Simplified ────────────────────────────────────────────────────

@@ -22,11 +22,12 @@ class NotificationService {
     await FirebaseMessaging.instance.requestPermission(
       alert: true, badge: true, sound: true,
     );
+    // Disable iOS system banner in foreground — our custom overlay handles display
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true, badge: true, sound: true,
+      alert: false, badge: true, sound: true,
     );
 
-    // Foreground messages → emit on stream (NotificationsNotifier + in-app banner)
+    // Foreground messages → emit on stream (NotificationsNotifier + popup overlay)
     FirebaseMessaging.onMessage.listen((msg) {
       debugPrint('Foreground FCM: ${msg.notification?.title}');
       _controller.add(msg);

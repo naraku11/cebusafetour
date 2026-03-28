@@ -43,42 +43,154 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ? _EmptyState(l: l)
               : RefreshIndicator(
                   onRefresh: () => ref.read(notificationsProvider.notifier).refresh(),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     itemCount: state.notifications.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-                    itemBuilder: (ctx, i) => _NotificationTile(n: state.notifications[i], l: l),
+                    itemBuilder: (ctx, i) => _NotificationCard(n: state.notifications[i], l: l),
                   ),
                 ),
     );
   }
 }
 
-class _NotificationTile extends StatelessWidget {
+// ── Notification Card ───────────────────────────────────────────────────────
+
+class _NotificationCard extends StatelessWidget {
   final AppNotification n;
   final AppLocalizations l;
-  const _NotificationTile({required this.n, required this.l});
+  const _NotificationCard({required this.n, required this.l});
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: CircleAvatar(
-        backgroundColor: _typeColor(n.type).withValues(alpha: 0.12),
-        child: Icon(_typeIcon(n.type), color: _typeColor(n.type), size: 20),
-      ),
-      title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 2),
-          Text(n.body, style: const TextStyle(fontSize: 13, color: Colors.black87), maxLines: 3, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(_timeAgo(n.receivedAt, l), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+    final color = _typeColor(n.type);
+    final isHighPriority = n.priority == 'high';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: n.isEmergency
+              ? Colors.red.withValues(alpha: 0.4)
+              : isHighPriority
+                  ? color.withValues(alpha: 0.3)
+                  : Colors.grey.shade100,
+          width: n.isEmergency || isHighPriority ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: n.isEmergency
+                ? Colors.red.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      isThreeLine: true,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_typeIcon(n.type), color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Type label + priority badge row
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _typeLabel(n.type),
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: color,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      if (isHighPriority) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.priority_high, size: 10, color: Colors.red),
+                              SizedBox(width: 2),
+                              Text(
+                                'HIGH',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.red,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const Spacer(),
+                      Text(
+                        _timeAgo(n.receivedAt, l),
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Title
+                  Text(
+                    n.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 3),
+                  // Body
+                  Text(
+                    n.body,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  String _typeLabel(String type) {
+    switch (type) {
+      case 'emergency':     return 'EMERGENCY';
+      case 'safety_alert':  return 'SAFETY ALERT';
+      case 'advisory':      return 'ADVISORY';
+      case 'trip_reminder': return 'TRIP REMINDER';
+      default:              return 'ANNOUNCEMENT';
+    }
   }
 
   IconData _typeIcon(String type) {
@@ -93,9 +205,9 @@ class _NotificationTile extends StatelessWidget {
 
   Color _typeColor(String type) {
     switch (type) {
-      case 'emergency':     return Colors.red;
-      case 'safety_alert':  return Colors.orange;
-      case 'advisory':      return Colors.amber;
+      case 'emergency':     return const Color(0xFFDC2626);
+      case 'safety_alert':  return const Color(0xFFEA580C);
+      case 'advisory':      return const Color(0xFFD97706);
       case 'trip_reminder': return const Color(0xFF14B8A6);
       default:              return const Color(0xFF0EA5E9);
     }
@@ -110,6 +222,8 @@ class _NotificationTile extends StatelessWidget {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 }
+
+// ── Empty State ─────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   final AppLocalizations l;
