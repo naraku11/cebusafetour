@@ -154,11 +154,11 @@ Read-heavy public endpoints are cached in memory. On any write, the relevant pre
 |---|---|---|
 | `GET /api/advisories` | 2 min | `advisories:list:<query>` |
 | `GET /api/advisories/:id` | 2 min | `advisories:detail:<id>` |
-| Auth middleware (user lookup) | 2 min | `auth_user:<userId>` |
+| Auth middleware (user lookup) | 5 min | `auth_user:<userId>` |
 
-Every response includes `X-Cache: HIT` or `X-Cache: MISS` and `Cache-Control: public, max-age=<ttl>`. Cache stats (keys, hits, misses, hit rate) are visible at `GET /health`.
+Every response includes `X-Cache: HIT` or `X-Cache: MISS` and `Cache-Control: public, max-age=<ttl>`. Cache keys are normalized (query params sorted) so `?a=1&b=2` and `?b=2&a=1` share the same entry. Cache stats (keys, hits, misses, hit rate) are visible at `GET /health`.
 
-The auth middleware caches the authenticated user for 2 minutes after the first DB lookup, avoiding a `SELECT * FROM users` query on every authenticated request.
+The auth middleware caches the authenticated user for 5 minutes after the first DB lookup, avoiding a `SELECT * FROM users` query on every authenticated request.
 
 ### Client-side (dio_cache_interceptor)
 
@@ -614,7 +614,15 @@ npx jest auth         # Run a single suite
 
 ### HTTP Compression
 
-All responses are gzip/deflate compressed via `compression` middleware — reduces JSON payload sizes by 60-80%.
+Responses larger than 1 KB are gzip/deflate compressed via `compression` middleware (threshold: 1024 bytes) — reduces JSON payload sizes by 60-80% while avoiding compression overhead on tiny responses.
+
+### Consolidated Report Queries
+
+Report endpoints use aggregated `SUM(condition)` expressions instead of individual COUNT queries. `/reports/summary` runs 4 queries (one per table) instead of 16, and `/reports/trends` runs 3 queries with `GROUP BY month` instead of 18.
+
+### Parallel FCM Dispatch
+
+Push notifications are sent in parallel batches (up to 3 concurrent batches of 500 tokens) instead of sequential one-at-a-time delivery.
 
 ### Column Projection
 
@@ -630,6 +638,10 @@ List endpoints select only required columns instead of `SELECT *`, reducing data
 
 Expired OTPs are automatically purged from the in-memory Map every 5 minutes to prevent unbounded memory growth.
 
+### Database Connection Pool
+
+Default connection limit raised to 10 (from 5). Idle timeout set to 60 seconds for better connection reuse under sustained load.
+
 ### Database Indexes
 
 Apply the performance indexes migration after deploying:
@@ -644,6 +656,19 @@ CREATE INDEX advisories_created_at_idx ON advisories(created_at DESC);
 ```
 
 These cover frequently-queried columns that lacked indexes: user incidents lookups, nationality filtering, report date ranges, and review foreign key joins.
+
+### Admin Portal
+
+- **Route-based code splitting** — pages are lazy-loaded with `React.lazy()` + `Suspense`, reducing initial bundle size
+- **Debounced socket invalidations** — rapid-fire Socket.IO events are coalesced within a 200ms window before invalidating React Query caches, preventing redundant refetches
+
+### Mobile App
+
+- **Search debounce** — explore screen waits 400ms after the last keystroke before triggering API calls
+- **Selective provider watching** — dashboard uses `.select()` on auth/notification providers to only rebuild when specific fields change (name, picture, unread count), not on every state update
+- **Lazy review loading** — attraction detail screen uses `SliverList.builder` for reviews instead of materializing all review widgets at once
+- **Immutable state updates** — notification `markAllRead` uses `copyWith` instead of direct mutation to prevent stale reference bugs
+- **Smart splash screen** — navigates as soon as auth loads (minimum 800ms branding display) instead of a fixed 2-second delay
 
 ---
 

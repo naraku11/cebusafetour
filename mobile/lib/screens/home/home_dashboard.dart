@@ -42,7 +42,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authProvider);
+    // Use selectors to only rebuild when the specific fields change
+    final userName = ref.watch(authProvider.select((s) => s.user?.name));
+    final userPicture = ref.watch(authProvider.select((s) => s.user?.profilePicture));
     final advisories = ref.watch(advisoriesProvider);
     final unread = ref.watch(notificationsProvider.select((s) => s.unreadCount));
     final l = AppLocalizations.of(context);
@@ -98,7 +100,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       Row(children: [
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(
-                            l.greeting((auth.user?.name ?? 'Traveler').split(' ').first),
+                            l.greeting((userName ?? 'Traveler').split(' ').first),
                             style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -136,7 +138,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                         const SizedBox(width: 4),
                         GestureDetector(
                           onTap: () => context.push('/profile'),
-                          child: _buildHeaderAvatar(auth.user?.profilePicture, auth.user?.name),
+                          child: _buildHeaderAvatar(userPicture, userName),
                         ),
                       ]),
                     ]),
