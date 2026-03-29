@@ -34,3 +34,6 @@ mobile/ios/Runner/GoogleService-Info.plist
 Thumbs.db
 *.swp
 *.swo
+
+# Claude Code
+.claude/
