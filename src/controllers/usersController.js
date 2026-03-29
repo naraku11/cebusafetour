@@ -55,6 +55,24 @@ exports.get = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8)
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+
+    const row = await db.findOne('SELECT password FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+    if (!row) return res.status(404).json({ error: 'User not found' });
+
+    const match = await bcrypt.compare(currentPassword, row.password);
+    if (!match) return res.status(400).json({ error: 'Current password is incorrect' });
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await db.run('UPDATE users SET password = ?, updated_at = ? WHERE id = ?', [hashed, new Date(), req.user.id]);
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) { next(err); }
+};
+
 exports.updateProfile = async (req, res, next) => {
   try {
     const { name, nationality, contactNumber, language, emergencyContacts } = req.body;

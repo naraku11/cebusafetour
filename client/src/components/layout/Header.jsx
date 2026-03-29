@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { ArrowRightOnRectangleIcon, UserCircleIcon, Bars3Icon } from '@heroicons/react/24/outline';
 
@@ -28,7 +29,7 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-        <div className="hidden sm:flex items-center gap-2.5">
+        <Link to="/profile" className="hidden sm:flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <UserCircleIcon className="w-7 h-7 text-gray-400" />
           <div className="text-right">
             <p className="text-sm font-medium text-gray-900 leading-tight">{user?.name}</p>
@@ -36,7 +37,7 @@ export default function Header({ onMenuClick }) {
               {badge.label}
             </span>
           </div>
-        </div>
+        </Link>
 
         <button
           onClick={logout}

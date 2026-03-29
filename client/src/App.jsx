@@ -15,12 +15,13 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Reports       = lazy(() => import('./pages/Reports'));
 const Reviews       = lazy(() => import('./pages/Reviews'));
 const Help          = lazy(() => import('./pages/Help'));
+const Profile       = lazy(() => import('./pages/Profile'));
 
 // Pages each role is allowed to access
 const ROLE_PAGES = {
-  admin_super:     ['/dashboard', '/attractions', '/reviews', '/advisories', '/emergency', '/users', '/notifications', '/reports', '/help'],
-  admin_content:   ['/dashboard', '/attractions', '/reviews', '/advisories',                          '/notifications', '/reports', '/help'],
-  admin_emergency: ['/dashboard',                                             '/emergency',            '/notifications', '/reports', '/help'],
+  admin_super:     ['/dashboard', '/attractions', '/reviews', '/advisories', '/emergency', '/users', '/notifications', '/reports', '/help', '/profile'],
+  admin_content:   ['/dashboard', '/attractions', '/reviews', '/advisories',                          '/notifications', '/reports', '/help', '/profile'],
+  admin_emergency: ['/dashboard',                                             '/emergency',            '/notifications', '/reports', '/help', '/profile'],
 };
 
 // First page to land on after login, per role
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="notifications" element={<RoleRoute path="/notifications"><Notifications /></RoleRoute>} />
           <Route path="reports"      element={<RoleRoute path="/reports">      <Reports />     </RoleRoute>} />
           <Route path="help"         element={<RoleRoute path="/help">         <Help />        </RoleRoute>} />
+          <Route path="profile"      element={<RoleRoute path="/profile">      <Profile />     </RoleRoute>} />
         </Route>
       </Routes>
     </Suspense>

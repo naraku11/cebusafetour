@@ -15,6 +15,8 @@ export const useAuthStore = create(
         return data;
       },
 
+      setUser: (user) => set({ user }),
+
       logout: () => {
         set({ user: null, token: null });
         delete api.defaults.headers.common['Authorization'];

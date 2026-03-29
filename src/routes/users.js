@@ -20,8 +20,9 @@ const uploadAvatar = multer({
   },
 }).single('avatar');
 
-router.get('/me', authenticate, ctrl.getProfile || ((req, res) => res.json({ user: req.user })));
-router.patch('/me', authenticate, ctrl.updateProfile);
+router.get('/me',              authenticate, ctrl.getProfile || ((req, res) => res.json({ user: req.user })));
+router.patch('/me',            authenticate, ctrl.updateProfile);
+router.patch('/me/password',   authenticate, ctrl.changePassword);
 router.post('/me/profile-picture', authenticate, uploadAvatar, ctrl.uploadAvatar);
 
 // Admin only
