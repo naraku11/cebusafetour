@@ -1,3 +1,5 @@
+// Firebase Admin SDK — FCM (push notifications) only.
+// Firestore, Auth, and Storage are not used; all persistent data lives in MySQL.
 const admin = require('firebase-admin');
 const logger = require('../utils/logger');
 
@@ -12,7 +14,7 @@ const initFirebase = () => {
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
     if (!projectId || !clientEmail || !privateKey) {
       _disabled = true;
-      logger.warn('Firebase credentials missing — FCM and Firestore disabled');
+      logger.warn('Firebase credentials missing — FCM disabled');
       return null;
     }
     firebaseApp = admin.initializeApp({
@@ -29,7 +31,5 @@ const initFirebase = () => {
 };
 
 const getMessaging = () => { const app = initFirebase(); return app ? admin.messaging() : null; };
-const getFirestore = () => { const app = initFirebase(); return app ? admin.firestore() : null; };
-const getAuth      = () => { const app = initFirebase(); return app ? admin.auth() : null; };
 
-module.exports = { initFirebase, getFirestore, getMessaging, getAuth };
+module.exports = { initFirebase, getMessaging };

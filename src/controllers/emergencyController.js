@@ -2,22 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
 const { sendPushToAdmins } = require('../services/fcmService');
-const { getFirestore } = require('../config/firebase');
 const socket = require('../services/socketService');
-
-// Safe fire-and-forget Firestore call — skips if Firebase not configured
-const firestore = (fn) => {
-  try {
-    const db = getFirestore();
-    if (!db) return; // Firebase not configured
-    const result = fn(db);
-    if (result && typeof result.catch === 'function') {
-      result.catch(err => logger.warn('Firestore write failed:', err.message));
-    }
-  } catch (err) {
-    logger.warn('Firestore call failed:', err.message);
-  }
-};
 
 // Build a row with a nested reporter object from a JOIN result
 const mapWithReporter = row => ({
@@ -59,12 +44,6 @@ exports.reportIncident = async (req, res, next) => {
     );
 
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [id]);
-
-    firestore(db => db.collection('incidents').doc(incident.id).set({
-      id: incident.id, type,
-      latitude: parseFloat(latitude), longitude: parseFloat(longitude),
-      status: 'new', reportedAt: now.toISOString(),
-    }));
 
     sendPushToAdmins({
       title: `New Incident: ${type.replace('_', ' ').toUpperCase()}`,
@@ -172,10 +151,6 @@ exports.updateIncident = async (req, res, next) => {
 
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
 
-    firestore(db => db.collection('incidents').doc(incident.id).set({
-      status: incident.status, assignedTo: incident.assignedTo,
-    }, { merge: true }));
-
     socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident });
   } catch (err) { next(err); }
@@ -187,7 +162,6 @@ exports.archiveIncident = async (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
     await db.run("UPDATE incidents SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
-    firestore(db => db.collection('incidents').doc(req.params.id).set({ status: 'archived' }, { merge: true }));
     socket.emitToAdmins('incident:archived', { id: req.params.id });
     res.json({ incident, message: 'Incident archived' });
   } catch (err) { next(err); }
@@ -199,7 +173,6 @@ exports.unarchiveIncident = async (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
     await db.run("UPDATE incidents SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
-    firestore(db => db.collection('incidents').doc(req.params.id).set({ status: 'resolved' }, { merge: true }));
     socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident, message: 'Incident unarchived' });
   } catch (err) { next(err); }
