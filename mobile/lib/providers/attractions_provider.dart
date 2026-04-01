@@ -72,6 +72,6 @@ class ReviewNotifier extends Notifier<AsyncValue<void>> {
 }
 
 final reviewNotifierProvider =
-    NotifierProvider.autoDispose<ReviewNotifier, AsyncValue<void>>(
+    NotifierProvider<ReviewNotifier, AsyncValue<void>>(
   ReviewNotifier.new,
 );

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -17,10 +18,15 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/help/help_faq_screen.dart';
 
+// Persistent key shared across all GoRouter instances so the navigator context
+// is always reachable for overlays (e.g. notification popups).
+final navigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
       final isLoggedIn = authState.token != null;

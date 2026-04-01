@@ -5,7 +5,7 @@ import 'providers/notifications_provider.dart';
 import 'providers/locale_provider.dart';
 import 'services/notification_service.dart';
 import 'utils/theme.dart';
-import 'utils/router.dart';
+import 'utils/router.dart' show routerProvider, navigatorKey;
 import 'l10n/app_localizations.dart';
 import 'widgets/notification_popup.dart';
 
@@ -32,7 +32,7 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp> {
         final notif = next.notifications.first;
         // Use addPostFrameCallback to ensure overlay context is available
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final ctx = router.routerDelegate.navigatorKey.currentContext;
+          final ctx = navigatorKey.currentContext;
           if (ctx != null) {
             NotificationPopupManager.show(
               ctx,

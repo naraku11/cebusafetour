@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { TrashIcon, StarIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, StarIcon, FunnelIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 
 const RATINGS = [1, 2, 3, 4, 5];
@@ -30,10 +30,10 @@ export default function Reviews() {
   if (ratingFilter) params.rating = ratingFilter;
   if (attractionFilter) params.attractionId = attractionFilter;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['reviews', params],
     queryFn: () => api.get('/reviews', { params }).then((r) => r.data),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   const { data: attractionsData } = useQuery({
@@ -68,11 +68,22 @@ export default function Reviews() {
           <h1 className="text-2xl font-bold text-gray-900">Reviews</h1>
           <p className="text-sm text-gray-500 mt-0.5">{total} total reviews</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => qc.invalidateQueries({ queryKey: ['reviews'] })}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            title="Refresh reviews"
+          >
+            <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 sm:px-4 py-2">
           <StarSolid className="w-4 h-4 text-amber-400" />
           <span className="font-semibold text-amber-700">{ratingAvg}</span>
           <span className="text-amber-600 hidden sm:inline">avg across displayed reviews</span>
           <span className="text-amber-600 sm:hidden">avg</span>
+        </div>
         </div>
       </div>
 

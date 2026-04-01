@@ -396,8 +396,8 @@ export default function Attractions() {
                   </button>
                 </div>
                 <MapPicker lat={form.latitude} lng={form.longitude}
-                  onChange={({ lat, lng }) => { setForm(f => ({ ...f, latitude: lat, longitude: lng })); handleAiFill(lat, lng); }} />
-                <p className="text-xs text-gray-400 mt-1">Click map to pin — AI auto-suggests details.</p>
+                  onChange={({ lat, lng }) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))} />
+                <p className="text-xs text-gray-400 mt-1">Click map to pin. Use "Suggest from pin" to auto-fill details with AI.</p>
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">Safety Status</label>
