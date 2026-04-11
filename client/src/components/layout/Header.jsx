@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
 import {
@@ -5,6 +6,7 @@ import {
   Bars3Icon,
   MoonIcon,
   SunIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const ROLE_BADGE = {
@@ -50,17 +52,22 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-        {/* User identity — desktop only */}
-        <div className="hidden sm:flex items-center gap-2.5">
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
+        {/* Profile link — avatar + name + role badge */}
+        <Link
+          to="/profile"
+          aria-label="My profile"
+          className="hidden sm:flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 group"
+        >
+          <UserCircleIcon className="w-8 h-8 text-gray-400 dark:text-gray-500 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors duration-150 shrink-0" aria-hidden="true" />
+          <div className="text-left leading-tight">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
               {user?.name}
             </p>
             <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${badge.className}`}>
               {badge.label}
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Dark mode toggle */}
         <button
