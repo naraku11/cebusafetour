@@ -4,7 +4,7 @@ import {
   HomeIcon, MapPinIcon, ExclamationTriangleIcon,
   ShieldExclamationIcon, UsersIcon, BellIcon,
   DocumentChartBarIcon, StarIcon, XMarkIcon,
-  QuestionMarkCircleIcon, UserCircleIcon,
+  QuestionMarkCircleIcon,
 } from '@heroicons/react/24/outline';
 
 // Each nav item declares which roles can see it
@@ -18,7 +18,6 @@ const ALL_NAV = [
   { to: '/notifications', icon: BellIcon,                label: 'Notifications',    roles: ['admin_super', 'admin_content', 'admin_emergency'] },
   { to: '/reports',       icon: DocumentChartBarIcon,    label: 'Reports',          roles: ['admin_super', 'admin_content', 'admin_emergency'] },
   { to: '/help',          icon: QuestionMarkCircleIcon,  label: 'Help & FAQ',       roles: ['admin_super', 'admin_content', 'admin_emergency'] },
-  { to: '/profile',       icon: UserCircleIcon,          label: 'My Profile',       roles: ['admin_super', 'admin_content', 'admin_emergency'] },
 ];
 
 const ROLE_META = {
