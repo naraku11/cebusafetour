@@ -34,65 +34,81 @@ export default function Sidebar({ open, onClose }) {
 
   return (
     <aside
+      role="navigation"
+      aria-label="Main navigation"
       className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col shrink-0
-        transform transition-transform duration-200 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-64
+        bg-gray-900 dark:bg-gray-950
+        text-white flex flex-col shrink-0
+        border-r border-gray-800 dark:border-gray-800
+        transform transition-transform duration-200 ease-out
         md:relative md:translate-x-0
-        ${open ? 'translate-x-0' : '-translate-x-full'}
+        ${open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
       `}
     >
-      {/* Logo + mobile close */}
-      <div className="px-6 py-5 border-b border-gray-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🏖</span>
+      {/* ── Logo + mobile close ──────────────────────────────────────────── */}
+      <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="text-2xl" aria-hidden="true">🏖</span>
           <div>
-            <p className="font-bold text-white leading-tight">CebuSafeTour</p>
-            <p className="text-gray-400 text-xs">Admin Portal</p>
+            <p className="font-bold text-white leading-tight text-[15px]">CebuSafeTour</p>
+            <p className="text-gray-500 text-xs">Admin Portal</p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="md:hidden p-1 text-gray-400 hover:text-white rounded-lg"
+          aria-label="Close navigation menu"
+          className="md:hidden p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-150"
         >
-          <XMarkIcon className="w-5 h-5" />
+          <XMarkIcon className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 
-      {/* Logged-in role badge */}
-      <div className="px-4 py-2.5 border-b border-gray-700 bg-gray-800/60">
+      {/* ── Logged-in role badge ─────────────────────────────────────────── */}
+      <div className="px-4 py-2.5 border-b border-gray-800 bg-gray-800/50">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
-          <span className="text-xs font-medium text-gray-300">{meta.label}</span>
+          <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} aria-hidden="true" />
+          <span className="text-xs font-semibold text-gray-300">{meta.label}</span>
         </div>
         {user?.name && (
           <p className="text-xs text-gray-500 mt-0.5 truncate">{user.name}</p>
         )}
       </div>
 
-      {/* Role-filtered navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      {/* ── Role-filtered navigation ─────────────────────────────────────── */}
+      <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto" aria-label="Site sections">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             onClick={onClose}
+            aria-label={label}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
                 isActive
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-primary-600 text-white shadow-sm'
                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`
             }
           >
-            <Icon className="w-5 h-5 shrink-0" />
-            {label}
+            {({ isActive }) => (
+              <>
+                <Icon
+                  className={`w-5 h-5 shrink-0 transition-transform duration-150 ${
+                    isActive ? '' : 'group-hover:scale-110'
+                  }`}
+                  aria-hidden="true"
+                />
+                <span>{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-6 py-4 border-t border-gray-700">
-        <p className="text-gray-500 text-xs">v1.0.0 — CebuSafeTour</p>
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <div className="px-5 py-4 border-t border-gray-800">
+        <p className="text-gray-600 text-xs">v1.0.0 · CebuSafeTour</p>
       </div>
     </aside>
   );
