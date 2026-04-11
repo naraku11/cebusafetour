@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useAdaptivePolling } from '../hooks/useAdaptivePolling';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -76,17 +78,26 @@ export default function Dashboard() {
   const canSeeIncidents   = isSuper || isEmergency;
   const canSeeAdvisories  = true; // all admin roles
 
+  // reports-summary is already invalidated by Socket.IO incident/advisory events —
+  // no explicit polling needed; refetchOnWindowFocus covers tab-return freshness.
   const { data: summary, isLoading: loadingSummary } = useQuery({
     queryKey: ['reports-summary'],
     queryFn: () => api.get('/reports/summary').then(r => r.data),
     staleTime: 60_000,
   });
 
+  // Analytical queries (trends, incidents, attractions) are NOT pushed by Socket.IO,
+  // so we use adaptive polling: 2 min base → 5 min max, tab-paused.
+  const { refetchInterval: trendsInterval,      observe: observeTrends      } = useAdaptivePolling({ base: 120_000, max: 300_000 });
+  const { refetchInterval: incidentsInterval,   observe: observeIncidents   } = useAdaptivePolling({ base: 60_000,  max: 180_000 });
+  const { refetchInterval: attractionsInterval, observe: observeAttractions } = useAdaptivePolling({ base: 120_000, max: 300_000 });
+
   const { data: trends } = useQuery({
     queryKey: ['reports-trends'],
     queryFn: () => api.get('/reports/trends').then(r => r.data),
     staleTime: 60_000,
     enabled: isSuper,
+    refetchInterval: trendsInterval,
   });
 
   const { data: incidentsData } = useQuery({
@@ -94,6 +105,7 @@ export default function Dashboard() {
     queryFn: () => api.get('/reports/incidents').then(r => r.data),
     staleTime: 60_000,
     enabled: canSeeIncidents,
+    refetchInterval: incidentsInterval,
   });
 
   const { data: attractionsData } = useQuery({
@@ -101,7 +113,12 @@ export default function Dashboard() {
     queryFn: () => api.get('/reports/attractions').then(r => r.data),
     staleTime: 60_000,
     enabled: canSeeAttractions,
+    refetchInterval: attractionsInterval,
   });
+
+  useEffect(() => { if (trends)        observeTrends(trends);           }, [trends,        observeTrends]);
+  useEffect(() => { if (incidentsData) observeIncidents(incidentsData); }, [incidentsData, observeIncidents]);
+  useEffect(() => { if (attractionsData) observeAttractions(attractionsData); }, [attractionsData, observeAttractions]);
 
   const s = summary || {};
   const topAttractions = attractionsData?.attractions?.slice(0, 5) || [];

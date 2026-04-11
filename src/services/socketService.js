@@ -59,9 +59,28 @@ function init(httpServer) {
 
 function getIo() { return io; }
 
-function emitToAdmins(event, data) { io?.to('admins').emit(event, data); }
-function emitToTourists(event, data) { io?.to('tourists').emit(event, data); }
-function emitToAll(event, data) { io?.emit(event, data); }
-function emitToUser(userId, event, data) { io?.to(`user:${userId}`).emit(event, data); }
+// Lazy-require events.js so there is no circular-dependency issue at module load
+// time (app.js loads both this file and events.js, so events.js is guaranteed to
+// be fully initialised before any event is ever emitted).
+function _sse() {
+  try { return require('../routes/events').emitSSE; } catch { return null; }
+}
+
+function emitToAdmins(event, data) {
+  io?.to('admins').emit(event, data);
+  _sse()?.('admins', event, data);
+}
+function emitToTourists(event, data) {
+  io?.to('tourists').emit(event, data);
+  _sse()?.('tourists', event, data);
+}
+function emitToAll(event, data) {
+  io?.emit(event, data);
+  _sse()?.(null, event, data);
+}
+function emitToUser(userId, event, data) {
+  io?.to(`user:${userId}`).emit(event, data);
+  // SSE has no user-level room; skip per-user targeted events
+}
 
 module.exports = { init, getIo, emitToAdmins, emitToTourists, emitToAll, emitToUser };

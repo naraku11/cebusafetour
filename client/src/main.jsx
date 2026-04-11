@@ -7,7 +7,17 @@ import App from './App';
 import './index.css';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchInterval: 30_000 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: true,
+      // Never poll in the background — tab must be visible for any interval to fire.
+      // Individual queries that need polling use useAdaptivePolling() instead of a
+      // fixed global interval.
+      refetchIntervalInBackground: false,
+    },
+  },
 });
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -14,11 +14,15 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 // | MySQL pool (idle→max)   |   0 – 5   | idleTimeout 30s reclaims fast  |
 // | Firebase gRPC (lazy)    |   0 – 2   | Only when FCM/Firestore fires  |
 // | SMTP (transient)        |   0 – 1   | Connection per email send      |
-// | Socket.IO clients       |   0 – 25  | Capped by WS_MAX_CONNECTIONS   |
+// | Socket.IO WS clients    |   0 – 25  | Capped by WS_MAX_CONNECTIONS   |
+// | SSE clients (HTTP)      |   0 – 15  | Capped by SSE_MAX_CONNECTIONS  |
 // |-------------------------|-----------|--------------------------------|
 // | Baseline (idle)         |    ~2     | Node + 1 keep-alive DB conn    |
 // | Typical (moderate load) |   ~12     | Node + 3 DB + 2 WS + extras   |
-// | Peak (all services)     |   ~34     | Within 40-process limit        |
+// | Peak (all WS + all SSE) |   ~34     | Within 40-process limit        |
+// Note: SSE connections are open HTTP responses (file descriptors), not OS
+// processes — they don't increment the OS process counter but do consume
+// event-loop capacity, so they are capped separately.
 // ─────────────────────────────────────────────────────────────────────────
 
 const http        = require('http');
@@ -38,6 +42,7 @@ const usersRoutes         = require('./routes/users');
 const notificationsRoutes = require('./routes/notifications');
 const reportsRoutes       = require('./routes/reports');
 const reviewsRoutes       = require('./routes/reviews');
+const { router: eventsRouter } = require('./routes/events');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const logger           = require('./utils/logger');
@@ -171,6 +176,8 @@ app.use('/api/users',         usersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports',       reportsRoutes);
 app.use('/api/reviews',       reviewsRoutes);
+// SSE stream — read-only fallback for clients where WebSocket is unavailable
+app.use('/api/events',        eventsRouter);
 
 // Serve admin panel static files (built into backend/public during deployment)
 const adminDist = path.join(__dirname, '..', 'public');

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAdaptivePolling } from '../hooks/useAdaptivePolling';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -62,12 +63,19 @@ export default function Emergency() {
   const adminEmail  = useAuthStore(s => s.user?.email);
   const isSuperAdmin = useAuthStore(s => s.user?.role) === 'admin_super';
 
+  // Adaptive polling: starts at 15 s, backs off to 60 s when nothing changes,
+  // resets immediately when new incident data arrives. Pauses when tab is hidden.
+  const { refetchInterval, observe } = useAdaptivePolling({ base: 15_000, max: 60_000 });
+
   const { data, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['incidents'],
     queryFn: () =>
       api.get('/emergency/incidents', { params: { limit: 200 } }).then(r => r.data),
-    refetchInterval: 30_000,
+    refetchInterval,
   });
+
+  // Feed data back to the adaptive hook so it can detect changes
+  useEffect(() => { if (data) observe(data); }, [data, observe]);
 
   const { data: archivedData, isLoading: archiveLoading, refetch: refetchArchive } = useQuery({
     queryKey: ['incidents-archived'],
@@ -132,7 +140,7 @@ export default function Emergency() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">🚨 Emergency &amp; Incident Center</h2>
           <p className="text-gray-500 text-sm mt-0.5">
-            Auto-refreshes every 30s
+            Auto-refreshes adaptively (15s – 60s) · pauses when tab is hidden
             {dataUpdatedAt ? ` · Last updated ${formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true })}` : ''}
           </p>
         </div>
