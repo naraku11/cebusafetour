@@ -7,17 +7,52 @@ import {
   QuestionMarkCircleIcon,
 } from '@heroicons/react/24/outline';
 
-// Each nav item declares which roles can see it
-const ALL_NAV = [
-  { to: '/dashboard',     icon: HomeIcon,                label: 'Dashboard',       roles: ['admin_super', 'admin_content', 'admin_emergency'] },
-  { to: '/attractions',   icon: MapPinIcon,              label: 'Attractions',      roles: ['admin_super', 'admin_content'] },
-  { to: '/reviews',       icon: StarIcon,                label: 'Reviews',          roles: ['admin_super', 'admin_content'] },
-  { to: '/advisories',    icon: ExclamationTriangleIcon, label: 'Advisories',       roles: ['admin_super', 'admin_content'] },
-  { to: '/emergency',     icon: ShieldExclamationIcon,   label: 'Emergency Center', roles: ['admin_super', 'admin_emergency'] },
-  { to: '/users',         icon: UsersIcon,               label: 'Users',            roles: ['admin_super'] },
-  { to: '/notifications', icon: BellIcon,                label: 'Notifications',    roles: ['admin_super', 'admin_content', 'admin_emergency'] },
-  { to: '/reports',       icon: DocumentChartBarIcon,    label: 'Reports',          roles: ['admin_super', 'admin_content', 'admin_emergency'] },
-  { to: '/help',          icon: QuestionMarkCircleIcon,  label: 'Help & FAQ',       roles: ['admin_super', 'admin_content', 'admin_emergency'] },
+const ALL  = ['admin_super', 'admin_content', 'admin_emergency'];
+const SUPR = ['admin_super'];
+const SC   = ['admin_super', 'admin_content'];
+const SE   = ['admin_super', 'admin_emergency'];
+
+// Hierarchical nav: groups with an optional section label + filtered items
+const NAV_GROUPS = [
+  {
+    label: null, // no header — top-level overview
+    items: [
+      { to: '/dashboard', icon: HomeIcon, label: 'Dashboard', roles: ALL },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { to: '/attractions', icon: MapPinIcon,              label: 'Attractions', roles: SC },
+      { to: '/reviews',     icon: StarIcon,                label: 'Reviews',     roles: SC },
+      { to: '/advisories',  icon: ExclamationTriangleIcon, label: 'Advisories',  roles: SC },
+    ],
+  },
+  {
+    label: 'Emergency',
+    items: [
+      { to: '/emergency', icon: ShieldExclamationIcon, label: 'Emergency Center', roles: SE },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { to: '/users', icon: UsersIcon, label: 'Users', roles: SUPR },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { to: '/notifications', icon: BellIcon,                label: 'Notifications', roles: ALL },
+      { to: '/reports',       icon: DocumentChartBarIcon,    label: 'Reports',       roles: ALL },
+    ],
+  },
+  {
+    label: 'Support',
+    items: [
+      { to: '/help', icon: QuestionMarkCircleIcon, label: 'Help & FAQ', roles: ALL },
+    ],
+  },
 ];
 
 const ROLE_META = {
@@ -30,7 +65,11 @@ export default function Sidebar({ open, onClose }) {
   const { user } = useAuthStore();
   const role = user?.role ?? '';
   const meta = ROLE_META[role] ?? { label: role, dot: 'bg-gray-400' };
-  const navItems = ALL_NAV.filter(item => item.roles.includes(role));
+
+  // Filter each group's items by role; drop groups that end up empty
+  const visibleGroups = NAV_GROUPS
+    .map(group => ({ ...group, items: group.items.filter(item => item.roles.includes(role)) }))
+    .filter(group => group.items.length > 0);
 
   return (
     <aside
@@ -75,34 +114,50 @@ export default function Sidebar({ open, onClose }) {
         )}
       </div>
 
-      {/* ── Role-filtered navigation ─────────────────────────────────────── */}
-      <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto" aria-label="Site sections">
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onClose}
-            aria-label={label}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
-                isActive
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon
-                  className={`w-5 h-5 shrink-0 transition-transform duration-150 ${
-                    isActive ? '' : 'group-hover:scale-110'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span>{label}</span>
-              </>
+      {/* ── Hierarchical navigation ──────────────────────────────────────── */}
+      <nav className="flex-1 px-2.5 py-3 overflow-y-auto" aria-label="Site sections">
+        {visibleGroups.map((group, gi) => (
+          <div key={group.label ?? '__overview'} className={gi > 0 ? 'mt-5' : ''}>
+
+            {/* Section header */}
+            {group.label && (
+              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500 select-none">
+                {group.label}
+              </p>
             )}
-          </NavLink>
+
+            {/* Items */}
+            <div className="space-y-0.5">
+              {group.items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={onClose}
+                  aria-label={label}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
+                      isActive
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        className={`w-5 h-5 shrink-0 transition-transform duration-150 ${
+                          isActive ? '' : 'group-hover:scale-110'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span>{label}</span>
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+
+          </div>
         ))}
       </nav>
 

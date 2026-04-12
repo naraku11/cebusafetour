@@ -138,8 +138,15 @@ model User {
   isVerified             Boolean      @default(false) @map("is_verified")
   lastActive        DateTime?    @map("last_active")
   emergencyContacts Json         @default("[]") @map("emergency_contacts")
+  municipality      String?      @map("municipality")
+  designation       String?      @map("designation")
+  createdByAdminId  String?      @map("created_by_admin_id")
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  // Emergency officer hierarchy: main officer → sub-officers / staff
+  createdByAdmin    User?        @relation("AdminStaff", fields: [createdByAdminId], references: [id])
+  staffCreated      User[]       @relation("AdminStaff")
 
   attractionsCreated   Attraction[]   @relation("AttractionCreator")
   advisoriesCreated    Advisory[]     @relation("AdvisoryCreator")
@@ -150,6 +157,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([status])
+  @@index([municipality])
   @@map("users")
 }
 

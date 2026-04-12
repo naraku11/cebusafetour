@@ -35,4 +35,16 @@ const requireRole = (...roles) => (req, res, next) => {
 const requireAdmin      = requireRole('admin_super', 'admin_content', 'admin_emergency');
 const requireSuperAdmin = requireRole('admin_super');
 
-module.exports = { authenticate, requireRole, requireAdmin, requireSuperAdmin };
+// Allows only a main emergency officer (admin_emergency with no createdByAdminId).
+// Sub-officers/staff created by a manager are blocked — only the manager can manage their own team.
+const requireEmergencyManager = (req, res, next) => {
+  if (req.user?.role !== 'admin_emergency') {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  if (req.user?.createdByAdminId) {
+    return res.status(403).json({ error: 'Only the main emergency officer can manage their team' });
+  }
+  next();
+};
+
+module.exports = { authenticate, requireRole, requireAdmin, requireSuperAdmin, requireEmergencyManager };

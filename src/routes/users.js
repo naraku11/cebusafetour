@@ -3,7 +3,7 @@ const multer = require('multer');
 const { v4: uuid } = require('uuid');
 const router = require('express').Router();
 const ctrl   = require('../controllers/usersController');
-const { authenticate, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, requireSuperAdmin, requireEmergencyManager } = require('../middleware/auth');
 
 const avatarStorage = multer.diskStorage({
   destination: path.join(__dirname, '..', '..', 'uploads', 'avatars'),
@@ -29,11 +29,17 @@ router.post('/me/profile-picture', authenticate, uploadAvatar, ctrl.uploadAvatar
 router.get('/nationalities', authenticate, requireAdmin, ctrl.getRegisteredNationalities);
 router.get('/stats', authenticate, requireAdmin, ctrl.getStats);
 
-// Staff account management (must be before /:id)
+// Staff account management — super admin manages all staff
 router.get('/staff',        authenticate, requireSuperAdmin, ctrl.listStaff);
 router.post('/staff',       authenticate, requireSuperAdmin, ctrl.createStaff);
 router.patch('/staff/:id',  authenticate, requireSuperAdmin, ctrl.updateStaff);
 router.delete('/staff/:id', authenticate, requireSuperAdmin, ctrl.deleteStaff);
+
+// Emergency manager sub-staff — main emergency officer manages their own team
+// Must be before /:id to avoid route conflicts
+router.get('/my-team',        authenticate, requireEmergencyManager, ctrl.listMyTeam);
+router.post('/my-team',       authenticate, requireEmergencyManager, ctrl.createMyTeamMember);
+router.delete('/my-team/:id', authenticate, requireEmergencyManager, ctrl.deleteMyTeamMember);
 
 router.get('/', authenticate, requireAdmin, ctrl.list);
 router.get('/:id', authenticate, requireAdmin, ctrl.get);

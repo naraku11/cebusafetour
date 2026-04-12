@@ -46,6 +46,126 @@ const adminAccounts = [
   },
 ];
 
+// ─── CEBU LGUs ────────────────────────────────────────────────────────────────
+// 3 highly-urbanized cities + 6 component cities + 44 municipalities = 53 LGUs
+
+const cebuLGUs = [
+  // Highly Urbanized Cities
+  { name: 'Cebu City' },
+  { name: 'Lapu-Lapu City' },
+  { name: 'Mandaue City' },
+  // Component Cities
+  { name: 'Bogo City' },
+  { name: 'Carcar City' },
+  { name: 'Danao City' },
+  { name: 'Naga City' },
+  { name: 'Talisay City' },
+  { name: 'Toledo City' },
+  // Municipalities (44)
+  { name: 'Alcantara' },
+  { name: 'Alcoy' },
+  { name: 'Alegria' },
+  { name: 'Aloguinsan' },
+  { name: 'Argao' },
+  { name: 'Asturias' },
+  { name: 'Badian' },
+  { name: 'Balamban' },
+  { name: 'Bantayan' },
+  { name: 'Barili' },
+  { name: 'Boljoon' },
+  { name: 'Borbon' },
+  { name: 'Carmen' },
+  { name: 'Catmon' },
+  { name: 'Compostela' },
+  { name: 'Consolacion' },
+  { name: 'Cordova' },
+  { name: 'Daanbantayan' },
+  { name: 'Dalaguete' },
+  { name: 'Dumanjug' },
+  { name: 'Ginatilan' },
+  { name: 'Liloan' },
+  { name: 'Madridejos' },
+  { name: 'Malabuyoc' },
+  { name: 'Medellin' },
+  { name: 'Minglanilla' },
+  { name: 'Moalboal' },
+  { name: 'Oslob' },
+  { name: 'Pilar' },
+  { name: 'Pinamungahan' },
+  { name: 'Poro' },
+  { name: 'Ronda' },
+  { name: 'Samboan' },
+  { name: 'San Fernando' },
+  { name: 'San Francisco' },
+  { name: 'San Remigio' },
+  { name: 'Santa Fe' },
+  { name: 'Santander' },
+  { name: 'Sibonga' },
+  { name: 'Sogod' },
+  { name: 'Tabogon' },
+  { name: 'Tabuelan' },
+  { name: 'Tuburan' },
+  { name: 'Tudela' },
+];
+
+// Convert LGU name to email slug: "Lapu-Lapu City" → "lapu-lapu-city"
+const toSlug = (name) =>
+  name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+const municipalContentManagers = cebuLGUs.map((lgu, i) => ({
+  name: `Content Manager — ${lgu.name}`,
+  email: `content.${toSlug(lgu.name)}@cebusafetour.ph`,
+  password: 'Content@123',
+  role: 'admin_content',
+  municipality: lgu.name,
+  nationality: 'Filipino',
+  contactNumber: `+63-32-110-${String(i + 1).padStart(4, '0')}`,
+  isVerified: true,
+  language: 'en',
+}));
+
+const municipalEmergencyOfficers = cebuLGUs.map((lgu, i) => ({
+  name: `Emergency Officer — ${lgu.name}`,
+  email: `emergency.${toSlug(lgu.name)}@cebusafetour.ph`,
+  password: 'Emergency@123',
+  role: 'admin_emergency',
+  municipality: lgu.name,
+  nationality: 'Filipino',
+  contactNumber: `+63-32-120-${String(i + 1).padStart(4, '0')}`,
+  isVerified: true,
+  language: 'en',
+}));
+
+// Sub-officers created under each main emergency officer.
+// 4 staff per LGU × 53 LGUs = 212 accounts.
+// Email pattern: <prefix>.<lgu-slug>@cebusafetour.ph
+const emergencySubRoles = [
+  {
+    prefix:      'emt',
+    designation: 'Emergency Medical Technician (EMT)',
+    nameFn:      (lgu) => `EMT — ${lgu.name}`,
+    phoneBase:   '131',
+  },
+  {
+    prefix:      'sar',
+    designation: 'Search and Rescue (SAR) Coordinator',
+    nameFn:      (lgu) => `SAR Coordinator — ${lgu.name}`,
+    phoneBase:   '132',
+  },
+  {
+    prefix:      'comms',
+    designation: 'Disaster Communications Officer',
+    nameFn:      (lgu) => `Comms Officer — ${lgu.name}`,
+    phoneBase:   '133',
+  },
+  {
+    prefix:      'fire',
+    designation: 'Fire Safety Inspector',
+    nameFn:      (lgu) => `Fire Inspector — ${lgu.name}`,
+    phoneBase:   '134',
+  },
+];
+
 const touristAccounts = [
   {
     name: 'Kim Jisoo',
@@ -524,7 +644,107 @@ async function main() {
     console.log(`  ✅ ${user.role.padEnd(20)} ${user.email}`);
   }
 
-  // ── 2. Tourist Accounts ────────────────────────────────────────────────────
+  // ── 2. Municipal Content Managers (one per Cebu LGU) ──────────────────────
+  console.log('\n📋 Seeding municipal content managers (53 LGUs)...');
+
+  for (const cm of municipalContentManagers) {
+    const hashed = await hash(cm.password);
+    const user = await prisma.user.upsert({
+      where: { email: cm.email },
+      update: {},
+      create: {
+        name: cm.name,
+        email: cm.email,
+        password: hashed,
+        role: cm.role,
+        municipality: cm.municipality,
+        nationality: cm.nationality,
+        contactNumber: cm.contactNumber,
+        isVerified: cm.isVerified,
+        language: cm.language,
+        status: 'active',
+      },
+    });
+    console.log(`  ✅ ${user.municipality?.padEnd(18)} ${user.email}`);
+  }
+
+  // ── 3. Municipal Emergency Officers — main/manager (one per Cebu LGU) ──────
+  console.log('\n🚨 Seeding municipal emergency officers (53 LGUs)...');
+
+  for (const eo of municipalEmergencyOfficers) {
+    const hashed = await hash(eo.password);
+    const user = await prisma.user.upsert({
+      where: { email: eo.email },
+      update: {},
+      create: {
+        name: eo.name,
+        email: eo.email,
+        password: hashed,
+        role: eo.role,
+        municipality: eo.municipality,
+        nationality: eo.nationality,
+        contactNumber: eo.contactNumber,
+        isVerified: eo.isVerified,
+        language: eo.language,
+        status: 'active',
+        // createdByAdminId is null → marks this as the MAIN/MANAGER officer
+      },
+    });
+    console.log(`  ✅ ${user.municipality?.padEnd(18)} ${user.email}`);
+  }
+
+  // ── 4. Sub Emergency Officers / Staff (4 per LGU, linked to their manager) ──
+  console.log('\n🔖 Seeding emergency sub-officers / staff (53 LGUs × 4 roles = 212 accounts)...');
+  let subCreated = 0;
+  let subSkipped = 0;
+
+  for (let i = 0; i < cebuLGUs.length; i++) {
+    const lgu = cebuLGUs[i];
+
+    // Resolve this LGU's manager by their known email
+    const managerEmail = `emergency.${toSlug(lgu.name)}@cebusafetour.ph`;
+    const manager = await prisma.user.findUnique({ where: { email: managerEmail } });
+
+    if (!manager) {
+      console.log(`  ⚠️  Manager not found for ${lgu.name} — skipping sub-officers`);
+      continue;
+    }
+
+    for (const role of emergencySubRoles) {
+      const staffEmail = `${role.prefix}.${toSlug(lgu.name)}@cebusafetour.ph`;
+      const existing  = await prisma.user.findUnique({ where: { email: staffEmail } });
+
+      if (existing) {
+        subSkipped++;
+        continue;
+      }
+
+      const hashed = await hash('Emergency@123');
+      await prisma.user.create({
+        data: {
+          name:             role.nameFn(lgu),
+          email:            staffEmail,
+          password:         hashed,
+          role:             'admin_emergency',
+          municipality:     lgu.name,
+          designation:      role.designation,
+          createdByAdminId: manager.id,
+          nationality:      'Filipino',
+          contactNumber:    `+63-32-${role.phoneBase}-${String(i + 1).padStart(4, '0')}`,
+          isVerified:       true,
+          language:         'en',
+          status:           'active',
+        },
+      });
+      subCreated++;
+    }
+
+    process.stdout.write(`  ✅ ${lgu.name.padEnd(18)} (4 staff linked to manager ${manager.id.slice(0, 8)}…)\n`);
+  }
+
+  console.log(`  → Created: ${subCreated}  Skipped (already exist): ${subSkipped}`);
+
+  // ── 5. Tourist Accounts ────────────────────────────────────────────────────
   console.log('\n👥 Seeding tourist accounts...');
   const createdTourists = [];
 
@@ -552,7 +772,7 @@ async function main() {
 
   const superAdmin = createdAdmins[0];
 
-  // ── 3. Attractions ─────────────────────────────────────────────────────────
+  // ── 6. Attractions ─────────────────────────────────────────────────────────
   console.log('\n🏖  Seeding attractions...');
   const createdAttractions = [];
 
@@ -577,7 +797,7 @@ async function main() {
     console.log(`  ✅ ${created.name} (${created.district})`);
   }
 
-  // ── 4. Advisories ──────────────────────────────────────────────────────────
+  // ── 7. Advisories ──────────────────────────────────────────────────────────
   console.log('\n⚠️  Seeding advisories...');
   const emergencyOfficer = createdAdmins[2];
 
@@ -593,7 +813,7 @@ async function main() {
     console.log(`  ✅ [${created.severity.toUpperCase()}] ${created.title}`);
   }
 
-  // ── 5. Incidents ───────────────────────────────────────────────────────────
+  // ── 8. Incidents ───────────────────────────────────────────────────────────
   console.log('\n🚨 Seeding incidents...');
   const touristReporters = [createdTourists[0], createdTourists[3], createdTourists[0]];
 
@@ -610,13 +830,25 @@ async function main() {
     console.log(`  ✅ [${created.status.toUpperCase()}] ${created.type} — ${created.nearestLandmark}`);
   }
 
-  // ── 6. Summary ─────────────────────────────────────────────────────────────
+  // ── 9. Summary ─────────────────────────────────────────────────────────────
   console.log('\n─────────────────────────────────────────────');
   console.log('✅ Seed complete!\n');
-  console.log('ADMIN CREDENTIALS:');
+  console.log('GLOBAL ADMIN CREDENTIALS:');
   console.log('  Super Admin   → superadmin@cebusafetour.ph  / SuperAdmin@123');
   console.log('  Content Mgr   → content@cebusafetour.ph     / Content@123');
   console.log('  Emergency Off → emergency@cebusafetour.ph   / Emergency@123');
+  console.log('\nMUNICIPAL CONTENT MANAGERS (all use Content@123):');
+  console.log('  Pattern: content.<lgu-slug>@cebusafetour.ph');
+  console.log(`  Count: ${municipalContentManagers.length} (one per Cebu LGU)`);
+  console.log('\nMUNICIPAL EMERGENCY OFFICERS — MANAGER (all use Emergency@123):');
+  console.log('  Pattern: emergency.<lgu-slug>@cebusafetour.ph');
+  console.log(`  Count: ${municipalEmergencyOfficers.length} (one per Cebu LGU, createdByAdminId = null)`);
+  console.log('\nEMERGENCY SUB-OFFICERS / STAFF (all use Emergency@123):');
+  console.log('  Designations per LGU:');
+  emergencySubRoles.forEach(r => console.log(`    ${r.prefix.padEnd(6)} → ${r.designation}`));
+  console.log(`  Pattern: <prefix>.<lgu-slug>@cebusafetour.ph`);
+  console.log(`  Count: ${municipalEmergencyOfficers.length} LGUs × ${emergencySubRoles.length} roles = ${municipalEmergencyOfficers.length * emergencySubRoles.length} accounts`);
+  console.log('  Note: createdByAdminId = manager.id → sub-officer linked to their LGU manager');
   console.log('\nTOURIST CREDENTIALS (all use Tourist@123):');
   touristAccounts.forEach(t => console.log(`  ${t.nationality?.padEnd(12)} → ${t.email}`));
   console.log('─────────────────────────────────────────────\n');

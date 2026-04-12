@@ -7,7 +7,7 @@ const { verifyProfilePicture } = require('../services/aiService');
 // Columns to select for user responses — excludes password and fcm_token
 const USER_COLS = `id, name, email, nationality, contact_number, role, status, language,
   profile_picture, profile_picture_verified, is_verified, last_active,
-  emergency_contacts, created_at, updated_at`;
+  emergency_contacts, municipality, designation, created_by_admin_id, created_at, updated_at`;
 
 exports.list = async (req, res, next) => {
   try {
@@ -228,19 +228,21 @@ const STAFF_ROLES = ['admin_content', 'admin_emergency'];
 
 exports.listStaff = async (req, res, next) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, role, municipality } = req.query;
     const conditions = [`role IN ('admin_content', 'admin_emergency')`];
     const params     = [];
 
-    if (status) { conditions.push('status = ?'); params.push(status); }
+    if (status)       { conditions.push('status = ?');                        params.push(status); }
+    if (role)         { conditions.push('role = ?');                          params.push(role); }
+    if (municipality) { conditions.push('municipality LIKE ?');               params.push(`%${municipality}%`); }
     if (search) {
-      conditions.push('(name LIKE ? OR email LIKE ?)');
-      params.push(`%${search}%`, `%${search}%`);
+      conditions.push('(name LIKE ? OR email LIKE ? OR municipality LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     const where = conditions.join(' AND ');
     const staff = await db.findMany(
-      `SELECT ${USER_COLS} FROM users WHERE ${where} ORDER BY created_at DESC`,
+      `SELECT ${USER_COLS} FROM users WHERE ${where} ORDER BY municipality ASC, role ASC, created_at DESC`,
       params
     );
     res.json({ staff });
@@ -249,7 +251,7 @@ exports.listStaff = async (req, res, next) => {
 
 exports.createStaff = async (req, res, next) => {
   try {
-    const { name, email, password, role, contactNumber } = req.body;
+    const { name, email, password, role, contactNumber, municipality, designation } = req.body;
     if (!STAFF_ROLES.includes(role))
       return res.status(400).json({ error: 'Role must be admin_content or admin_emergency' });
     if (!password || password.length < 8)
@@ -262,10 +264,11 @@ exports.createStaff = async (req, res, next) => {
     const id  = uuidv4();
     const now = new Date();
     await db.run(
-      `INSERT INTO users (id, name, email, password, role, contact_number, status, language,
-         is_verified, emergency_contacts, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', 'en', 1, '[]', ?, ?)`,
-      [id, name, email, hashed, role, contactNumber ?? null, now, now]
+      `INSERT INTO users (id, name, email, password, role, contact_number, municipality, designation,
+         status, language, is_verified, emergency_contacts, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 'en', 1, '[]', ?, ?)`,
+      [id, name, email, hashed, role, contactNumber ?? null, municipality ?? null,
+       designation ?? null, now, now]
     );
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [id]);
@@ -276,7 +279,7 @@ exports.createStaff = async (req, res, next) => {
 
 exports.updateStaff = async (req, res, next) => {
   try {
-    const { name, email, role, contactNumber } = req.body;
+    const { name, email, role, contactNumber, municipality, designation } = req.body;
     const target = await db.findOne('SELECT id, role FROM users WHERE id = ? LIMIT 1', [req.params.id]);
     if (!target) return res.status(404).json({ error: 'User not found' });
     if (!STAFF_ROLES.includes(target.role))
@@ -296,6 +299,8 @@ exports.updateStaff = async (req, res, next) => {
     if (email         !== undefined) { sets.push('email = ?');          params.push(email); }
     if (role          !== undefined) { sets.push('role = ?');           params.push(role); }
     if (contactNumber !== undefined) { sets.push('contact_number = ?'); params.push(contactNumber); }
+    if (municipality  !== undefined) { sets.push('municipality = ?');   params.push(municipality); }
+    if (designation   !== undefined) { sets.push('designation = ?');    params.push(designation); }
 
     if (sets.length) {
       sets.push('updated_at = ?');
@@ -320,5 +325,66 @@ exports.deleteStaff = async (req, res, next) => {
     await db.run('DELETE FROM users WHERE id = ?', [req.params.id]);
     socket.emitToAdmins('staff:deleted', { id: req.params.id });
     res.json({ message: 'Staff account deleted' });
+  } catch (err) { next(err); }
+};
+
+// ── Emergency manager sub-staff (my-team) ────────────────────────────────────
+// Accessible only by a main emergency officer (admin_emergency, createdByAdminId = null).
+// Sub-officers/staff inherit the manager's municipality automatically.
+
+exports.listMyTeam = async (req, res, next) => {
+  try {
+    const staff = await db.findMany(
+      `SELECT ${USER_COLS} FROM users WHERE created_by_admin_id = ? ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json({ staff, municipality: req.user.municipality });
+  } catch (err) { next(err); }
+};
+
+exports.createMyTeamMember = async (req, res, next) => {
+  try {
+    const { name, email, password, contactNumber, designation } = req.body;
+    if (!name || !email)
+      return res.status(400).json({ error: 'name and email are required' });
+    if (!password || password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const existing = await db.findOne('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
+    if (existing) return res.status(409).json({ error: 'Email already in use' });
+
+    const hashed = await bcrypt.hash(password, 12);
+    const id  = uuidv4();
+    const now = new Date();
+
+    await db.run(
+      `INSERT INTO users
+         (id, name, email, password, role, contact_number, municipality, designation,
+          created_by_admin_id, status, language, is_verified, emergency_contacts,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'admin_emergency', ?, ?, ?, ?, 'active', 'en', 1, '[]', ?, ?)`,
+      [id, name, email, hashed, contactNumber ?? null,
+       req.user.municipality ?? null, designation ?? null, req.user.id, now, now]
+    );
+
+    const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [id]);
+    socket.emitToAdmins('staff:created', { id });
+    res.status(201).json({ user });
+  } catch (err) { next(err); }
+};
+
+exports.deleteMyTeamMember = async (req, res, next) => {
+  try {
+    const target = await db.findOne(
+      `SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`,
+      [req.params.id]
+    );
+    if (!target) return res.status(404).json({ error: 'Staff not found' });
+    if (target.createdByAdminId !== req.user.id)
+      return res.status(403).json({ error: 'You can only remove staff you created' });
+
+    await db.run('DELETE FROM users WHERE id = ?', [req.params.id]);
+    socket.emitToAdmins('staff:deleted', { id: req.params.id });
+    res.json({ message: 'Team member removed' });
   } catch (err) { next(err); }
 };
