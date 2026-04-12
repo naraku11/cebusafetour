@@ -73,17 +73,17 @@ exports.create = async (req, res, next) => {
 
     const advisory = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [id]);
 
-    await sendPushToAll({
+    socket.emitToAll('advisory:new', { advisory });
+    res.status(201).json({ advisory });
+
+    // Fire-and-forget: send push and mark notification_sent — don't block the response
+    sendPushToAll({
       title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
       body:  advisory.description.substring(0, 120),
       data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity },
-    });
-
-    await db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]);
-    advisory.notificationSent = true;
-
-    socket.emitToAll('advisory:new', { advisory });
-    res.status(201).json({ advisory });
+    })
+      .then(() => db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]))
+      .catch(err => logger.warn('Advisory push failed:', err.message));
   } catch (err) { next(err); }
 };
 
