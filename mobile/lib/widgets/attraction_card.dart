@@ -30,7 +30,12 @@ class AttractionCard extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Expanded(child: Text(attraction.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              Text('⭐ ${attraction.averageRating.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                attraction.totalReviews > 0
+                    ? '⭐ ${attraction.averageRating.toStringAsFixed(1)}'
+                    : 'No ratings',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ]),
             const SizedBox(height: 4),
             if (attraction.district != null)

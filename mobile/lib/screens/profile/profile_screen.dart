@@ -157,6 +157,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               backgroundColor: ok ? Colors.green : Colors.red,
             ));
           }
+          return ok;
         },
       ),
     );
@@ -311,7 +312,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
 class _EmergencyContactsSheet extends StatefulWidget {
   final List<Map<String, dynamic>> initialContacts;
-  final Future<void> Function(List<Map<String, dynamic>>) onSave;
+  final Future<bool> Function(List<Map<String, dynamic>>) onSave;
   const _EmergencyContactsSheet({required this.initialContacts, required this.onSave});
 
   @override
@@ -683,8 +684,13 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
               ),
               onPressed: _saving ? null : () async {
                 setState(() => _saving = true);
-                await widget.onSave(_contacts);
-                if (context.mounted) Navigator.pop(context);
+                final ok = await widget.onSave(_contacts);
+                if (!context.mounted) return;
+                if (ok) {
+                  Navigator.pop(context);
+                } else {
+                  setState(() => _saving = false);
+                }
               },
               child: _saving
                   ? const SizedBox(height: 20, width: 20,

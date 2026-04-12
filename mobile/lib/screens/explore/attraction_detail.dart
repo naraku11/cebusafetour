@@ -81,7 +81,9 @@ class AttractionDetail extends ConsumerWidget {
                         const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          '${a.averageRating.toStringAsFixed(1)} (${a.totalReviews})',
+                          a.totalReviews > 0
+                              ? '${a.averageRating.toStringAsFixed(1)} (${a.totalReviews})'
+                              : 'No reviews yet',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ]),
