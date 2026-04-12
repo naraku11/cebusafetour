@@ -12,7 +12,7 @@ A tourism safety platform for Cebu, Philippines. Tourists explore attractions sa
 │   Flutter — Android / iOS  │       React 18 + Vite + Tailwind     │
 ├────────────────────────────┴──────────────────────────────────────┤
 │                    REST API  +  Socket.IO                         │
-│        Node.js / Express 5  ·  mysql2  ·  node-cache  ·  gzip     │
+│              Node.js / Express 5  ·  mysql2  ·  gzip              │
 ├───────────────────────────────────────────────────────────────────┤
 │   MySQL (Hostinger)  ·  Firebase (FCM)  ·  OpenAI  ·  SMTP       │
 └───────────────────────────────────────────────────────────────────┘
@@ -33,7 +33,6 @@ cebusafetour/
 │   │                           #   users, notifications, reviews
 │   ├── middleware/
 │   │   ├── auth.js             # JWT verification, role guards
-│   │   ├── cache.js            # cacheResponse(ttl, keyFn) — in-memory response cache
 │   │   ├── errorHandler.js
 │   │   └── validate.js
 │   ├── routes/                 # Route files (mirrors controllers)
@@ -44,7 +43,6 @@ cebusafetour/
 │   │   ├── emailService.js     # Nodemailer OTP / alerts
 │   │   └── placesService.js    # Google Places / geocoding
 │   └── utils/
-│       ├── cache.js            # node-cache singleton + invalidatePrefix()
 │       └── logger.js
 ├── tests/                      # Jest + Supertest integration tests
 │   ├── helpers/
@@ -94,7 +92,7 @@ cebusafetour/
 │       │   ├── notifications/  # Notification history
 │       │   └── help/           # Help & FAQ
 │       ├── services/
-│       │   ├── api_service.dart         # Dio HTTP + cache interceptor
+│       │   ├── api_service.dart         # Dio HTTP + auth interceptor
 │       │   ├── auth_service.dart        # Auth API calls
 │       │   └── notification_service.dart # FCM init + foreground stream
 │       ├── widgets/
@@ -124,13 +122,11 @@ cebusafetour/
 | Admin Portal | React 18 + Vite + Tailwind CSS |
 | Backend API | Node.js + Express 5 |
 | Realtime | Socket.IO 4 (JWT-authenticated rooms) |
-| Database ORM | Prisma (schema-first, query builder) |
-| Database Driver | mysql2 (pure JavaScript) |
+| Database Driver | mysql2 (pure JavaScript, raw queries) |
+| Schema / Seed | Prisma schema + seed.sql (reference only) |
 | Database | MySQL 8 (Hostinger) |
 | HTTP Compression | compression (gzip / deflate) |
-| Server-side Cache | node-cache (in-memory, TTL-based) |
 | Testing | Jest 29 + Supertest |
-| Client-side Cache | dio_cache_interceptor (MemCacheStore, honours Cache-Control) |
 | Mobile State | flutter_riverpod (StateNotifierProvider, AsyncNotifierProvider) |
 | Mobile Routing | go_router |
 | Mobile HTTP | Dio + auth interceptor |
@@ -141,28 +137,6 @@ cebusafetour/
 | Email / OTP | Nodemailer (SMTP) |
 | File Uploads | Multer (local disk, Express static) |
 | Hosting | Hostinger Business Web Hosting (Express 22 preset) |
-
----
-
-## Caching
-
-### Server-side (node-cache)
-
-Read-heavy public endpoints are cached in memory. On any write, the relevant prefix is immediately invalidated so the next request fetches fresh data.
-
-| Endpoint / Layer | TTL | Cache key |
-|---|---|---|
-| `GET /api/advisories` | 2 min | `advisories:list:<query>` |
-| `GET /api/advisories/:id` | 2 min | `advisories:detail:<id>` |
-| Auth middleware (user lookup) | 5 min | `auth_user:<userId>` |
-
-Every response includes `X-Cache: HIT` or `X-Cache: MISS` and `Cache-Control: public, max-age=<ttl>`. Cache keys are normalized (query params sorted) so `?a=1&b=2` and `?b=2&a=1` share the same entry. Cache stats (keys, hits, misses, hit rate) are visible at `GET /health`.
-
-The auth middleware caches the authenticated user for 5 minutes after the first DB lookup, avoiding a `SELECT * FROM users` query on every authenticated request.
-
-### Client-side (dio_cache_interceptor)
-
-The Flutter app's `ApiService` adds a `DioCacheInterceptor` backed by `MemCacheStore`. It uses `CachePolicy.request`, which honours the `Cache-Control` header set by the server — so both sides automatically share the same TTL. The in-memory store is cleared when the app process is restarted.
 
 ---
 
@@ -349,8 +323,8 @@ After running `npm run db:seed`:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/api/advisories` | Public | List (filters: status, severity) — cached 2 min |
-| GET | `/api/advisories/:id` | Public | Detail — cached 2 min |
+| GET | `/api/advisories` | Public | List (filters: status, severity) |
+| GET | `/api/advisories/:id` | Public | Detail |
 | POST | `/api/advisories/ai-suggest` | Admin | AI generate advisory content |
 | POST | `/api/advisories` | Admin | Publish + push notify |
 | PUT | `/api/advisories/:id` | Admin | Update |

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/constants.dart';
 import '../utils/exceptions.dart';
@@ -13,18 +12,6 @@ class ApiService {
   /// mid-session (i.e. while already authenticated). Set by [AuthNotifier].
   static void Function()? onSuspended;
 
-  /// In-memory HTTP response cache shared across the app session.
-  ///
-  /// Policy: `request` — honours the server's Cache-Control header, so each
-  /// endpoint controls its own TTL (attractions: 300 s, advisories: 120 s).
-  /// On network error, falls back to a stale cached copy (except on 401/403).
-  static final _cacheOptions = CacheOptions(
-    store: MemCacheStore(),
-    policy: CachePolicy.request,
-    maxStale: const Duration(minutes: 30),
-    priority: CachePriority.normal,
-  );
-
   final _storage = const FlutterSecureStorage();
 
   late final Dio _dio = Dio(BaseOptions(
@@ -32,8 +19,6 @@ class ApiService {
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 15),
   ))
-    // Cache interceptor runs first so hits short-circuit before auth logic.
-    ..interceptors.add(DioCacheInterceptor(options: _cacheOptions))
     ..interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await _storage.read(key: 'auth_token');

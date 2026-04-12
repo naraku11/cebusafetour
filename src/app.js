@@ -48,7 +48,6 @@ const { errorHandler } = require('./middleware/errorHandler');
 const logger           = require('./utils/logger');
 const socket           = require('./services/socketService');
 const db               = require('./config/db');
-const cache            = require('./utils/cache');
 
 // Ensure upload directories exist
 fs.mkdirSync(path.join(__dirname, '..', 'uploads', 'avatars'), { recursive: true });
@@ -143,18 +142,6 @@ app.get('/health', async (req, res) => {
   checks.openai = oaiKey
     ? { status: 'configured', keyPrefix: oaiKey.slice(0, 12) + '...' }
     : { status: 'missing', error: 'OPENAI_API_KEY not set' };
-
-  // 6. In-memory cache
-  const cacheStats = cache.getStats();
-  checks.cache = {
-    status: 'ok',
-    keys: cache.keys().length,
-    hits: cacheStats.hits,
-    misses: cacheStats.misses,
-    hitRate: cacheStats.hits + cacheStats.misses > 0
-      ? `${((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1)}%`
-      : 'n/a',
-  };
 
   // Overall status — 'ok' only if DB connected and JWT present
   const healthy = checks.database.status === 'ok' && checks.jwt.status === 'configured';

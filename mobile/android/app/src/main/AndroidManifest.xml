@@ -39,7 +39,10 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDQ2JLuyUdoWVJ11Nfvn7bLe1OBvGh2M9M" />
-        <!-- FCM -->
+        <!-- FCM default notification channel — must match channelId sent by the backend -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="cebusafetour_alerts" />
         <service
             android:name="com.google.firebase.messaging.FirebaseMessagingService"
             android:exported="false">

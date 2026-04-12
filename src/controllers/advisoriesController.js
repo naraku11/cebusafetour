@@ -1,6 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
-const cache  = require('../utils/cache');
 const logger = require('../utils/logger');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestAdvisory } = require('../services/aiService');
@@ -84,7 +83,6 @@ exports.create = async (req, res, next) => {
     advisory.notificationSent = true;
 
     socket.emitToAll('advisory:new', { advisory });
-    cache.invalidatePrefix('advisories:');
     res.status(201).json({ advisory });
   } catch (err) { next(err); }
 };
@@ -126,7 +124,6 @@ exports.update = async (req, res, next) => {
     }
 
     socket.emitToAll('advisory:updated', { advisory });
-    cache.invalidatePrefix('advisories:');
     res.json({ advisory });
   } catch (err) { next(err); }
 };
@@ -153,7 +150,6 @@ exports.resolve = async (req, res, next) => {
     if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
     const resolved = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: resolved });
-    cache.invalidatePrefix('advisories:');
     res.json({ message: 'Advisory resolved' });
   } catch (err) { next(err); }
 };
@@ -164,7 +160,6 @@ exports.archive = async (req, res, next) => {
     if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
     const archived = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: archived });
-    cache.invalidatePrefix('advisories:');
     res.json({ message: 'Advisory archived' });
   } catch (err) { next(err); }
 };
@@ -175,7 +170,6 @@ exports.unarchive = async (req, res, next) => {
     if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
     const restored = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: restored });
-    cache.invalidatePrefix('advisories:');
     res.json({ message: 'Advisory restored to resolved' });
   } catch (err) { next(err); }
 };

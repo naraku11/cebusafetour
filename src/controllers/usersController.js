@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
-const cache  = require('../utils/cache');
 const socket = require('../services/socketService');
 const { verifyProfilePicture } = require('../services/aiService');
 
@@ -93,9 +92,6 @@ exports.updateProfile = async (req, res, next) => {
       await db.run(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, params);
     }
 
-    // Bust the auth middleware cache so the next /auth/me returns fresh data
-    cache.del(`auth_user:${req.user.id}`);
-
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.user.id]);
     res.json({ user });
   } catch (err) { next(err); }
@@ -120,7 +116,6 @@ exports.uploadAvatar = async (req, res, next) => {
       'UPDATE users SET profile_picture = ?, profile_picture_verified = NULL, updated_at = ? WHERE id = ?',
       [profilePicture, new Date(), req.user.id]
     );
-    cache.del(`auth_user:${req.user.id}`);
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.user.id]);
     res.json({ user });
   } catch (err) { next(err); }

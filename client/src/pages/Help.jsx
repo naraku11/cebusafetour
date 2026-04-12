@@ -167,7 +167,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: 'How often is the dashboard data updated?',
-        a: 'Dashboard statistics are cached for performance and refresh every 5 minutes automatically. You can force a refresh by reloading the page. Real-time incident counters update instantly via Socket.IO. For the most current data in Reports, use the date range filter to query fresh data from the database.',
+        a: 'Dashboard statistics query the database on every page load. Real-time incident and advisory counters update instantly via Socket.IO without requiring a page reload. For historical trends, use the date range filter in the Reports module.',
       },
     ],
   },
@@ -182,11 +182,11 @@ const FAQ_SECTIONS = [
       },
       {
         q: 'Why am I seeing stale data?',
-        a: 'The platform uses caching for performance. If data appears stale:\n\n1. Wait 5 minutes for the cache to automatically refresh\n2. Hard-refresh the page (Ctrl+Shift+R / Cmd+Shift+R)\n3. Clear browser cache and reload\n4. Check the health indicator in the footer\n\nIf the issue persists, it may be a server-side problem — contact the Super Admin.',
+        a: 'All data is fetched directly from the database on every request. If something looks outdated:\n\n1. Hard-refresh the page (Ctrl+Shift+R / Cmd+Shift+R)\n2. Check your internet connection — a dropped connection can leave the page in a stale state\n3. Confirm the Socket.IO indicator in the footer shows "Connected"\n\nIf the issue persists, it may be a server-side problem — contact the Super Admin.',
       },
       {
         q: 'What does the health check monitor?',
-        a: 'The system health check (available at the /health endpoint) monitors:\n\n• **Database** — MySQL connection pool status\n• **SMTP** — Email service availability\n• **Firebase** — Push notification service status\n• **JWT** — Authentication token system\n• **OpenAI** — AI service connectivity\n• **Cache** — In-memory cache statistics\n\nAll services should show "OK" status. If any service is degraded, affected features may be temporarily unavailable.',
+        a: 'The system health check (available at the /health endpoint) monitors:\n\n• **Database** — MySQL connection pool status and latency\n• **SMTP** — Email service configuration\n• **Firebase** — Push notification service status\n• **JWT** — Authentication token system\n• **OpenAI** — AI service connectivity\n\nAll services should show "OK" or "configured" status. If any service is degraded, affected features may be temporarily unavailable.',
       },
       {
         q: 'How is the data secured?',
@@ -474,7 +474,7 @@ export default function Help() {
               </div>
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-500">Database</span>
-                <span className="font-medium text-gray-800">MySQL 8 + Prisma</span>
+                <span className="font-medium text-gray-800">MySQL 8</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-500">Real-time</span>

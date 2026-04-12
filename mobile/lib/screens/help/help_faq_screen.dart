@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/theme.dart';
@@ -22,14 +21,14 @@ class _FaqSection {
 
 // ── Help Screen ─────────────────────────────────────────────────────────────
 
-class HelpFaqScreen extends ConsumerStatefulWidget {
+class HelpFaqScreen extends StatefulWidget {
   const HelpFaqScreen({super.key});
 
   @override
-  ConsumerState<HelpFaqScreen> createState() => _HelpFaqScreenState();
+  State<HelpFaqScreen> createState() => _HelpFaqScreenState();
 }
 
-class _HelpFaqScreenState extends ConsumerState<HelpFaqScreen>
+class _HelpFaqScreenState extends State<HelpFaqScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();

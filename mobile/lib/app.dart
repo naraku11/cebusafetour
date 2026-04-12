@@ -76,9 +76,10 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
     // Wire navigator so FCM tap-to-open works from background/terminated state
     NotificationService.setNavigator((route) => router.push(route));
 
-    // Show rich popup overlay for foreground notifications
+    // Show rich popup overlay for foreground notifications.
+    // Skip when prev was loading (initial API fetch) — only fire for real-time FCM arrivals.
     ref.listen<NotificationsState>(notificationsProvider, (prev, next) {
-      if (prev == null || next.isLoading) return;
+      if (prev == null || next.isLoading || prev.isLoading) return;
       if (next.notifications.length > prev.notifications.length) {
         final notif = next.notifications.first;
         // Use addPostFrameCallback to ensure overlay context is available

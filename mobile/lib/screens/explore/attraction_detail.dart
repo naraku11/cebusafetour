@@ -295,6 +295,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                     } else {
                       ref.invalidate(reviewsProvider(widget.attractionId));
                       ref.invalidate(attractionDetailProvider(widget.attractionId));
+                      ref.invalidate(attractionsProvider);
                       // Capture messenger BEFORE pop — sheet context is invalid after pop
                       final messenger = ScaffoldMessenger.of(context);
                       Navigator.of(context).pop();
@@ -476,6 +477,7 @@ class _ReviewTileState extends ConsumerState<_ReviewTile> {
                 if (!mounted) return;
                 ref.invalidate(reviewsProvider(widget.attractionId));
                 ref.invalidate(attractionDetailProvider(widget.attractionId));
+                ref.invalidate(attractionsProvider);
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
