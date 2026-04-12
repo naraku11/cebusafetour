@@ -37,7 +37,7 @@ export default function Advisories() {
   });
 
   const { data: attractionsData } = useQuery({
-    queryKey: ['attractions-list'],
+    queryKey: ['attractions', { status: 'published', limit: 200 }],
     queryFn: () => api.get('/attractions', { params: { status: 'published', limit: 200 } }).then(r => r.data),
     staleTime: 5 * 60 * 1000,
   });

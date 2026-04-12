@@ -37,8 +37,9 @@ export default function Reviews() {
   });
 
   const { data: attractionsData } = useQuery({
-    queryKey: ['attractions-simple'],
+    queryKey: ['attractions', { limit: 200 }],
     queryFn: () => api.get('/attractions', { params: { limit: 200 } }).then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
   });
 
   const deleteMutation = useMutation({

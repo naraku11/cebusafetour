@@ -18,19 +18,22 @@ Map<String, dynamic> _parseQuery(String query) {
 // Key is a URL query string, e.g. "search=foo&category=beach" or "" for no filters.
 // Using String (not Map) so Riverpod's family cache works correctly —
 // Map does not implement structural equality in Dart.
-final attractionsProvider = FutureProvider.family<List<Attraction>, String>((ref, query) async {
+//
+// autoDispose: evicts the cache entry when no widget is watching, preventing
+// unbounded cache growth as users browse different queries.
+final attractionsProvider = FutureProvider.autoDispose.family<List<Attraction>, String>((ref, query) async {
   final params = _parseQuery(query);
   final res = await _api.get('/attractions', params: params.isEmpty ? null : params);
   final list = (res.data['attractions'] as List);
   return list.map((e) => Attraction.fromJson(e as Map<String, dynamic>)).toList();
 });
 
-final attractionDetailProvider = FutureProvider.family<Attraction, String>((ref, id) async {
+final attractionDetailProvider = FutureProvider.autoDispose.family<Attraction, String>((ref, id) async {
   final res = await _api.get('/attractions/$id');
   return Attraction.fromJson(res.data['attraction'] as Map<String, dynamic>);
 });
 
-final nearbyAttractionsProvider = FutureProvider.family<List<Attraction>, String>((ref, query) async {
+final nearbyAttractionsProvider = FutureProvider.autoDispose.family<List<Attraction>, String>((ref, query) async {
   final params = _parseQuery(query);
   final res = await _api.get('/attractions/nearby', params: params);
   final list = (res.data['attractions'] as List);
@@ -38,7 +41,7 @@ final nearbyAttractionsProvider = FutureProvider.family<List<Attraction>, String
 });
 
 // Reviews
-final reviewsProvider = FutureProvider.family<List<Review>, String>((ref, attractionId) async {
+final reviewsProvider = FutureProvider.autoDispose.family<List<Review>, String>((ref, attractionId) async {
   final res = await _api.get('/attractions/$attractionId/reviews');
   final list = res.data['reviews'] as List;
   return list.map((e) => Review.fromJson(e as Map<String, dynamic>)).toList();

@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const db    = require('../config/db');
-const cache = require('../utils/cache');
+const db     = require('../config/db');
+const cache  = require('../utils/cache');
+const socket = require('../services/socketService');
 const { verifyProfilePicture } = require('../services/aiService');
 
 // Columns to select for user responses — excludes password and fcm_token
@@ -106,6 +107,7 @@ exports.updateStatus = async (req, res, next) => {
     const user = await db.findOne('SELECT id FROM users WHERE id = ? LIMIT 1', [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     await db.run('UPDATE users SET status = ?, updated_at = ? WHERE id = ?', [status, new Date(), req.params.id]);
+    socket.emitToAdmins('user:updated', { id: req.params.id, status });
     res.json({ message: `User ${status}` });
   } catch (err) { next(err); }
 };
@@ -199,6 +201,7 @@ exports.updateUser = async (req, res, next) => {
     }
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.params.id]);
+    socket.emitToAdmins('user:updated', { id: req.params.id });
     res.json({ user });
   } catch (err) { next(err); }
 };
@@ -219,6 +222,7 @@ exports.deleteUser = async (req, res, next) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'tourist') return res.status(403).json({ error: 'Cannot delete admin accounts through this endpoint' });
     await db.run('DELETE FROM users WHERE id = ?', [req.params.id]);
+    socket.emitToAdmins('user:deleted', { id: req.params.id });
     res.json({ message: 'User deleted' });
   } catch (err) { next(err); }
 };
@@ -270,6 +274,7 @@ exports.createStaff = async (req, res, next) => {
     );
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [id]);
+    socket.emitToAdmins('staff:created', { id });
     res.status(201).json({ user });
   } catch (err) { next(err); }
 };
@@ -304,6 +309,7 @@ exports.updateStaff = async (req, res, next) => {
     }
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.params.id]);
+    socket.emitToAdmins('staff:updated', { id: req.params.id });
     res.json({ user });
   } catch (err) { next(err); }
 };
@@ -317,6 +323,7 @@ exports.deleteStaff = async (req, res, next) => {
     if (target.id === req.user.id)
       return res.status(403).json({ error: 'Cannot delete your own account' });
     await db.run('DELETE FROM users WHERE id = ?', [req.params.id]);
+    socket.emitToAdmins('staff:deleted', { id: req.params.id });
     res.json({ message: 'Staff account deleted' });
   } catch (err) { next(err); }
 };

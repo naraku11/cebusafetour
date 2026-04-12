@@ -102,6 +102,9 @@ export default function Attractions() {
     setShowModal(true);
   };
 
+  // Clear autocomplete debounce timer on unmount
+  useEffect(() => () => clearTimeout(acDebounce.current), []);
+
   // Close autocomplete on outside click
   useEffect(() => {
     const handler = (e) => { if (acRef.current && !acRef.current.contains(e.target)) setAcOpen(false); };

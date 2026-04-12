@@ -42,9 +42,9 @@ module.exports = {
       // Environment variables injected by PM2 (supplement .env on the host)
       env_production: {
         NODE_ENV:            'production',
-        // WebSocket hard cap — keeps WS + SSE + infra below 40 processes/FDs
-        WS_MAX_CONNECTIONS:  '25',
-        SSE_MAX_CONNECTIONS: '15',
+        // WebSocket + SSE caps — keeps total connections below 100-process budget
+        WS_MAX_CONNECTIONS:  '60',
+        SSE_MAX_CONNECTIONS: '20',
       },
     },
   ],

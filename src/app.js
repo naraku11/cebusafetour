@@ -7,19 +7,19 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 // Firebase is lazy-initialized on first use (FCM send or Firestore write).
 // This avoids holding gRPC connections open at startup on Hostinger.
 
-// ── Hostinger Process Budget (Business Web Hosting: 40 max) ─────────────
+// ── Hostinger Process Budget (100-process limit) ─────────────────────────
 // | Component               | Processes | Notes                          |
 // |-------------------------|-----------|--------------------------------|
 // | Node.js main            |     1     | Always running                 |
-// | MySQL pool (idle→max)   |   0 – 5   | idleTimeout 30s reclaims fast  |
-// | Firebase gRPC (lazy)    |   0 – 2   | Only when FCM/Firestore fires  |
-// | SMTP (transient)        |   0 – 1   | Connection per email send      |
-// | Socket.IO WS clients    |   0 – 25  | Capped by WS_MAX_CONNECTIONS   |
-// | SSE clients (HTTP)      |   0 – 15  | Capped by SSE_MAX_CONNECTIONS  |
+// | MySQL pool (idle→max)   |   0 – 10  | idleTimeout 30s reclaims fast  |
+// | Firebase gRPC (lazy)    |   0 – 5   | Only when FCM/Firestore fires  |
+// | SMTP (transient)        |   0 – 2   | Connection per email send      |
+// | Socket.IO WS clients    |   0 – 60  | Capped by WS_MAX_CONNECTIONS   |
+// | SSE clients (HTTP)      |   0 – 20  | Capped by SSE_MAX_CONNECTIONS  |
 // |-------------------------|-----------|--------------------------------|
 // | Baseline (idle)         |    ~2     | Node + 1 keep-alive DB conn    |
-// | Typical (moderate load) |   ~12     | Node + 3 DB + 2 WS + extras   |
-// | Peak (all WS + all SSE) |   ~34     | Within 40-process limit        |
+// | Typical (moderate load) |   ~20     | Node + 5 DB + 10 WS + extras  |
+// | Peak (all slots filled) |   ~98     | Within 100-process limit       |
 // Note: SSE connections are open HTTP responses (file descriptors), not OS
 // processes — they don't increment the OS process counter but do consume
 // event-loop capacity, so they are capped separately.
@@ -97,11 +97,14 @@ app.use('/api/auth', rateLimit({
   skipSuccessfulRequests: true,
 }));
 
-// Global rate limiting — generous enough for normal app + admin polling
+// Global rate limiting — generous enough for normal app + admin polling.
+// Auth routes are already covered by the stricter limiter above, so skip them
+// here to avoid double-counting and wasting rate-limiter storage slots.
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1500,
   message: { error: 'Too many requests, please try again later.' },
+  skip: (req) => req.path.startsWith('/api/auth'),
 }));
 
 // Serve uploaded files with cache headers

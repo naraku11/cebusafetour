@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const logger = require('../utils/logger');
+const socket = require('../services/socketService');
 const { sendPushToAll } = require('../services/fcmService');
 const { suggestByCoords, autocompletePlaces, getPlaceInfo } = require('../services/aiService');
 const { fetchPlacePhotos } = require('../services/placesService');
@@ -118,6 +119,7 @@ exports.create = async (req, res, next) => {
       }).catch(err => logger.warn('Push for new attraction failed:', err.message));
     }
 
+    socket.emitToAll('attraction:new', { id, name: body.name, status: body.status || 'draft' });
     res.status(201).json({ attraction });
   } catch (err) { next(err); }
 };
@@ -164,6 +166,7 @@ exports.update = async (req, res, next) => {
     }
 
 
+    socket.emitToAll('attraction:updated', { id: req.params.id, safetyStatus: attraction.safetyStatus, status: attraction.status });
     res.json({ attraction });
   } catch (err) { next(err); }
 };
@@ -173,7 +176,7 @@ exports.remove = async (req, res, next) => {
     const existing = await db.findOne('SELECT id FROM attractions WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Attraction not found' });
     await db.run("UPDATE attractions SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
-
+    socket.emitToAll('attraction:deleted', { id: req.params.id });
     res.json({ message: 'Attraction archived' });
   } catch (err) { next(err); }
 };
@@ -183,7 +186,7 @@ exports.destroy = async (req, res, next) => {
     const existing = await db.findOne('SELECT id FROM attractions WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Attraction not found' });
     await db.run('DELETE FROM attractions WHERE id = ?', [req.params.id]);
-
+    socket.emitToAll('attraction:deleted', { id: req.params.id });
     res.json({ message: 'Attraction permanently deleted' });
   } catch (err) { next(err); }
 };

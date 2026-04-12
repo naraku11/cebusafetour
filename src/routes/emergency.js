@@ -13,5 +13,6 @@ router.get('/incidents/:id',      authenticate, requireRole('admin_super', 'admi
 router.patch('/incidents/:id',           authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.updateIncident);
 router.patch('/incidents/:id/archive',   authenticate, requireRole('admin_super'), ctrl.archiveIncident);
 router.patch('/incidents/:id/unarchive', authenticate, requireRole('admin_super'), ctrl.unarchiveIncident);
+router.delete('/incidents/:id',          authenticate, requireRole('admin_super'), ctrl.deleteIncident);
 
 module.exports = router;

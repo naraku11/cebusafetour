@@ -8,12 +8,18 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    /* Safe-area top padding for notched devices when viewport-fit=cover */
+    padding-top: env(safe-area-inset-top);
   }
 
   body {
     @apply antialiased bg-gray-50 text-gray-900 transition-colors duration-200;
     @apply dark:bg-gray-950 dark:text-gray-100;
     -webkit-tap-highlight-color: transparent;
+    /* Prevent horizontal scroll bounce on mobile */
+    overflow-x: hidden;
+    /* Prevent scroll chaining to parent (affects Chrome Android pull-to-refresh) */
+    overscroll-behavior-y: none;
   }
 
   /* ── Accessible focus ring ───────────────────────────────────────────── */
@@ -31,6 +37,24 @@
   /* Minimum touch target sizes (WCAG 2.5.5) */
   button, a, select, [role="button"] {
     min-height: 36px;
+  }
+
+  /* ── iOS auto-zoom fix ───────────────────────────────────────────────── */
+  /* Safari zooms in when an input has font-size < 16px. This prevents that
+     while keeping text-sm on larger screens. */
+  @media screen and (max-width: 640px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="search"],
+    input[type="date"],
+    input[type="datetime-local"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
   }
 
   /* ── Scrollbar styling ───────────────────────────────────────────────── */

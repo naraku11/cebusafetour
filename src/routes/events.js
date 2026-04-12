@@ -11,7 +11,7 @@ const clients = new Set();
 //   25 WebSocket (WS_MAX_CONNECTIONS) + 15 SSE = 40 total connection slots.
 // SSE connections are open HTTP responses, not OS processes, but they consume
 // file descriptors and memory — cap them to protect the event loop.
-const MAX_SSE = parseInt(process.env.SSE_MAX_CONNECTIONS || '15', 10);
+const MAX_SSE = parseInt(process.env.SSE_MAX_CONNECTIONS || '20', 10);
 
 const ADMIN_ROLES = ['admin_super', 'admin_content', 'admin_emergency'];
 

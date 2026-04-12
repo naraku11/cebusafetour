@@ -9,14 +9,41 @@ const _apiBase = import.meta.env.VITE_API_URL
   : window.location.origin.replace(':5173', ':5000') + '/api';
 const SSE_URL = `${_apiBase}/events`;
 
-// Map each server event to the React Query cache keys it should invalidate
+/**
+ * Map every server-emitted event to the React Query cache keys it invalidates.
+ *
+ * Events are emitted by socketService.js (WebSocket) AND relayed to SSE
+ * clients via the lazy-required emitSSE() in socketService.js.
+ */
 const EVENT_KEYS = {
+  // ── Incidents ─────────────────────────────────────────────────────────
   'incident:new':      ['incidents', 'reports-summary'],
   'incident:updated':  ['incidents'],
-  'incident:archived': ['incidents', 'reports-summary'],
+  'incident:archived': ['incidents', 'incidents-archived', 'reports-summary'],
+  'incident:deleted':  ['incidents', 'incidents-archived', 'reports-summary'],
+
+  // ── Advisories ────────────────────────────────────────────────────────
   'advisory:new':      ['advisories', 'reports-summary'],
   'advisory:updated':  ['advisories', 'reports-summary'],
+
+  // ── Notifications ─────────────────────────────────────────────────────
   'notification:new':  ['notifications'],
+
+  // ── Attractions ───────────────────────────────────────────────────────
+  'attraction:new':     ['attractions', 'reports-attractions'],
+  'attraction:updated': ['attractions', 'reports-attractions'],
+  'attraction:deleted': ['attractions', 'reports-attractions'],
+
+  // ── Reviews ───────────────────────────────────────────────────────────
+  'review:new':     ['reviews', 'attractions'],   // rating avg changes too
+  'review:deleted': ['reviews', 'attractions'],
+
+  // ── Users / Staff ─────────────────────────────────────────────────────
+  'user:updated':   ['users', 'reports-summary'],
+  'user:deleted':   ['users', 'reports-summary'],
+  'staff:created':  ['users'],
+  'staff:updated':  ['users'],
+  'staff:deleted':  ['users'],
 };
 
 /**
@@ -55,11 +82,10 @@ export function useRealtimeSync() {
     if (sseRef.current) return;
     const es = new EventSource(`${SSE_URL}?token=${encodeURIComponent(token)}`);
     sseRef.current = es;
-
     for (const [event, keys] of Object.entries(EVENT_KEYS)) {
       es.addEventListener(event, () => scheduleInvalidation(...keys));
     }
-    // EventSource reconnects automatically on error — no special handler needed
+    // EventSource reconnects automatically on error
   }, [token, scheduleInvalidation]);
 
   const closeSSE = useCallback(() => {
@@ -72,22 +98,23 @@ export function useRealtimeSync() {
 
     const s = connectSocket(token);
 
-    // Register event listeners
+    // Store named handler references so they can be removed on cleanup,
+    // preventing listener accumulation across reconnect cycles.
+    const handlers = new Map();
     for (const [event, keys] of Object.entries(EVENT_KEYS)) {
-      s.on(event, () => scheduleInvalidation(...keys));
+      const handler = () => scheduleInvalidation(...keys);
+      handlers.set(event, handler);
+      s.on(event, handler);
     }
 
-    // WebSocket connected — SSE no longer needed
-    s.on('connect', () => {
-      wsFailCount.current = 0;
-      closeSSE();
-    });
-
-    // WebSocket failed — open SSE after 3 consecutive failures
-    s.on('connect_error', () => {
+    const onConnect = () => { wsFailCount.current = 0; closeSSE(); };
+    const onConnectError = () => {
       wsFailCount.current += 1;
       if (wsFailCount.current >= 3) openSSE();
-    });
+    };
+
+    s.on('connect', onConnect);
+    s.on('connect_error', onConnectError);
 
     // Tab became visible — reconnect socket if it dropped while hidden
     const handleVisibility = () => {
@@ -98,6 +125,12 @@ export function useRealtimeSync() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
+      // Remove all named handlers before disconnecting to prevent accumulation
+      for (const [event, handler] of handlers) {
+        s.off(event, handler);
+      }
+      s.off('connect', onConnect);
+      s.off('connect_error', onConnectError);
       disconnectSocket();
       closeSSE();
     };

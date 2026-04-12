@@ -47,6 +47,13 @@ class AuthNotifier extends Notifier<AuthState> {
     _init().then((_) {
       ApiService.onSuspended = _handleSuspended;
     });
+
+    // Clear the callback when the provider is disposed (e.g. during logout)
+    // so a stale closure cannot update state after the notifier is gone.
+    ref.onDispose(() {
+      ApiService.onSuspended = null;
+    });
+
     return const AuthState();
   }
 

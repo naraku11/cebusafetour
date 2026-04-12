@@ -9,7 +9,7 @@ const ADMIN_ROLES = ['admin_super', 'admin_content', 'admin_emergency'];
 // Max concurrent WebSocket connections — keeps TCP socket count predictable on Hostinger.
 // Admin portal (few tabs) + mobile tourists online at once.  Reject new connections
 // beyond this to protect the process budget.
-const MAX_CONNECTIONS = parseInt(process.env.WS_MAX_CONNECTIONS || '25', 10);
+const MAX_CONNECTIONS = parseInt(process.env.WS_MAX_CONNECTIONS || '60', 10);
 
 function init(httpServer) {
   const corsAllowed = (process.env.CORS_ORIGINS || 'http://localhost:5173')

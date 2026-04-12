@@ -82,6 +82,9 @@ export default function Emergency() {
     queryFn: () =>
       api.get('/emergency/incidents/archived', { params: { limit: 200 } }).then(r => r.data),
     enabled: viewMode === 'archive',
+    staleTime: 30_000,
+    // Always re-fetch when the archive tab is opened so newly-archived rows appear immediately
+    refetchOnMount: 'always',
   });
 
   const updateMutation = useMutation({
@@ -114,6 +117,17 @@ export default function Emergency() {
       toast.success('Incident restored to Resolved');
     },
     onError: () => toast.error('Failed to unarchive incident'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/emergency/incidents/${id}`),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['incidents'] });
+      await qc.invalidateQueries({ queryKey: ['incidents-archived'] });
+      toast.success('Incident permanently deleted');
+      setSelected(null);
+    },
+    onError: () => toast.error('Failed to delete incident'),
   });
 
   const requestArchive = (incident) => {
@@ -240,6 +254,7 @@ export default function Emergency() {
           onClose={() => setSelected(null)}
           onSave={body => updateMutation.mutate({ id: selected.id, ...body })}
           onArchive={() => requestArchive(selected)}
+          onDelete={() => deleteMutation.mutate(selected.id)}
           saving={updateMutation.isPending}
           canArchive={isSuperAdmin}
         />
@@ -404,12 +419,13 @@ function IncidentCard({ incident: inc, tabCfg, compact = false, canArchive = fal
 
 /* ── Incident modal ────────────────────────────────────────────────────────── */
 
-function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, saving, canArchive = false }) {
-  const [status,         setStatus]         = useState(inc.status);
-  const [assignedTo,     setAssignedTo]     = useState(inc.assignedTo || '');
-  const [responderNotes, setResponderNotes] = useState(inc.responderNotes || '');
-  const [editUnlocked,   setEditUnlocked]   = useState(false);
-  const [showUnlock,     setShowUnlock]     = useState(false);
+function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, onDelete, saving, canArchive = false }) {
+  const [status,            setStatus]            = useState(inc.status);
+  const [assignedTo,        setAssignedTo]        = useState(inc.assignedTo || '');
+  const [responderNotes,    setResponderNotes]    = useState(inc.responderNotes || '');
+  const [editUnlocked,      setEditUnlocked]      = useState(false);
+  const [showUnlock,        setShowUnlock]        = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isLocked = inc.status === 'resolved' && !editUnlocked;
 
@@ -420,8 +436,8 @@ function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 max-h-[92dvh] overflow-y-auto overscroll-contain">
         {/* Header */}
         <div className="flex items-center gap-3">
           <span className="text-4xl">{TYPE_ICONS[inc.type] ?? '⚠️'}</span>
@@ -541,28 +557,67 @@ function IncidentModal({ incident: inc, adminEmail, onClose, onSave, onArchive, 
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-3 pt-2">
-          {canArchive ? (
-            <button
-              onClick={onArchive}
-              className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              {inc.status === 'resolved'
-                ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-              }
-              {inc.status === 'resolved' ? 'Archive (Locked)' : 'Archive'}
-            </button>
-          ) : <span />}
-          <div className="flex gap-3">
-            <button onClick={onClose} className="btn-secondary">Cancel</button>
-            <button
-              onClick={() => onSave({ status, assignedTo, responderNotes })}
-              disabled={saving || isLocked}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Saving…' : 'Update Incident'}
-            </button>
+        <div className="pt-2 border-t border-gray-100 space-y-3">
+          {/* Delete confirmation inline banner */}
+          {showDeleteConfirm && (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <p className="text-sm text-red-700 flex-1">Permanently delete this incident? This cannot be undone.</p>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 shrink-0"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onDelete}
+                className="text-xs font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: destructive actions (super admin only) */}
+            {canArchive ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onArchive}
+                  className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors border border-amber-200"
+                >
+                  {inc.status === 'resolved'
+                    ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                  }
+                  {inc.status === 'resolved' ? 'Archive' : 'Archive'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={showDeleteConfirm}
+                  className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors border border-red-200 disabled:opacity-40"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            ) : <span />}
+
+            {/* Right: save / cancel */}
+            <div className="flex gap-3">
+              <button onClick={onClose} className="btn-secondary">Cancel</button>
+              <button
+                onClick={() => onSave({ status, assignedTo, responderNotes })}
+                disabled={saving || isLocked}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving…' : 'Update'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

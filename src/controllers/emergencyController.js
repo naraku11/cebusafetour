@@ -178,6 +178,16 @@ exports.unarchiveIncident = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.deleteIncident = async (req, res, next) => {
+  try {
+    const existing = await db.findOne('SELECT id FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Incident not found' });
+    await db.run('DELETE FROM incidents WHERE id = ?', [req.params.id]);
+    socket.emitToAdmins('incident:deleted', { id: req.params.id });
+    res.json({ message: 'Incident permanently deleted' });
+  } catch (err) { next(err); }
+};
+
 exports.listArchivedIncidents = async (req, res, next) => {
   try {
     const { type, page = 1, limit = 20 } = req.query;

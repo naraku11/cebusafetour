@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/advisory_provider.dart';
+import 'providers/realtime_provider.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
 import 'utils/theme.dart';
@@ -69,6 +70,8 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+    // Keep the Socket.IO connection alive for the entire authenticated session.
+    ref.watch(realtimeProvider);
 
     // Wire navigator so FCM tap-to-open works from background/terminated state
     NotificationService.setNavigator((route) => router.push(route));

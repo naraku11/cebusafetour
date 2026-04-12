@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -17,16 +17,25 @@ export default function Notifications() {
   const [userSearch, setUserSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, title } | null
+  const searchTimer = useRef(null);
+  const [debouncedUserSearch, setDebouncedUserSearch] = useState('');
+
+  // Debounce userSearch so the query doesn't fire on every keystroke
+  useEffect(() => {
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedUserSearch(userSearch), 300);
+    return () => clearTimeout(searchTimer.current);
+  }, [userSearch]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.get('/notifications', { params: { limit: 50 } }).then(r => r.data),
   });
 
-  // Fetch users for specific target — re-fetches as search changes
+  // Fetch users for specific target — debounced to avoid per-keystroke requests
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users-search', userSearch],
-    queryFn: () => api.get('/users', { params: { search: userSearch || undefined, limit: 20 } }).then(r => r.data),
+    queryKey: ['users-search', debouncedUserSearch],
+    queryFn: () => api.get('/users', { params: { search: debouncedUserSearch || undefined, limit: 20 } }).then(r => r.data),
     enabled: showCompose && form.target.type === 'specific' && !selectedUser,
     staleTime: 30000,
   });

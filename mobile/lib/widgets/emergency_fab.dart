@@ -10,8 +10,7 @@ class EmergencyFab extends StatelessWidget {
       onPressed: () => context.push('/emergency'),
       backgroundColor: const Color(0xFFEF4444),
       foregroundColor: Colors.white,
-      icon: const Icon(Icons.sos_rounded),
-      label: const Text('SOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      label: const Text('SOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
       elevation: 6,
     );
   }

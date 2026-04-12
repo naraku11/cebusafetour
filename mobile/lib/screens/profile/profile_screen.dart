@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
@@ -152,7 +153,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           final ok = await ref.read(authProvider.notifier).updateProfile(emergencyContacts: contacts);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(ok ? l.saveContacts : l.failedToUpdate),
+              content: Text(ok ? l.profileUpdated : l.failedToUpdate),
               backgroundColor: ok ? Colors.green : Colors.red,
             ));
           }
@@ -338,11 +339,15 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
 
-  void _add() {
+  /// Opens an add/edit form. Pass [editIndex] to pre-fill and update an existing contact.
+  void _showContactForm({int? editIndex}) {
     final l = AppLocalizations.of(context);
-    final nameCtrl  = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final relCtrl   = TextEditingController();
+    final existing = editIndex != null ? _contacts[editIndex] : null;
+    final nameCtrl  = TextEditingController(text: existing?['name']         as String? ?? '');
+    final phoneCtrl = TextEditingController(text: existing?['phone']        as String? ?? '');
+    final relCtrl   = TextEditingController(text: existing?['relationship'] as String? ?? '');
+    final isEdit = editIndex != null;
+    bool hasError = false;
 
     showModalBottomSheet(
       context: context,
@@ -351,60 +356,106 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          // drag handle
-          Center(
-            child: Container(
-              width: 40, height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // drag handle
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              ),
             ),
-          ),
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: _redLight, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.person_add_alt_1_rounded, color: _red, size: 22),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: _redLight, borderRadius: BorderRadius.circular(10)),
+                child: Icon(
+                  isEdit ? Icons.edit_outlined : Icons.person_add_alt_1_rounded,
+                  color: _red, size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                isEdit ? 'Edit Contact' : l.addEmergencyContact,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            _styledField(controller: nameCtrl, label: l.fullName, icon: Icons.person_outline),
+            const SizedBox(height: 12),
+            _styledField(controller: phoneCtrl, label: l.phoneNumber,
+                icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+            const SizedBox(height: 12),
+            _styledField(
+              controller: relCtrl,
+              label: '${l.relationship} (optional)',
+              icon: Icons.favorite_border_rounded,
             ),
-            const SizedBox(width: 12),
-            Text(l.addEmergencyContact,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            if (hasError) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Name and phone number are required.',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ],
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: Icon(isEdit ? Icons.check_rounded : Icons.add, size: 20),
+              label: Text(
+                isEdit ? 'Save Changes' : l.done,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+              onPressed: () {
+                final name  = nameCtrl.text.trim();
+                final phone = phoneCtrl.text.trim();
+                if (name.isEmpty || phone.isEmpty) {
+                  setModal(() => hasError = true);
+                  return;
+                }
+                setState(() {
+                  final contact = {
+                    'name': name,
+                    'phone': phone,
+                    'relationship': relCtrl.text.trim(),
+                  };
+                  if (isEdit) {
+                    _contacts[editIndex] = contact;
+                  } else {
+                    _contacts.add(contact);
+                  }
+                });
+                Navigator.pop(ctx);
+              },
+            ),
           ]),
-          const SizedBox(height: 20),
-          _styledField(controller: nameCtrl, label: l.fullName, icon: Icons.person_outline),
-          const SizedBox(height: 12),
-          _styledField(controller: phoneCtrl, label: l.phoneNumber,
-              icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
-          const SizedBox(height: 12),
-          _styledField(controller: relCtrl, label: l.relationship,
-              icon: Icons.favorite_border_rounded),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            icon: const Icon(Icons.add, size: 20),
-            label: Text(l.done, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-            onPressed: () {
-              if (nameCtrl.text.trim().isNotEmpty && phoneCtrl.text.trim().isNotEmpty) {
-                setState(() => _contacts.add({
-                  'name': nameCtrl.text.trim(),
-                  'phone': phoneCtrl.text.trim(),
-                  'relationship': relCtrl.text.trim(),
-                }));
-              }
-              Navigator.pop(ctx);
-            },
-          ),
-        ]),
+        ),
       ),
     );
   }
+
+  Future<void> _call(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Widget _actionBtn(IconData icon, Color color, Color bg, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, size: 18, color: color),
+        ),
+      );
 
   Widget _styledField({
     required TextEditingController controller,
@@ -474,7 +525,7 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
               ]),
             ),
             TextButton.icon(
-              onPressed: _add,
+              onPressed: () => _showContactForm(),
               icon: const Icon(Icons.add, size: 18, color: _red),
               label: const Text('Add', style: TextStyle(color: _red, fontWeight: FontWeight.w600)),
               style: TextButton.styleFrom(
@@ -585,18 +636,29 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
                               ),
                             ]),
                           ),
-                          // Delete
-                          GestureDetector(
-                            onTap: () => setState(() => _contacts.removeAt(i)),
-                            child: Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.delete_outline_rounded, size: 18, color: _red),
+                          // Actions: call · edit · delete
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            _actionBtn(
+                              Icons.phone_rounded,
+                              Colors.green.shade700,
+                              Colors.green.shade50,
+                              () => _call(phone),
                             ),
-                          ),
+                            const SizedBox(width: 6),
+                            _actionBtn(
+                              Icons.edit_outlined,
+                              const Color(0xFF0C4A6E),
+                              const Color(0xFFE0F2FE),
+                              () => _showContactForm(editIndex: i),
+                            ),
+                            const SizedBox(width: 6),
+                            _actionBtn(
+                              Icons.delete_outline_rounded,
+                              _red,
+                              Colors.red.shade50,
+                              () => setState(() => _contacts.removeAt(i)),
+                            ),
+                          ]),
                         ]),
                       ),
                     );
@@ -619,7 +681,7 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              onPressed: (_saving || _contacts.isEmpty) ? null : () async {
+              onPressed: _saving ? null : () async {
                 setState(() => _saving = true);
                 await widget.onSave(_contacts);
                 if (context.mounted) Navigator.pop(context);

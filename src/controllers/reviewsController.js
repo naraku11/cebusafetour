@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const cache = require('../utils/cache');
+const socket = require('../services/socketService');
 
 // Map a flat JOIN row (reviews + users) to a nested review object
 const mapWithUser = row => ({
@@ -79,6 +80,7 @@ exports.upsert = async (req, res, next) => {
 
     await recalcAttractionStats(attractionId);
     cache.invalidatePrefix('attractions:');
+    socket.emitToAll('review:new', { attractionId });
     res.json({ review: mapWithUser(row) });
   } catch (err) { next(err); }
 };
@@ -98,6 +100,7 @@ exports.deleteOwn = async (req, res, next) => {
     await db.run('DELETE FROM reviews WHERE attraction_id = ? AND user_id = ?', [attractionId, userId]);
     await recalcAttractionStats(attractionId);
     cache.invalidatePrefix('attractions:');
+    socket.emitToAll('review:deleted', { attractionId });
     res.json({ message: 'Review deleted' });
   } catch (err) { next(err); }
 };
@@ -152,6 +155,7 @@ exports.adminDelete = async (req, res, next) => {
     await db.run('DELETE FROM reviews WHERE id = ?', [req.params.id]);
     await recalcAttractionStats(review.attractionId);
     cache.invalidatePrefix('attractions:');
+    socket.emitToAll('review:deleted', { attractionId: review.attractionId });
     res.json({ message: 'Review deleted' });
   } catch (err) { next(err); }
 };
