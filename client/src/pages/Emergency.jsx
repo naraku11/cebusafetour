@@ -143,13 +143,18 @@ export default function Emergency() {
     }
   };
 
+  const [typeFilter, setTypeFilter] = useState('');
+
   const allIncidents = data?.incidents || [];
+  const filteredIncidents = typeFilter
+    ? allIncidents.filter(i => i.type === typeFilter)
+    : allIncidents;
   const counts = {
-    new:         allIncidents.filter(i => i.status === 'new').length,
-    in_progress: allIncidents.filter(i => i.status === 'in_progress').length,
-    resolved:    allIncidents.filter(i => i.status === 'resolved').length,
+    new:         filteredIncidents.filter(i => i.status === 'new').length,
+    in_progress: filteredIncidents.filter(i => i.status === 'in_progress').length,
+    resolved:    filteredIncidents.filter(i => i.status === 'resolved').length,
   };
-  const byStatus = tab => allIncidents.filter(i => i.status === tab);
+  const byStatus = tab => filteredIncidents.filter(i => i.status === tab);
   const activeTabCfg = TABS.find(t => t.id === activeTab);
 
   return (
@@ -163,7 +168,22 @@ export default function Emergency() {
             {dataUpdatedAt ? ` · Last updated ${formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true })}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Type filter */}
+          {viewMode !== 'archive' && (
+            <select
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              className="input text-sm py-1.5 w-auto"
+            >
+              <option value="">All Types</option>
+              <option value="medical">🏥 Medical</option>
+              <option value="fire">🔥 Fire</option>
+              <option value="crime">🚔 Crime</option>
+              <option value="natural_disaster">🌊 Natural Disaster</option>
+              <option value="lost_person">🆘 Lost Person</option>
+            </select>
+          )}
           {/* View toggle */}
           <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
             {[
@@ -752,7 +772,7 @@ function ArchiveView({ incidents, loading, onUnarchive, onRefresh }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-gray-700">📦 Archived Incidents</h3>
-          <p className="text-sm text-gray-400">{incidents.length} archived · restored incidents return to Resolved</p>
+          <p className="text-sm text-gray-400">{incidents.length} archived · restoring returns each incident to its original status</p>
         </div>
         <button onClick={onRefresh} className="btn-secondary text-sm py-1.5">Refresh</button>
       </div>
@@ -782,13 +802,13 @@ function ArchiveView({ incidents, loading, onUnarchive, onRefresh }) {
                 </div>
                 <button
                   onClick={() => onUnarchive(inc.id)}
-                  title="Restore to Resolved"
+                  title={`Restore to ${(inc.preArchiveStatus || 'resolved').replace('_', ' ')}`}
                   className="shrink-0 flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 hover:bg-primary-50 px-2 py-1 rounded-lg transition-colors border border-primary-200"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                   </svg>
-                  Restore
+                  Restore to {(inc.preArchiveStatus || 'resolved').replace('_', ' ')}
                 </button>
               </div>
               {inc.description && (

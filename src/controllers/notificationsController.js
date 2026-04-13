@@ -37,14 +37,15 @@ exports.send = async (req, res, next) => {
 
 exports.list = async (req, res, next) => {
   try {
-    const { status, type, page = 1, limit = 20 } = req.query;
+    const { status, type, search, page = 1, limit = 20 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
     const conditions = [];
     const params     = [];
-    if (status) { conditions.push('status = ?'); params.push(status); }
-    if (type)   { conditions.push('type = ?');   params.push(type); }
+    if (status) { conditions.push('status = ?');                  params.push(status); }
+    if (type)   { conditions.push('type = ?');                    params.push(type); }
+    if (search) { conditions.push('title LIKE ?');                params.push(`%${search}%`); }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

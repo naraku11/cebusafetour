@@ -210,9 +210,18 @@ export default function Attractions() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <input value={search} onChange={e => setSearch(e.target.value)}
-          className="input flex-1 min-w-[140px] max-w-xs" placeholder="Search..." />
+          className="input flex-1 min-w-[140px] max-w-xs" placeholder="Search name…" />
+        <select value={filter.category ?? ''}
+          onChange={e => setFilter(f => ({ ...f, category: e.target.value }))}
+          className="input w-auto">
+          <option value="">All Categories</option>
+          {CATEGORIES.map(c => <option key={c} value={c} className="capitalize">{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+        </select>
+        <input value={filter.district ?? ''}
+          onChange={e => setFilter(f => ({ ...f, district: e.target.value }))}
+          className="input w-auto max-w-[140px]" placeholder="District…" />
         <select value={filter.safetyStatus}
           onChange={e => setFilter(f => ({ ...f, safetyStatus: e.target.value }))}
           className="input w-auto">
@@ -224,10 +233,18 @@ export default function Attractions() {
         <select value={filter.status}
           onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
           className="input w-auto">
+          <option value="">All Status</option>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
           <option value="archived">Archived</option>
         </select>
+        {(search || filter.category || filter.district || filter.safetyStatus || (filter.status && filter.status !== 'published')) && (
+          <button
+            onClick={() => { setSearch(''); setFilter({ safetyStatus: '', status: 'published', category: '', district: '' }); }}
+            className="text-sm text-gray-500 hover:text-gray-800 underline whitespace-nowrap">
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Table */}

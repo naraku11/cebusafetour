@@ -17,8 +17,12 @@ export default function Notifications() {
   const [userSearch, setUserSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, title } | null
+  const [typeFilter,   setTypeFilter]   = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [search,       setSearch]       = useState('');
   const searchTimer = useRef(null);
   const [debouncedUserSearch, setDebouncedUserSearch] = useState('');
+  const [debouncedSearch,     setDebouncedSearch]     = useState('');
 
   // Debounce userSearch so the query doesn't fire on every keystroke
   useEffect(() => {
@@ -27,9 +31,24 @@ export default function Notifications() {
     return () => clearTimeout(searchTimer.current);
   }, [userSearch]);
 
+  // Debounce notification search
+  const searchTimer2 = useRef(null);
+  useEffect(() => {
+    clearTimeout(searchTimer2.current);
+    searchTimer2.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(searchTimer2.current);
+  }, [search]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => api.get('/notifications', { params: { limit: 50 } }).then(r => r.data),
+    queryKey: ['notifications', typeFilter, statusFilter, debouncedSearch],
+    queryFn: () => api.get('/notifications', {
+      params: {
+        type:   typeFilter       || undefined,
+        status: statusFilter     || undefined,
+        search: debouncedSearch  || undefined,
+        limit: 50,
+      },
+    }).then(r => r.data),
   });
 
   // Fetch users for specific target — debounced to avoid per-keystroke requests
@@ -90,6 +109,37 @@ export default function Notifications() {
         <button onClick={() => setShowCompose(true)} className="btn-primary flex items-center gap-2">
           <PaperAirplaneIcon className="w-4 h-4" /> Compose
         </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="input max-w-xs"
+          placeholder="Search title…"
+        />
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input w-auto">
+          <option value="">All Types</option>
+          <option value="announcement">Announcement</option>
+          <option value="emergency">Emergency</option>
+          <option value="safety_tip">Safety Tip</option>
+          <option value="weather_alert">Weather Alert</option>
+        </select>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input w-auto">
+          <option value="">All Status</option>
+          <option value="sent">Sent</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+        </select>
+        {(search || typeFilter || statusFilter) && (
+          <button
+            onClick={() => { setSearch(''); setTypeFilter(''); setStatusFilter(''); }}
+            className="text-sm text-gray-500 hover:text-gray-800 underline">
+            Clear
+          </button>
+        )}
+        <span className="ml-auto text-sm text-gray-500">{data?.total ?? 0} total</span>
       </div>
 
       {/* Notification log */}

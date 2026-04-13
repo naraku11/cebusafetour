@@ -10,7 +10,8 @@ const mapWithReporter = row => ({
   latitude: row.latitude, longitude: row.longitude,
   nearestLandmark: row.nearestLandmark,
   reportedBy: row.reportedBy, reporterContact: row.reporterContact,
-  status: row.status, assignedTo: row.assignedTo, responderNotes: row.responderNotes,
+  status: row.status, preArchiveStatus: row.preArchiveStatus,
+  assignedTo: row.assignedTo, responderNotes: row.responderNotes,
   attachments: row.attachments, resolvedAt: row.resolvedAt,
   createdAt: row.createdAt, updatedAt: row.updatedAt,
   reporter: row.rId ? { id: row.rId, name: row.rName } : null,
@@ -158,9 +159,12 @@ exports.updateIncident = async (req, res, next) => {
 
 exports.archiveIncident = async (req, res, next) => {
   try {
-    const existing = await db.findOne('SELECT id FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
+    const existing = await db.findOne('SELECT id, status FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
-    await db.run("UPDATE incidents SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    await db.run(
+      "UPDATE incidents SET pre_archive_status = status, status = 'archived', updated_at = ? WHERE id = ?",
+      [new Date(), req.params.id]
+    );
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAdmins('incident:archived', { id: req.params.id });
     res.json({ incident, message: 'Incident archived' });
@@ -169,9 +173,17 @@ exports.archiveIncident = async (req, res, next) => {
 
 exports.unarchiveIncident = async (req, res, next) => {
   try {
-    const existing = await db.findOne('SELECT id FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
+    const existing = await db.findOne(
+      'SELECT id, pre_archive_status FROM incidents WHERE id = ? LIMIT 1',
+      [req.params.id]
+    );
     if (!existing) return res.status(404).json({ error: 'Incident not found' });
-    await db.run("UPDATE incidents SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
+    // Restore to the status it had before archiving; fall back to 'resolved' for older rows
+    const restoreStatus = existing.preArchiveStatus || 'resolved';
+    await db.run(
+      'UPDATE incidents SET status = ?, pre_archive_status = NULL, updated_at = ? WHERE id = ?',
+      [restoreStatus, new Date(), req.params.id]
+    );
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAdmins('incident:updated', { incident });
     res.json({ incident, message: 'Incident unarchived' });

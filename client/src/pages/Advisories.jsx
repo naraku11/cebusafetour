@@ -19,8 +19,10 @@ export default function Advisories() {
   const adminEmail   = useAuthStore(s => s.user?.email);
   const isSuperAdmin = useAuthStore(s => s.user?.role) === 'admin_super';
 
-  const [statusFilter, setStatusFilter] = useState('active');
-  const [showModal,    setShowModal]    = useState(false);
+  const [statusFilter,   setStatusFilter]   = useState('active');
+  const [severityFilter, setSeverityFilter] = useState('');
+  const [sourceFilter,   setSourceFilter]   = useState('');
+  const [showModal,      setShowModal]      = useState(false);
   const [editing,      setEditing]      = useState(null);
   const [form,         setForm]         = useState(defaultForm);
   const [aiArea,       setAiArea]       = useState('');
@@ -32,9 +34,16 @@ export default function Advisories() {
   const [confirmArchive, setConfirmArchive] = useState(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['advisories', statusFilter],
-    queryFn: () => api.get('/advisories', { params: { status: statusFilter, limit: 50 } }).then(r => r.data),
+    queryKey: ['advisories', statusFilter, severityFilter],
+    queryFn: () => api.get('/advisories', {
+      params: { status: statusFilter, severity: severityFilter || undefined, limit: 50 },
+    }).then(r => r.data),
   });
+
+  // Source filter is client-side (no backend param)
+  const visibleAdvisories = sourceFilter
+    ? (data?.advisories ?? []).filter(a => a.source === sourceFilter)
+    : (data?.advisories ?? []);
 
   const { data: attractionsData } = useQuery({
     queryKey: ['attractions', { status: 'published', limit: 200 }],
@@ -158,19 +167,71 @@ export default function Advisories() {
         </button>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2">
-        {['active', 'resolved', ...(isSuperAdmin ? ['archived'] : [])].map(s => (
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Status tabs */}
+        <div className="flex gap-2">
+          {['active', 'resolved', ...(isSuperAdmin ? ['archived'] : [])].map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
+                statusFilter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {s === 'archived' ? '📦 ' : ''}{s}
+            </button>
+          ))}
+        </div>
+
+        <div className="h-5 w-px bg-gray-200 hidden sm:block" />
+
+        {/* Severity */}
+        <div className="flex gap-1.5 items-center">
+          <span className="text-xs text-gray-500 font-medium">Severity:</span>
+          {['', 'critical', 'warning', 'advisory'].map(sev => (
+            <button
+              key={sev}
+              onClick={() => setSeverityFilter(sev)}
+              className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${
+                severityFilter === sev
+                  ? sev === 'critical' ? 'bg-red-600 text-white'
+                  : sev === 'warning'  ? 'bg-yellow-500 text-white'
+                  : sev === 'advisory' ? 'bg-green-600 text-white'
+                  : 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {sev || 'All'}
+            </button>
+          ))}
+        </div>
+
+        {/* Source */}
+        <select
+          value={sourceFilter}
+          onChange={e => setSourceFilter(e.target.value)}
+          className="input w-auto text-sm py-1"
+        >
+          <option value="">All Sources</option>
+          <option value="pagasa">PAGASA</option>
+          <option value="ndrrmc">NDRRMC</option>
+          <option value="lgu">LGU</option>
+          <option value="cdrrmo">CDRRMO</option>
+          <option value="admin">Admin</option>
+        </select>
+
+        {(severityFilter || sourceFilter) && (
           <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
-              statusFilter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {s === 'archived' ? '📦 ' : ''}{s}
+            onClick={() => { setSeverityFilter(''); setSourceFilter(''); }}
+            className="text-sm text-gray-500 hover:text-gray-800 underline">
+            Clear
           </button>
-        ))}
+        )}
+
+        <span className="ml-auto text-sm text-gray-500">
+          {visibleAdvisories.length} advisory{visibleAdvisories.length !== 1 ? 'ies' : 'y'}
+        </span>
       </div>
 
       {/* Advisory Cards */}
@@ -178,7 +239,10 @@ export default function Advisories() {
         <p className="text-gray-400">Loading...</p>
       ) : (
         <div className="space-y-4">
-          {data?.advisories?.map(advisory => (
+          {visibleAdvisories.length === 0 && !isLoading && (
+            <p className="text-gray-400 text-center py-8">No advisories match the current filters.</p>
+          )}
+          {visibleAdvisories.map(advisory => (
             <div key={advisory.id} className={`card ${advisory.status === 'archived' ? 'opacity-75' : ''}`}>
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                 <div className="flex-1">
