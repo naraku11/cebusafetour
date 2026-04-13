@@ -5,7 +5,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { SparklesIcon, CheckBadgeIcon, XCircleIcon } from '@heroicons/react/24/solid';
-import { UserGroupIcon, ShieldCheckIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { UserGroupIcon, ShieldCheckIcon, PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
 // ── shared helpers ─────────────────────────────────────────────────────────────
 const STATUS_STYLES = {
@@ -225,6 +225,72 @@ const ROLE_TABS = [
   { key: 'admin_emergency', label: 'Emergency Officers',  color: 'text-red-600',     activeCls: 'border-red-600 text-red-600',         badge: 'bg-red-100 text-red-700'  },
 ];
 
+// Mobile collapsible row for staff
+function StaffMobileRow({ u, currentUser, onEdit, onConfirm }) {
+  const [open, setOpen] = useState(false);
+  const roleInfo = ROLE_STYLES[u.role];
+  const isSelf   = u.id === currentUser?.id;
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+      >
+        <Avatar user={u} />
+        <span className="flex-1 font-medium text-sm leading-snug break-words min-w-0">
+          {u.name}{isSelf && <span className="ml-1 text-xs text-gray-400 font-normal">(you)</span>}
+        </span>
+        <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${roleInfo?.cls}`}>
+          {roleInfo?.label}
+        </span>
+        <ChevronDownIcon className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 space-y-3">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-3">
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Email</dt>
+              <dd className="font-medium break-all text-xs">{u.email}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Status</dt>
+              <dd><span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[u.status] ?? 'bg-gray-100 text-gray-500'}`}>{u.status}</span></dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Contact</dt>
+              <dd className="text-gray-600 text-xs">{u.contactNumber || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Joined</dt>
+              <dd className="text-gray-600 text-xs">{new Date(u.createdAt).toLocaleDateString()}</dd>
+            </div>
+          </dl>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => onEdit(u)}
+              className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg">Edit</button>
+            {u.status !== 'active' && (
+              <button onClick={() => onConfirm({ type: 'status', id: u.id, name: u.name, status: 'active' })}
+                className="text-xs px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg">Activate</button>
+            )}
+            {u.status === 'active' && (
+              <button onClick={() => onConfirm({ type: 'status', id: u.id, name: u.name, status: 'suspended' })}
+                className="text-xs px-3 py-1.5 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 rounded-lg">Suspend</button>
+            )}
+            {u.status !== 'archived' && (
+              <button onClick={() => onConfirm({ type: 'status', id: u.id, name: u.name, status: 'archived' })}
+                className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg">Archive</button>
+            )}
+            {!isSelf && (
+              <button onClick={() => onConfirm({ type: 'delete', id: u.id, name: u.name })}
+                className="text-xs px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 rounded-lg">Delete</button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StaffSection() {
   const qc = useQueryClient();
   const currentUser = useAuthStore(s => s.user);
@@ -371,9 +437,20 @@ function StaffSection() {
         </button>
       </div>
 
-      {/* Table */}
+      {/* List / Table */}
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: collapsible rows */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {isLoading ? (
+            <div className="px-4 py-12 text-center text-gray-400">Loading…</div>
+          ) : staff.length === 0 ? (
+            <div className="px-4 py-12 text-center text-gray-400">No staff accounts found</div>
+          ) : staff.map(u => (
+            <StaffMobileRow key={u.id} u={u} currentUser={currentUser} onEdit={setEditStaff} onConfirm={setConfirm} />
+          ))}
+        </div>
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-gray-500">
@@ -545,6 +622,82 @@ const TOURIST_TABS = [
 ];
 const PAGE_SIZE = 20;
 
+// Mobile collapsible row for tourists
+function TouristMobileRow({ u, isSuperAdmin, onSelect, onEdit, onConfirm }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+      >
+        <Avatar user={u} />
+        <span className="flex-1 font-medium text-sm leading-snug break-words min-w-0">{u.name}</span>
+        <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[u.status]}`}>
+          {u.status}
+        </span>
+        <ChevronDownIcon className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 space-y-3">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-3">
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Email</dt>
+              <dd className="font-medium break-all text-xs">{u.email}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Nationality</dt>
+              <dd className="text-gray-600 text-xs">{u.nationality || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Verified</dt>
+              <dd>
+                {u.isVerified
+                  ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Verified</span>
+                  : <span className="text-gray-400 text-xs">Unverified</span>}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Last Active</dt>
+              <dd className="text-gray-600 text-xs">
+                {u.lastActive ? formatDistanceToNow(new Date(u.lastActive), { addSuffix: true }) : 'Never'}
+              </dd>
+            </div>
+          </dl>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => onSelect(u.id)}
+              className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg">View</button>
+            {isSuperAdmin && (
+              <button onClick={() => onEdit(u)}
+                className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg">Edit</button>
+            )}
+            {!u.isVerified && (
+              <button onClick={() => onConfirm({ type: 'verify', id: u.id, name: u.name })}
+                className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg">Verify</button>
+            )}
+            {isSuperAdmin && (<>
+              {u.status !== 'active' && (
+                <button onClick={() => onConfirm({ type: 'status', id: u.id, name: u.name, status: 'active' })}
+                  className="text-xs px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg">Activate</button>
+              )}
+              {u.status === 'active' && (
+                <button onClick={() => onConfirm({ type: 'status', id: u.id, name: u.name, status: 'suspended' })}
+                  className="text-xs px-3 py-1.5 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 rounded-lg">Suspend</button>
+              )}
+              {u.status !== 'banned' && (
+                <button onClick={() => onConfirm({ type: 'status', id: u.id, name: u.name, status: 'banned' })}
+                  className="text-xs px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg">Ban</button>
+              )}
+              <button onClick={() => onConfirm({ type: 'delete', id: u.id, name: u.name })}
+                className="text-xs px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 rounded-lg">Delete</button>
+            </>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TouristSection() {
   const qc = useQueryClient();
   const isSuperAdmin = useAuthStore(s => s.user?.role === 'admin_super');
@@ -684,9 +837,27 @@ function TouristSection() {
         </span>
       </div>
 
-      {/* Table */}
+      {/* List / Table */}
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: collapsible rows */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {isLoading ? (
+            <div className="px-4 py-12 text-center text-gray-400">Loading…</div>
+          ) : !data?.users?.length ? (
+            <div className="px-4 py-12 text-center text-gray-400">No users found</div>
+          ) : data.users.map(u => (
+            <TouristMobileRow
+              key={u.id}
+              u={u}
+              isSuperAdmin={isSuperAdmin}
+              onSelect={setSelected}
+              onEdit={setEditUser}
+              onConfirm={setConfirm}
+            />
+          ))}
+        </div>
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-gray-500">

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { PlusIcon, PencilIcon, ArchiveBoxIcon, ArchiveBoxXMarkIcon, SparklesIcon, TrashIcon, PhotoIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, ArchiveBoxIcon, ArchiveBoxXMarkIcon, SparklesIcon, TrashIcon, PhotoIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import MapPicker from '../components/MapPicker';
 import { useAuthStore } from '../store/authStore';
 
@@ -13,6 +13,76 @@ const defaultForm = {
   name: '', category: 'beach', description: '', district: '', address: '',
   latitude: '', longitude: '', entranceFee: 0, safetyStatus: 'safe', status: 'published',
 };
+
+function AttractionMobileRow({ a, isSuperAdmin, onEdit, onArchive, onUnarchive, onRefreshPhotos, onDelete, refreshingId }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-2xl shrink-0">
+          {{ beach: '🏖️', mountain: '⛰️', heritage: '🏛️', museum: '🏛️', park: '🌳', waterfall: '💧', market: '🛒', church: '⛪', resort: '🏨', other: '📍' }[a.category] ?? '📍'}
+        </span>
+        <span className="flex-1 font-medium text-sm leading-snug break-words min-w-0">{a.name}</span>
+        <span className={`shrink-0 ${SAFETY_COLORS[a.safetyStatus]}`}>{a.safetyStatus}</span>
+        <ChevronDownIcon className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 space-y-3">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-3">
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Category</dt>
+              <dd className="capitalize text-gray-700">{a.category}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">District</dt>
+              <dd className="text-gray-700">{a.district || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Rating</dt>
+              <dd className="text-gray-700">{a.averageRating ? `⭐ ${a.averageRating}` : '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Visits</dt>
+              <dd className="text-gray-700">{a.totalVisits ?? 0}</dd>
+            </div>
+          </dl>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => onEdit(a)}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg">
+              <PencilIcon className="w-3.5 h-3.5" /> Edit
+            </button>
+            <button
+              onClick={() => onRefreshPhotos(a.id)}
+              disabled={refreshingId === a.id}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-lg disabled:opacity-40">
+              <PhotoIcon className="w-3.5 h-3.5" /> Photos
+            </button>
+            {a.status === 'archived' ? (
+              <button onClick={() => onUnarchive(a.id)}
+                className="flex items-center gap-1 text-xs px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg">
+                <ArchiveBoxXMarkIcon className="w-3.5 h-3.5" /> Restore
+              </button>
+            ) : (
+              <button onClick={() => onArchive(a.id)}
+                className="flex items-center gap-1 text-xs px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg">
+                <ArchiveBoxIcon className="w-3.5 h-3.5" /> Archive
+              </button>
+            )}
+            {isSuperAdmin && (
+              <button onClick={() => onDelete({ id: a.id, name: a.name })}
+                className="flex items-center gap-1 text-xs px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg">
+                <TrashIcon className="w-3.5 h-3.5" /> Delete
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Attractions() {
   const qc = useQueryClient();
@@ -247,18 +317,39 @@ export default function Attractions() {
         )}
       </div>
 
-      {/* Table */}
+      {/* List / Table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
+        {/* Mobile: collapsible rows */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {isLoading ? (
+            <div className="px-4 py-12 text-center text-gray-400">Loading...</div>
+          ) : !attractions.length ? (
+            <div className="px-4 py-12 text-center text-gray-400">No attractions found</div>
+          ) : attractions.map(a => (
+            <AttractionMobileRow
+              key={a.id}
+              a={a}
+              isSuperAdmin={isSuperAdmin}
+              onEdit={openModal}
+              onArchive={(id) => archiveMutation.mutate(id)}
+              onUnarchive={(id) => unarchiveMutation.mutate(id)}
+              onRefreshPhotos={(id) => refreshPhotosMutation.mutate(id)}
+              onDelete={setDeleteConfirm}
+              refreshingId={refreshPhotosMutation.isPending ? refreshPhotosMutation.variables : null}
+            />
+          ))}
+        </div>
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-gray-500">
                 <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Category</th>
-                <th className="px-4 py-3 font-medium hidden md:table-cell">District</th>
+                <th className="px-4 py-3 font-medium">Category</th>
+                <th className="px-4 py-3 font-medium">District</th>
                 <th className="px-4 py-3 font-medium">Safety</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Visits</th>
-                <th className="px-4 py-3 font-medium hidden md:table-cell">Rating</th>
+                <th className="px-4 py-3 font-medium">Visits</th>
+                <th className="px-4 py-3 font-medium">Rating</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
@@ -271,15 +362,14 @@ export default function Attractions() {
                 <tr key={a.id} className="hover:bg-gray-50/50">
                   <td className="px-4 py-3">
                     <div className="font-medium truncate max-w-[200px]">{a.name}</div>
-                    <div className="text-xs text-gray-400 sm:hidden capitalize">{a.category}</div>
                   </td>
-                  <td className="px-4 py-3 capitalize text-gray-600 hidden sm:table-cell">{a.category}</td>
-                  <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{a.district || '—'}</td>
+                  <td className="px-4 py-3 capitalize text-gray-600">{a.category}</td>
+                  <td className="px-4 py-3 text-gray-600">{a.district || '—'}</td>
                   <td className="px-4 py-3">
                     <span className={SAFETY_COLORS[a.safetyStatus]}>{a.safetyStatus}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{a.totalVisits}</td>
-                  <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{a.averageRating ? `${a.averageRating}` : '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{a.totalVisits}</td>
+                  <td className="px-4 py-3 text-gray-600">{a.averageRating ? `${a.averageRating}` : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <button onClick={() => openModal(a)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500" title="Edit">

@@ -2,13 +2,76 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { PaperAirplaneIcon, XMarkIcon, MagnifyingGlassIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, XMarkIcon, MagnifyingGlassIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
 const defaultForm = {
   title: '', body: '', type: 'announcement', priority: 'normal',
   target: { type: 'all' }, scheduledAt: '',
 };
+
+const STATUS_CLS = {
+  sent:    'bg-green-100 text-green-700',
+  failed:  'bg-red-100 text-red-700',
+  pending: 'bg-yellow-100 text-yellow-700',
+};
+
+const TARGET_LABEL = (target) => {
+  if (target?.type === 'nationality') return `🌍 ${target.value}`;
+  if (target?.type === 'specific')    return '👤 Specific User';
+  return '🌐 All Users';
+};
+
+function NotificationMobileRow({ n, onDelete }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="flex-1 font-medium text-sm leading-snug break-words min-w-0">{n.title}</span>
+        <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLS[n.status] ?? STATUS_CLS.pending}`}>
+          {n.status}
+        </span>
+        <ChevronDownIcon className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 space-y-3">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-3">
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Type</dt>
+              <dd className="capitalize text-gray-700">{n.type.replace('_', ' ')}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Target</dt>
+              <dd className="text-gray-700">{TARGET_LABEL(n.target)}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Priority</dt>
+              <dd>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${n.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {n.priority}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Sent</dt>
+              <dd className="text-gray-700 text-xs">{n.sentAt ? format(new Date(n.sentAt), 'MMM d, h:mm a') : '—'}</dd>
+            </div>
+          </dl>
+          <div>
+            <button
+              onClick={() => onDelete({ id: n.id, title: n.title })}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg">
+              <TrashIcon className="w-3.5 h-3.5" /> Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Notifications() {
   const qc = useQueryClient();
@@ -144,7 +207,18 @@ export default function Notifications() {
 
       {/* Notification log */}
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: collapsible rows */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {isLoading ? (
+            <div className="px-4 py-12 text-center text-gray-400">Loading...</div>
+          ) : !data?.notifications?.length ? (
+            <div className="px-4 py-12 text-center text-gray-400">No notifications found</div>
+          ) : data.notifications.map(n => (
+            <NotificationMobileRow key={n.id} n={n} onDelete={setDeleteConfirm} />
+          ))}
+        </div>
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-left text-gray-500">
@@ -164,23 +238,14 @@ export default function Notifications() {
                 <tr key={n.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium max-w-xs truncate">{n.title}</td>
                   <td className="px-6 py-4 capitalize text-gray-600">{n.type.replace('_', ' ')}</td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {n.target?.type === 'nationality'
-                      ? `🌍 ${n.target.value}`
-                      : n.target?.type === 'specific'
-                      ? `👤 Specific User`
-                      : '🌐 All Users'}
-                  </td>
+                  <td className="px-6 py-4 text-gray-600">{TARGET_LABEL(n.target)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       n.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                     }`}>{n.priority}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      n.status === 'sent' ? 'bg-green-100 text-green-700' :
-                      n.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>{n.status}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLS[n.status] ?? STATUS_CLS.pending}`}>{n.status}</span>
                   </td>
                   <td className="px-6 py-4 text-gray-500 text-xs">
                     {n.sentAt ? format(new Date(n.sentAt), 'MMM d, h:mm a') : '—'}
