@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import '../models/user.dart';
 import '../utils/exceptions.dart';
@@ -83,6 +85,12 @@ class AuthService {
       return UserModel.fromJson((res.data as Map<String, dynamic>)['user']);
     } on AccountSuspendedException {
       rethrow; // Let AuthNotifier handle force-logout
+    } on DioException catch (e) {
+      // 401 = token explicitly rejected by the server → must re-login.
+      // Any other error (timeout, no network, 5xx) → return null so the
+      // caller can fall back to cached data without logging the user out.
+      if (e.response?.statusCode == 401) throw const TokenExpiredException();
+      return null;
     } catch (_) {
       return null;
     }
@@ -90,6 +98,33 @@ class AuthService {
 
   Future<void> logout() async {
     await _storage.delete(key: 'auth_token');
+  }
+
+  // ── User data cache (SharedPreferences) ───────────────────────────────────
+  // Keeps the last known user profile so the app can show it immediately on
+  // startup even before (or instead of) a successful /auth/me network call.
+
+  static const _kUserCache = 'cached_user_v1';
+
+  Future<void> cacheUser(UserModel user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kUserCache, jsonEncode(user.toJson()));
+  }
+
+  Future<UserModel?> getCachedUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kUserCache);
+      if (raw == null) return null;
+      return UserModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearUserCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kUserCache);
   }
 
   Future<String?> getToken() => _storage.read(key: 'auth_token');

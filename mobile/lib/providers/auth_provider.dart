@@ -74,17 +74,26 @@ class AuthNotifier extends Notifier<AuthState> {
       try {
         final user = await _authService.getMe();
         if (user != null) {
+          // Fresh data — update cache and state.
+          await _authService.cacheUser(user);
           state = AuthState(user: user, token: token);
           // Register FCM token for already-logged-in users (fire-and-forget)
           NotificationService.getToken().then((fcmToken) {
             if (fcmToken != null) _authService.updateFcmToken(fcmToken);
           });
         } else {
-          // Could not load user (network issue) — clear state and re-login.
-          await _authService.logout();
-          state = const AuthState();
+          // getMe() returned null → network/server error (not a 401).
+          // Keep the user logged in using the last cached profile.
+          final cachedUser = await _authService.getCachedUser();
+          state = AuthState(user: cachedUser, token: token);
         }
+      } on TokenExpiredException {
+        // 401 — token is explicitly rejected by the server → force logout.
+        await _authService.clearUserCache();
+        await _authService.logout();
+        state = const AuthState();
       } on AccountSuspendedException catch (e) {
+        await _authService.clearUserCache();
         await _authService.logout();
         state = AuthState(isSuspended: true, error: e.message);
       }
@@ -101,6 +110,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final token = await _authService.getToken();
       final user  = await _authService.getMe();
       if (user == null || token == null) throw Exception('Could not load account after verification.');
+      await _authService.cacheUser(user);
       state = AuthState(user: user, token: token);
       NotificationService.getToken().then((fcmToken) {
         if (fcmToken != null) _authService.updateFcmToken(fcmToken);
@@ -118,6 +128,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final data = await _authService.login(email, password);
       final user = UserModel.fromJson(data['user']);
+      await _authService.cacheUser(user);
       state = AuthState(user: user, token: data['token']);
       // Register FCM token with backend (fire-and-forget)
       NotificationService.getToken().then((token) {
@@ -135,6 +146,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await _authService.clearUserCache();
     await _authService.logout();
     state = const AuthState();
   }
