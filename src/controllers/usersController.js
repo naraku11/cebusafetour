@@ -100,6 +100,10 @@ exports.updateProfile = async (req, res, next) => {
 exports.updateStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    const VALID_STATUSES = ['active', 'suspended', 'banned', 'archived'];
+    if (!VALID_STATUSES.includes(status))
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+
     const user = await db.findOne('SELECT id FROM users WHERE id = ? LIMIT 1', [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     await db.run('UPDATE users SET status = ?, updated_at = ? WHERE id = ?', [status, new Date(), req.params.id]);

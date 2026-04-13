@@ -25,6 +25,7 @@ enum UserStatus {
   active
   suspended
   banned
+  archived
 }
 
 enum UserLanguage {
