@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   HomeIcon, MapPinIcon, ExclamationTriangleIcon,
   ShieldExclamationIcon, UsersIcon, BellIcon,
   DocumentChartBarIcon, StarIcon, XMarkIcon,
-  QuestionMarkCircleIcon,
+  QuestionMarkCircleIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 
 const ALL  = ['admin_super', 'admin_content', 'admin_emergency'];
@@ -66,6 +67,10 @@ export default function Sidebar({ open, onClose }) {
   const role = user?.role ?? '';
   const meta = ROLE_META[role] ?? { label: role, dot: 'bg-gray-400' };
 
+  // Track which labeled sections are collapsed; all start expanded
+  const [collapsed, setCollapsed] = useState({});
+  const toggle = (label) => setCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
+
   // Filter each group's items by role; drop groups that end up empty
   const visibleGroups = NAV_GROUPS
     .map(group => ({ ...group, items: group.items.filter(item => item.roles.includes(role)) }))
@@ -116,49 +121,70 @@ export default function Sidebar({ open, onClose }) {
 
       {/* ── Hierarchical navigation ──────────────────────────────────────── */}
       <nav className="flex-1 px-2.5 py-3 overflow-y-auto" aria-label="Site sections">
-        {visibleGroups.map((group, gi) => (
-          <div key={group.label ?? '__overview'} className={gi > 0 ? 'mt-5' : ''}>
+        {visibleGroups.map((group, gi) => {
+          const isCollapsed = group.label ? (collapsed[group.label] ?? false) : false;
 
-            {/* Section header */}
-            {group.label && (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500 select-none">
-                {group.label}
-              </p>
-            )}
+          return (
+            <div key={group.label ?? '__overview'} className={gi > 0 ? 'mt-5' : ''}>
 
-            {/* Items */}
-            <div className="space-y-0.5">
-              {group.items.map(({ to, icon: Icon, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  onClick={onClose}
-                  aria-label={label}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
-                      isActive
-                        ? 'bg-primary-600 text-white shadow-sm'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    }`
-                  }
+              {/* Collapsible section header */}
+              {group.label && (
+                <button
+                  onClick={() => toggle(group.label)}
+                  aria-expanded={!isCollapsed}
+                  className="w-full flex items-center justify-between px-3 mb-1.5 group/hdr"
                 >
-                  {({ isActive }) => (
-                    <>
-                      <Icon
-                        className={`w-5 h-5 shrink-0 transition-transform duration-150 ${
-                          isActive ? '' : 'group-hover:scale-110'
-                        }`}
-                        aria-hidden="true"
-                      />
-                      <span>{label}</span>
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 group-hover/hdr:text-gray-400 transition-colors select-none">
+                    {group.label}
+                  </span>
+                  <ChevronDownIcon
+                    className={`w-3 h-3 text-gray-600 group-hover/hdr:text-gray-400 transition-all duration-200 ${
+                      isCollapsed ? '-rotate-90' : 'rotate-0'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+              )}
 
-          </div>
-        ))}
+              {/* Items — collapse via max-height transition */}
+              <div
+                className="overflow-hidden transition-all duration-200 ease-in-out"
+                style={{ maxHeight: isCollapsed ? '0px' : '500px' }}
+              >
+                <div className="space-y-0.5">
+                  {group.items.map(({ to, icon: Icon, label }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={onClose}
+                      aria-label={label}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
+                          isActive
+                            ? 'bg-primary-600 text-white shadow-sm'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon
+                            className={`w-5 h-5 shrink-0 transition-transform duration-150 ${
+                              isActive ? '' : 'group-hover:scale-110'
+                            }`}
+                            aria-hidden="true"
+                          />
+                          <span>{label}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          );
+        })}
       </nav>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
