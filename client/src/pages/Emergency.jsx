@@ -82,10 +82,15 @@ export default function Emergency() {
     queryFn: () =>
       api.get('/emergency/incidents/archived', { params: { limit: 200 } }).then(r => r.data),
     enabled: viewMode === 'archive',
-    staleTime: 30_000,
-    // Always re-fetch when the archive tab is opened so newly-archived rows appear immediately
-    refetchOnMount: 'always',
+    staleTime: 0,
   });
+
+  // Always re-fetch when the archive tab is opened so newly-archived rows appear immediately.
+  // refetchOnMount does NOT fire on enabled:false→true transitions (only on true component mounts),
+  // so we use an effect to guarantee a fresh fetch every time the user opens the archive view.
+  useEffect(() => {
+    if (viewMode === 'archive') refetchArchive();
+  }, [viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...body }) => api.patch(`/emergency/incidents/${id}`, body),

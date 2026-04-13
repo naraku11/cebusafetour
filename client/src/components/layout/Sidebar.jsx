@@ -67,10 +67,8 @@ export default function Sidebar({ open, onClose }) {
   const role = user?.role ?? '';
   const meta = ROLE_META[role] ?? { label: role, dot: 'bg-gray-400' };
 
-  // Track which labeled sections are collapsed; all start collapsed
-  const [collapsed, setCollapsed] = useState(
-    () => Object.fromEntries(NAV_GROUPS.filter(g => g.label).map(g => [g.label, true]))
-  );
+  // Track which labeled sections are collapsed; all start expanded
+  const [collapsed, setCollapsed] = useState({});
   const toggle = (label) => setCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
 
   // Filter each group's items by role; drop groups that end up empty
