@@ -10,51 +10,51 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ─── USERS ────────────────────────────────────────────────────────────────────
 
 INSERT IGNORE INTO `users`
-  (`id`,`name`,`email`,`password`,`nationality`,`contact_number`,`role`,`status`,`language`,`is_verified`,`emergency_contacts`,`created_at`,`updated_at`)
+  (`id`,`name`,`email`,`password`,`nationality`,`contact_number`,`role`,`status`,`language`,`is_verified`,`emergency_contacts`,`municipality`,`created_by_admin_id`,`designation`,`created_at`,`updated_at`)
 VALUES
 
 -- Admins
 ('6142a515-fa95-4bac-adbb-454c7fc3719a','Super Administrator','superadmin@cebusafetour.ph',
  '$2a$12$Seaxtd9IJiutgoMFWik8g.AJoxSYFYMfLoo8XZd7i6799IqzkKrLm',
- 'Filipino','+63-32-255-0001','admin_super','active','en',1,'[]',NOW(),NOW()),
+ 'Filipino','+63-32-255-0001','admin_super','active','en',1,'[]',NULL,NULL,NULL,NOW(),NOW()),
 
 ('91956fbf-f0bf-41f9-9f40-789fa297c23c','Content Manager','content@cebusafetour.ph',
  '$2a$12$WdV1OdU7AjqIp84hS9UFM.Km45YbAe1GOULj0tG5klJqExTbSh1Eu',
- 'Filipino','+63-32-255-0002','admin_content','active','en',1,'[]',NOW(),NOW()),
+ 'Filipino','+63-32-255-0002','admin_content','active','en',1,'[]',NULL,NULL,'Content & Attractions Manager',NOW(),NOW()),
 
 ('d3c659df-5a9f-4d0c-9166-9903fc7fe192','Emergency Officer','emergency@cebusafetour.ph',
  '$2a$12$M40DvTVoEvtrSfjhnx.sTe6LpwEx0MHmhkSjBIYRHhGPmExh1236C',
- 'Filipino','+63-32-255-0003','admin_emergency','active','en',1,'[]',NOW(),NOW()),
+ 'Filipino','+63-32-255-0003','admin_emergency','active','en',1,'[]',NULL,NULL,'Emergency Response Officer',NOW(),NOW()),
 
 -- Tourists
 ('021220dc-0a78-4643-b1f3-ab30d1aa14b0','Kim Jisoo','kim.jisoo@example.com',
  '$2a$12$R/N4oVW5sgDSM6oRu5vF6OqHDijL2xKy3CRy2djzl77CTyeRevxOK',
  'Korean','+82-10-1234-5678','tourist','active','ko',1,
- '[{"name":"Kim Minsu","relationship":"Spouse","phone":"+82-10-9876-5432"}]',NOW(),NOW()),
+ '[{"name":"Kim Minsu","relationship":"Spouse","phone":"+82-10-9876-5432"}]',NULL,NULL,NULL,NOW(),NOW()),
 
 ('9bddf9f2-4c93-49a7-80ef-59365d847ccc','Tanaka Hiroshi','tanaka.hiroshi@example.com',
  '$2a$12$R/N4oVW5sgDSM6oRu5vF6OqHDijL2xKy3CRy2djzl77CTyeRevxOK',
  'Japanese','+81-90-1234-5678','tourist','active','ja',1,
- '[{"name":"Tanaka Yuki","relationship":"Wife","phone":"+81-90-8765-4321"}]',NOW(),NOW()),
+ '[{"name":"Tanaka Yuki","relationship":"Wife","phone":"+81-90-8765-4321"}]',NULL,NULL,NULL,NOW(),NOW()),
 
 ('a25a4fc9-e32e-4ace-ba2e-69c6f06df358','Wang Wei','wang.wei@example.com',
  '$2a$12$R/N4oVW5sgDSM6oRu5vF6OqHDijL2xKy3CRy2djzl77CTyeRevxOK',
  'Chinese','+86-138-1234-5678','tourist','active','zh',1,
- '[{"name":"Wang Fang","relationship":"Sister","phone":"+86-138-8765-4321"}]',NOW(),NOW()),
+ '[{"name":"Wang Fang","relationship":"Sister","phone":"+86-138-8765-4321"}]',NULL,NULL,NULL,NOW(),NOW()),
 
 ('2b8bd5e7-308b-4079-b6d4-0d036d328c9e','Sarah Johnson','sarah.johnson@example.com',
  '$2a$12$R/N4oVW5sgDSM6oRu5vF6OqHDijL2xKy3CRy2djzl77CTyeRevxOK',
  'American','+1-310-555-0199','tourist','active','en',1,
- '[{"name":"Mark Johnson","relationship":"Husband","phone":"+1-310-555-0188"}]',NOW(),NOW()),
+ '[{"name":"Mark Johnson","relationship":"Husband","phone":"+1-310-555-0188"}]',NULL,NULL,NULL,NOW(),NOW()),
 
 ('197d6f07-7894-4850-897d-6dabf45e2ced','Maria Santos','maria.santos@example.com',
  '$2a$12$R/N4oVW5sgDSM6oRu5vF6OqHDijL2xKy3CRy2djzl77CTyeRevxOK',
  'Filipino','+63-917-123-4567','tourist','active','fil',1,
- '[{"name":"Jose Santos","relationship":"Father","phone":"+63-917-765-4321"}]',NOW(),NOW()),
+ '[{"name":"Jose Santos","relationship":"Father","phone":"+63-917-765-4321"}]',NULL,NULL,NULL,NOW(),NOW()),
 
 ('66490725-272b-4657-93c8-09f580d022bd','Emma Müller','emma.muller@example.com',
  '$2a$12$R/N4oVW5sgDSM6oRu5vF6OqHDijL2xKy3CRy2djzl77CTyeRevxOK',
- 'German','+49-151-12345678','tourist','active','en',0,'[]',NOW(),NOW());
+ 'German','+49-151-12345678','tourist','active','en',0,'[]',NULL,NULL,NULL,NOW(),NOW());
 
 
 -- ─── ATTRACTIONS ──────────────────────────────────────────────────────────────

@@ -100,8 +100,8 @@ function ConfirmDialog({ action, isPending, onConfirm, onCancel }) {
 // STAFF SECTION
 // ══════════════════════════════════════════════════════════════════════════════
 
-function CreateStaffModal({ onClose, onSave }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'admin_content', contactNumber: '' });
+function CreateStaffModal({ onClose, onSave, defaultRole = 'admin_content' }) {
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: defaultRole, contactNumber: '' });
   const [showPass, setShowPass] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -219,9 +219,16 @@ function EditStaffModal({ staff, onClose, onSave }) {
   );
 }
 
+const ROLE_TABS = [
+  { key: '',                label: 'All Staff',           color: 'text-violet-600',  activeCls: 'border-violet-600 text-violet-600',  badge: null },
+  { key: 'admin_content',   label: 'Content Managers',    color: 'text-blue-600',    activeCls: 'border-blue-600 text-blue-600',       badge: 'bg-blue-100 text-blue-700' },
+  { key: 'admin_emergency', label: 'Emergency Officers',  color: 'text-red-600',     activeCls: 'border-red-600 text-red-600',         badge: 'bg-red-100 text-red-700'  },
+];
+
 function StaffSection() {
   const qc = useQueryClient();
   const currentUser = useAuthStore(s => s.user);
+  const [roleFilter, setRoleFilter]     = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch]             = useState('');
   const [showCreate, setShowCreate]     = useState(false);
@@ -229,9 +236,22 @@ function StaffSection() {
   const [confirm, setConfirm]           = useState(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['staff', search, statusFilter],
-    queryFn: () => api.get('/users/staff', { params: { search: search || undefined, status: statusFilter || undefined } }).then(r => r.data),
+    queryKey: ['staff', search, statusFilter, roleFilter],
+    queryFn: () => api.get('/users/staff', {
+      params: {
+        search: search       || undefined,
+        status: statusFilter || undefined,
+        role:   roleFilter   || undefined,
+      },
+    }).then(r => r.data),
   });
+
+  // Always fetch all staff (no filters) to power the role-tab badges
+  const { data: allData } = useQuery({
+    queryKey: ['staff-all-counts'],
+    queryFn: () => api.get('/users/staff').then(r => r.data),
+  });
+  const allStaff = allData?.staff ?? [];
 
   const staff = data?.staff ?? [];
   const counts = {
@@ -240,8 +260,15 @@ function StaffSection() {
     suspended: staff.filter(s => s.status === 'suspended').length,
     archived:  staff.filter(s => s.status === 'archived').length,
   };
+  const roleCounts = {
+    admin_content:   allStaff.filter(s => s.role === 'admin_content').length,
+    admin_emergency: allStaff.filter(s => s.role === 'admin_emergency').length,
+  };
 
-  const invalidate = () => Promise.all([qc.invalidateQueries({ queryKey: ['staff'] })]);
+  const invalidate = () => Promise.all([
+    qc.invalidateQueries({ queryKey: ['staff'] }),
+    qc.invalidateQueries({ queryKey: ['staff-all-counts'] }),
+  ]);
 
   const createMutation = useMutation({
     mutationFn: (data) => api.post('/users/staff', data),
@@ -282,6 +309,8 @@ function StaffSection() {
     { key: 'archived',  label: 'Archived' },
   ];
 
+  const switchRole = (key) => { setRoleFilter(key); setStatusFilter(''); setSearch(''); };
+
   return (
     <div className="space-y-5">
       {/* Stats */}
@@ -296,6 +325,31 @@ function StaffSection() {
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{s.label}</p>
             <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
           </div>
+        ))}
+      </div>
+
+      {/* Role sub-tabs */}
+      <div className="flex border-b border-gray-200">
+        {ROLE_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => switchRole(tab.key)}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              roleFilter === tab.key ? tab.activeCls : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            {tab.label}
+            {tab.key === 'admin_content' && roleCounts.admin_content > 0 && (
+              <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${tab.badge}`}>
+                {roleCounts.admin_content}
+              </span>
+            )}
+            {tab.key === 'admin_emergency' && roleCounts.admin_emergency > 0 && (
+              <span className={`ml-1.5 px-1.5 py-0.5 text-xs rounded-full ${tab.badge}`}>
+                {roleCounts.admin_emergency}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
@@ -410,6 +464,7 @@ function StaffSection() {
         <CreateStaffModal
           onClose={() => setShowCreate(false)}
           onSave={(formData) => createMutation.mutateAsync(formData)}
+          defaultRole={roleFilter || 'admin_content'}
         />
       )}
       {editStaff && (
