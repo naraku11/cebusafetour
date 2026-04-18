@@ -65,7 +65,7 @@ export default function Emergency() {
 
   // Adaptive polling: starts at 15 s, backs off to 60 s when nothing changes,
   // resets immediately when new incident data arrives. Pauses when tab is hidden.
-  const { refetchInterval, observe } = useAdaptivePolling({ base: 15_000, max: 60_000 });
+  const { refetchInterval, observe } = useAdaptivePolling({ base: 5_000, max: 20_000 });
 
   const { data, isLoading, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ['incidents'],
@@ -164,7 +164,7 @@ export default function Emergency() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">🚨 Emergency &amp; Incident Center</h2>
           <p className="text-gray-500 text-sm mt-0.5">
-            Auto-refreshes adaptively (15s – 60s) · pauses when tab is hidden
+            Auto-refreshes adaptively (5s – 20s) · pauses when tab is hidden
             {dataUpdatedAt ? ` · Last updated ${formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true })}` : ''}
           </p>
         </div>

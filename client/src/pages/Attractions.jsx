@@ -115,7 +115,7 @@ export default function Attractions() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['attractions', filter, debouncedSearch],
-    queryFn: () => api.get('/attractions', { params: { ...filter, search: debouncedSearch, limit: 50 } }).then(r => r.data),
+    queryFn: () => api.get('/attractions', { params: { ...filter, search: debouncedSearch, limit: 500 } }).then(r => r.data),
     staleTime: 30_000,
     placeholderData: (prev) => prev,
   });
