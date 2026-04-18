@@ -38,7 +38,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   String _buildQuery() {
-    final parts = <String>[];
+    final parts = <String>['limit=500'];
     if (_debouncedSearch.isNotEmpty) parts.add('search=${Uri.encodeComponent(_debouncedSearch)}');
     if (_category.isNotEmpty) parts.add('category=$_category');
     if (_safetyStatus.isNotEmpty) parts.add('safetyStatus=$_safetyStatus');
