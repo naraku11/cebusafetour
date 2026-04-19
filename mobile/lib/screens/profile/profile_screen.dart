@@ -491,21 +491,25 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(0, 8, 0, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.78,
+      padding: EdgeInsets.only(bottom: bottomPad),
+      child: Column(children: [
         // drag handle
-        Center(
-          child: Container(
-            width: 40, height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+        Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 4),
+          child: Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            ),
           ),
         ),
 
         // Header
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
           child: Row(children: [
             Container(
               padding: const EdgeInsets.all(10),
@@ -541,12 +545,10 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
         const SizedBox(height: 12),
         Divider(height: 1, color: Colors.grey.shade100),
 
-        // Contact list or empty state
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 320),
+        // Contact list or empty state — fills all remaining height
+        Expanded(
           child: _contacts.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 36),
+              ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -563,8 +565,7 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
                   ]),
                 )
               : ListView.separated(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   itemCount: _contacts.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
@@ -672,7 +673,7 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
 
         // Save button
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -744,18 +745,22 @@ class _IncidentHistoryTabState extends State<_IncidentHistoryTab> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-      const SizedBox(height: 8),
-      Text(l.failedToLoad, style: const TextStyle(color: Colors.grey)),
-      TextButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: Text(l.retry)),
-    ]));
-    if (_incidents.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Text('📋', style: TextStyle(fontSize: 48)),
-      const SizedBox(height: 8),
-      Text(l.noIncidentHistory, style: const TextStyle(color: Colors.grey)),
-      TextButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: Text(l.refresh)),
-    ]));
+    if (_error != null) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+        const SizedBox(height: 8),
+        Text(l.failedToLoad, style: const TextStyle(color: Colors.grey)),
+        TextButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: Text(l.retry)),
+      ]));
+    }
+    if (_incidents.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Text('📋', style: TextStyle(fontSize: 48)),
+        const SizedBox(height: 8),
+        Text(l.noIncidentHistory, style: const TextStyle(color: Colors.grey)),
+        TextButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: Text(l.refresh)),
+      ]));
+    }
 
     return RefreshIndicator(
       onRefresh: _fetch,

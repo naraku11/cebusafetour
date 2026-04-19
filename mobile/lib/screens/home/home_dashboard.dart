@@ -152,34 +152,34 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(l.quickActions, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
-                      LayoutBuilder(builder: (ctx, constraints) {
-                        final crossAxisCount = constraints.maxWidth < 300 ? 2 : 3;
-                        return GridView.builder(
-                          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85,
-                          ),
-                          itemCount: quickActions.length,
-                          itemBuilder: (ctx, i) {
-                            final action = quickActions[i];
-                            return GestureDetector(
+                      Row(
+                        children: quickActions.map((action) {
+                          return Expanded(
+                            child: GestureDetector(
                               onTap: () => context.push(action['route'] as String),
-                              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
                                 Container(
-                                  padding: const EdgeInsets.all(14),
+                                  width: 56, height: 56,
                                   decoration: BoxDecoration(
-                                    color: (action['color'] as Color).withValues(alpha: 0.1),
+                                    color: (action['color'] as Color).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: Icon(action['icon'] as IconData, color: action['color'] as Color, size: 26),
+                                  alignment: Alignment.center,
+                                  child: Icon(action['icon'] as IconData, color: action['color'] as Color, size: 28),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(action['label'] as String, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                const SizedBox(height: 7),
+                                Text(
+                                  action['label'] as String,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ]),
-                            );
-                          },
-                        );
-                      }),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ]),
                   ),
                 ),
