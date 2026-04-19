@@ -1,6 +1,9 @@
+import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'models/app_notification.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/advisory_provider.dart';
@@ -22,19 +25,37 @@ class CebuSafeTourApp extends ConsumerStatefulWidget {
 class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
     with WidgetsBindingObserver {
 
-  /// Tracks whether the app was backgrounded so we can detect the
-  /// resumed → foreground transition and refresh stale data.
   bool _wasInBackground = false;
+  StreamSubscription<RemoteMessage>? _popupSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ConnectivityService.instance.init();
+
+    // Show in-app popup directly on every foreground FCM message.
+    // This bypasses the notificationsProvider list entirely, so the popup
+    // fires regardless of deduplication or loading-state race conditions.
+    _popupSub = NotificationService.messageStream.listen(_showPopupForMessage);
+  }
+
+  void _showPopupForMessage(RemoteMessage msg) {
+    final notif = AppNotification.fromRemote(msg);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null) return;
+      NotificationPopupManager.show(
+        ctx,
+        notif,
+        navigator: (route) => ref.read(routerProvider).push(route),
+      );
+    });
   }
 
   @override
   void dispose() {
+    _popupSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -75,26 +96,6 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
 
     // Wire navigator so FCM tap-to-open works from background/terminated state
     NotificationService.setNavigator((route) => router.push(route));
-
-    // Show rich popup overlay for foreground notifications.
-    // Skip when prev was loading (initial API fetch) — only fire for real-time FCM arrivals.
-    ref.listen<NotificationsState>(notificationsProvider, (prev, next) {
-      if (prev == null || next.isLoading || prev.isLoading) return;
-      if (next.notifications.length > prev.notifications.length) {
-        final notif = next.notifications.first;
-        // Use addPostFrameCallback to ensure overlay context is available
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final ctx = navigatorKey.currentContext;
-          if (ctx != null) {
-            NotificationPopupManager.show(
-              ctx,
-              notif,
-              navigator: (route) => router.push(route),
-            );
-          }
-        });
-      }
-    });
 
     return MaterialApp.router(
       title: 'CebuSafeTour',

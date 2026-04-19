@@ -87,6 +87,7 @@ final realtimeProvider = Provider<void>((ref) {
       ..off('attraction:deleted', onAttractionChange)
       ..off('advisory:new',       onAdvisoryChange)
       ..off('advisory:updated',   onAdvisoryChange)
+      ..off('advisory:deleted',   onAdvisoryChange)
       ..off('review:new',         onReviewChange)
       ..off('review:deleted',     onReviewChange)
       ..off('notification:new',   onNotificationNew);
