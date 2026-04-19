@@ -5,9 +5,11 @@ import toast from 'react-hot-toast';
 import { PlusIcon, PencilIcon, ArchiveBoxIcon, ArchiveBoxXMarkIcon, SparklesIcon, TrashIcon, PhotoIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import MapPicker from '../components/MapPicker';
 import { useAuthStore } from '../store/authStore';
+import { useMeta } from '../hooks/useMeta';
 
 const SAFETY_COLORS = { safe: 'badge-safe', caution: 'badge-caution', restricted: 'badge-restricted' };
-const CATEGORIES = ['beach', 'mountain', 'heritage', 'museum', 'park', 'waterfall', 'market', 'church', 'resort', 'other'];
+// Fallback used only before meta loads or in sub-components outside the provider
+const DEFAULT_CATEGORIES = ['beach', 'mountain', 'heritage', 'museum', 'park', 'waterfall', 'market', 'church', 'resort', 'other'];
 
 const defaultForm = {
   name: '', category: 'beach', description: '', district: '', address: '',
@@ -88,6 +90,8 @@ export default function Attractions() {
   const qc = useQueryClient();
   const currentUser = useAuthStore(s => s.user);
   const isSuperAdmin = currentUser?.role === 'admin_super';
+  const { attraction: attractionMeta } = useMeta();
+  const categories = attractionMeta?.categories ?? DEFAULT_CATEGORIES;
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState({ safetyStatus: '', status: 'published' });
@@ -215,7 +219,7 @@ export default function Attractions() {
       setForm(f => ({
         ...f,
         name:        info.name        || f.name,
-        category:    CATEGORIES.includes(info.category) ? info.category : f.category,
+        category:    categories.includes(info.category) ? info.category : f.category,
         district:    info.district    || f.district,
         address:     info.address     || f.address,
         description: info.description || f.description,
@@ -242,7 +246,7 @@ export default function Attractions() {
       setForm(f => ({
         ...f,
         name:        s.name        || f.name,
-        category:    CATEGORIES.includes(s.category) ? s.category : f.category,
+        category:    categories.includes(s.category) ? s.category : f.category,
         district:    s.district    || f.district,
         address:     s.address     || f.address,
         description: s.description || f.description,
@@ -287,7 +291,7 @@ export default function Attractions() {
           onChange={e => setFilter(f => ({ ...f, category: e.target.value }))}
           className="input w-auto">
           <option value="">All Categories</option>
-          {CATEGORIES.map(c => <option key={c} value={c} className="capitalize">{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+          {categories.map(c => <option key={c} value={c} className="capitalize">{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
         </select>
         <input value={filter.district ?? ''}
           onChange={e => setFilter(f => ({ ...f, district: e.target.value }))}
@@ -481,7 +485,7 @@ export default function Attractions() {
               <div>
                 <label className="block text-xs font-medium mb-1">Category</label>
                 <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="input w-full">
-                  {CATEGORIES.map(c => <option key={c} value={c} className="capitalize">{c}</option>)}
+                  {categories.map(c => <option key={c} value={c} className="capitalize">{c}</option>)}
                 </select>
               </div>
               <div>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { PaperAirplaneIcon, XMarkIcon, MagnifyingGlassIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { useMeta } from '../hooks/useMeta';
 import { format } from 'date-fns';
 
 const defaultForm = {
@@ -73,8 +74,12 @@ function NotificationMobileRow({ n, onDelete }) {
   );
 }
 
+// Convert snake_case enum value to Title Case label
+const fmtType = (t) => t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 export default function Notifications() {
   const qc = useQueryClient();
+  const { notification: notifMeta } = useMeta();
   const [form, setForm] = useState(defaultForm);
   const [showCompose, setShowCompose] = useState(false);
   const [userSearch, setUserSearch] = useState('');
@@ -184,16 +189,15 @@ export default function Notifications() {
         />
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input w-auto">
           <option value="">All Types</option>
-          <option value="announcement">Announcement</option>
-          <option value="emergency">Emergency</option>
-          <option value="safety_tip">Safety Tip</option>
-          <option value="weather_alert">Weather Alert</option>
+          {notifMeta.types.map(t => (
+            <option key={t} value={t}>{fmtType(t)}</option>
+          ))}
         </select>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input w-auto">
           <option value="">All Status</option>
-          <option value="sent">Sent</option>
-          <option value="pending">Pending</option>
-          <option value="failed">Failed</option>
+          {notifMeta.statuses.map(s => (
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+          ))}
         </select>
         {(search || typeFilter || statusFilter) && (
           <button
@@ -313,18 +317,19 @@ export default function Notifications() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Type</label>
                   <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="input">
-                    <option value="announcement">Announcement</option>
-                    <option value="safety_alert">Safety Alert</option>
-                    <option value="advisory">Advisory</option>
-                    <option value="emergency">Emergency</option>
-                    <option value="trip_reminder">Trip Reminder</option>
+                    {notifMeta.types.map(t => (
+                      <option key={t} value={t}>{fmtType(t)}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Priority</label>
                   <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="input">
-                    <option value="normal">Normal</option>
-                    <option value="high">High (bypasses silent mode)</option>
+                    {notifMeta.priorities.map(p => (
+                      <option key={p} value={p}>
+                        {p.charAt(0).toUpperCase() + p.slice(1)}{p === 'high' ? ' (bypasses silent mode)' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

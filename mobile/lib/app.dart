@@ -7,6 +7,7 @@ import 'models/app_notification.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/advisory_provider.dart';
+import 'providers/meta_provider.dart';
 import 'providers/realtime_provider.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
@@ -33,6 +34,8 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ConnectivityService.instance.init();
+    // Pre-warm meta ranges so screens have values ready on first render.
+    ref.read(metaProvider);
 
     // Show in-app popup directly on every foreground FCM message.
     // This bypasses the notificationsProvider list entirely, so the popup

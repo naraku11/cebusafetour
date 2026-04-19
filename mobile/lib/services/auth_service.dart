@@ -46,9 +46,17 @@ class AuthService {
   final _api = ApiService();
   final _storage = const FlutterSecureStorage();
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(
+    String email,
+    String password, {
+    bool rememberMe = true,
+  }) async {
     try {
-      final res = await _api.post('/auth/login', data: {'email': email, 'password': password});
+      final res = await _api.post('/auth/login', data: {
+        'email': email,
+        'password': password,
+        'rememberMe': rememberMe,
+      });
       // Guard against captive-portal / proxy responses that return HTML instead
       // of JSON — without this the cast throws a TypeError, not a DioException.
       if (res.data is! Map<String, dynamic>) {

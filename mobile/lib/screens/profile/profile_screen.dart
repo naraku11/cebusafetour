@@ -255,9 +255,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ? l.noContactsAdded
               : l.contactCount(user!.emergencyContacts.length),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-        onTap: _showEmergencyContacts,
+        trailing: TextButton(
+          onPressed: _showEmergencyContacts,
+          child: const Text('Manage'),
+        ),
       ),
+      if (user != null && user.emergencyContacts.isNotEmpty)
+        _buildEmergencyContactsPreview(user.emergencyContacts, l),
       const Divider(height: 1),
 
       Padding(
@@ -295,6 +299,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       Center(child: Text('CebuSafeTour v1.0.0', style: const TextStyle(color: Colors.grey, fontSize: 12))),
       const SizedBox(height: 24),
     ]);
+  }
+
+  Widget _buildEmergencyContactsPreview(
+      List<Map<String, dynamic>> contacts, AppLocalizations l) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        children: contacts.map((c) {
+          final name  = c['name']?.toString() ?? '';
+          final phone = c['phone']?.toString() ?? '';
+          final rel   = c['relationship']?.toString() ?? '';
+          final initials = name.trim().isEmpty
+              ? '?'
+              : name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase();
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.red.shade100,
+                child: Text(initials,
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ),
+              title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: rel.isNotEmpty ? Text(rel) : null,
+              trailing: phone.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.phone, color: Colors.green),
+                      onPressed: () => launchUrl(Uri.parse('tel:$phone')),
+                    )
+                  : null,
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   Widget _infoRow(IconData icon, String label, String value) => Padding(

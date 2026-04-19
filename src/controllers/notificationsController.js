@@ -107,6 +107,7 @@ exports.remove = async (req, res, next) => {
     const existing = await db.findOne('SELECT id FROM notifications WHERE id = ? LIMIT 1', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Notification not found' });
     await db.run('DELETE FROM notifications WHERE id = ?', [req.params.id]);
+    socket.emitToAdmins('notification:deleted', { id: req.params.id });
     res.json({ message: 'Notification deleted' });
   } catch (err) { next(err); }
 };

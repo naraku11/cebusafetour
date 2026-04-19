@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/attractions_provider.dart';
+import '../../providers/meta_provider.dart';
+import '../../models/meta.dart';
 import '../../widgets/attraction_card.dart';
 import '../../widgets/emergency_fab.dart';
 
@@ -20,8 +22,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   String _category = '';
   String _safetyStatus = '';
   Timer? _debounce;
-
-  final _categories = const ['', 'beach', 'mountain', 'heritage', 'museum', 'park', 'waterfall', 'market', 'church', 'resort'];
 
   @override
   void dispose() {
@@ -49,6 +49,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   Widget build(BuildContext context) {
     final attractions = ref.watch(attractionsProvider(_buildQuery()));
     final l = AppLocalizations.of(context);
+    final meta = ref.watch(metaProvider).value ?? AppMeta.defaults;
+    final categories    = ['', ...meta.attraction.categories];
+    final safetyStatuses = ['', ...meta.attraction.safetyStatuses];
 
     return Scaffold(
       appBar: AppBar(title: Text(l.exploreCebu)),
@@ -74,9 +77,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemCount: _categories.length,
+              itemCount: categories.length,
               itemBuilder: (ctx, i) {
-                final cat = _categories[i];
+                final cat = categories[i];
                 return FilterChip(
                   label: Text(cat.isEmpty ? l.all : cat[0].toUpperCase() + cat.substring(1)),
                   selected: _category == cat,
@@ -96,7 +99,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               children: [
                 Center(child: Text('${l.safety}: ', style: const TextStyle(fontWeight: FontWeight.w500))),
-                ...['', 'safe', 'caution', 'restricted'].map((s) {
+                ...safetyStatuses.map((s) {
                   final label = s.isEmpty ? l.all
                       : s == 'safe' ? l.safe
                       : s == 'caution' ? l.caution

@@ -17,33 +17,41 @@ const SSE_URL = `${_apiBase}/events`;
  */
 const EVENT_KEYS = {
   // ── Incidents ─────────────────────────────────────────────────────────
-  'incident:new':      ['incidents', 'reports-summary'],
-  'incident:updated':  ['incidents'],
-  'incident:archived': ['incidents', 'incidents-archived', 'reports-summary'],
-  'incident:deleted':  ['incidents', 'incidents-archived', 'reports-summary'],
+  // Also invalidates dashboard analytical queries so charts update in real-time
+  // without waiting for the polling interval.
+  'incident:new':      ['incidents', 'reports-summary', 'reports-incidents', 'reports-trends'],
+  'incident:updated':  ['incidents', 'reports-incidents'],
+  'incident:archived': ['incidents', 'incidents-archived', 'reports-summary', 'reports-incidents'],
+  'incident:deleted':  ['incidents', 'incidents-archived', 'reports-summary', 'reports-incidents'],
 
   // ── Advisories ────────────────────────────────────────────────────────
-  'advisory:new':      ['advisories', 'reports-summary'],
-  'advisory:updated':  ['advisories', 'reports-summary'],
+  'advisory:new':          ['advisories', 'reports-summary', 'reports-trends'],
+  'advisory:updated':      ['advisories', 'reports-summary', 'reports-trends'],
+  'advisory:deleted':      ['advisories', 'reports-summary', 'reports-trends'],
+  'advisory:acknowledged': ['advisories'],
 
   // ── Notifications ─────────────────────────────────────────────────────
-  'notification:new':  ['notifications'],
+  'notification:new':     ['notifications'],
+  'notification:deleted': ['notifications'],
 
   // ── Attractions ───────────────────────────────────────────────────────
-  'attraction:new':     ['attractions', 'reports-attractions'],
+  // Trend charts include attraction safety ratings, so invalidate reports-trends too.
+  'attraction:new':     ['attractions', 'reports-attractions', 'reports-trends'],
   'attraction:updated': ['attractions', 'reports-attractions'],
-  'attraction:deleted': ['attractions', 'reports-attractions'],
+  'attraction:deleted': ['attractions', 'reports-attractions', 'reports-trends'],
 
   // ── Reviews ───────────────────────────────────────────────────────────
-  'review:new':     ['reviews', 'attractions'],   // rating avg changes too
+  'review:new':     ['reviews', 'attractions'],
   'review:deleted': ['reviews', 'attractions'],
 
   // ── Users / Staff ─────────────────────────────────────────────────────
-  'user:updated':   ['users', 'reports-summary'],
-  'user:deleted':   ['users', 'reports-summary'],
-  'staff:created':  ['users'],
-  'staff:updated':  ['users'],
-  'staff:deleted':  ['users'],
+  'user:updated':        ['users', 'reports-summary'],
+  'user:deleted':        ['users', 'reports-summary'],
+  'user:profile-updated':['users'],
+  'user:verified':       ['users'],
+  'staff:created':       ['users'],
+  'staff:updated':       ['users'],
+  'staff:deleted':       ['users'],
 };
 
 /**

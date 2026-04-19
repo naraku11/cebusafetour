@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/language_provider.dart';
@@ -20,6 +21,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _rememberMe = true;
+
+  static const _kRememberMePref = 'remember_me_pref';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberMePref();
+  }
+
+  Future<void> _loadRememberMePref() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _rememberMe = prefs.getBool(_kRememberMePref) ?? true);
+  }
 
   @override
   void dispose() {
@@ -30,9 +45,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kRememberMePref, _rememberMe);
     final success = await ref.read(authProvider.notifier).login(
       _emailCtrl.text.trim(),
       _passCtrl.text,
+      rememberMe: _rememberMe,
     );
     if (mounted && success) context.go('/home');
   }
@@ -117,13 +135,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 validator: (v) => v!.length >= 6 ? null : 'Password too short',
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _goForgotPassword,
-                  child: Text(l.forgotPassword),
-                ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: _rememberMe,
+                      onChanged: (v) => setState(() => _rememberMe = v ?? true),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                      child: const Text('Keep me signed in',
+                          style: TextStyle(fontSize: 14)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _goForgotPassword,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(l.forgotPassword,
+                        style: const TextStyle(fontSize: 13)),
+                  ),
+                ],
               ),
 
               // ── Error banners ─────────────────────────────────────────────

@@ -4,10 +4,8 @@ const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const { sendOtpEmail } = require('../services/emailService');
 
-const generateToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '30d',
-  });
+const generateToken = (user, expiresIn = process.env.JWT_EXPIRES_IN || '30d') =>
+  jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn });
 
 const sanitize = ({ password, fcmToken, ...safe }) => safe;
 
@@ -76,7 +74,7 @@ exports.verifyOtp = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe = true } = req.body;
     const user = await db.findOne('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -85,7 +83,9 @@ exports.login = async (req, res, next) => {
     if (user.status !== 'active') return res.status(403).json({ error: 'Account suspended or banned. Please contact support.', code: 'ACCOUNT_SUSPENDED' });
 
     await db.run('UPDATE users SET last_active = ? WHERE id = ?', [new Date(), user.id]);
-    res.json({ token: generateToken(user), user: sanitize(user) });
+    // rememberMe=true → long-lived session (30 d); false → expires next day (1 d)
+    const expiresIn = rememberMe ? (process.env.JWT_EXPIRES_IN || '30d') : '1d';
+    res.json({ token: generateToken(user, expiresIn), user: sanitize(user) });
   } catch (err) { next(err); }
 };
 

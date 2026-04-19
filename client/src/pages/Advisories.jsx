@@ -6,6 +6,7 @@ import { PlusIcon, CheckCircleIcon, SparklesIcon, LockClosedIcon, EyeIcon, EyeSl
 import { format } from 'date-fns';
 import { useAuthStore } from '../store/authStore';
 import { getSocket } from '../services/socket';
+import { useMeta } from '../hooks/useMeta';
 
 const SEVERITY_MAP = { critical: 'badge-critical', warning: 'badge-warning', advisory: 'badge-advisory' };
 const SEVERITY_ICONS = { critical: '🔴', warning: '🟡', advisory: '🟢' };
@@ -20,6 +21,11 @@ export default function Advisories() {
   const adminEmail   = useAuthStore(s => s.user?.email);
   const isSuperAdmin    = useAuthStore(s => s.user?.role) === 'admin_super';
   const canPostAdvisory = useAuthStore(s => ['admin_super', 'admin_emergency'].includes(s.user?.role));
+  const { advisory: advisoryMeta } = useMeta();
+
+  // Source display labels — presentation only, not data
+  const SOURCE_LABELS = { pagasa: 'PAGASA', ndrrmc: 'NDRRMC', lgu: 'LGU', cdrrmo: 'CDRRMO', admin: 'Admin' };
+  const srcLabel = (src) => SOURCE_LABELS[src] ?? src.charAt(0).toUpperCase() + src.slice(1);
 
   const [statusFilter,   setStatusFilter]   = useState('active');
   const [severityFilter, setSeverityFilter] = useState('');
@@ -231,7 +237,7 @@ export default function Advisories() {
       <div className="flex flex-wrap items-center gap-3">
         {/* Status tabs */}
         <div className="flex gap-2">
-          {['active', 'resolved', ...(isSuperAdmin ? ['archived'] : [])].map(s => (
+          {advisoryMeta.statuses.filter(s => s !== 'archived' || isSuperAdmin).map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -249,7 +255,7 @@ export default function Advisories() {
         {/* Severity */}
         <div className="flex gap-1.5 items-center">
           <span className="text-xs text-gray-500 font-medium">Severity:</span>
-          {['', 'critical', 'warning', 'advisory'].map(sev => (
+          {['', ...advisoryMeta.severities].map(sev => (
             <button
               key={sev}
               onClick={() => setSeverityFilter(sev)}
@@ -274,11 +280,9 @@ export default function Advisories() {
           className="input w-auto text-sm py-1"
         >
           <option value="">All Sources</option>
-          <option value="pagasa">PAGASA</option>
-          <option value="ndrrmc">NDRRMC</option>
-          <option value="lgu">LGU</option>
-          <option value="cdrrmo">CDRRMO</option>
-          <option value="admin">Admin</option>
+          {advisoryMeta.sources.map(src => (
+            <option key={src} value={src}>{srcLabel(src)}</option>
+          ))}
         </select>
 
         {(severityFilter || sourceFilter) && (
@@ -443,19 +447,19 @@ export default function Advisories() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Severity</label>
                   <select value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))} className="input">
-                    <option value="critical">🔴 Critical</option>
-                    <option value="warning">🟡 Warning</option>
-                    <option value="advisory">🟢 Advisory</option>
+                    {advisoryMeta.severities.map(sev => (
+                      <option key={sev} value={sev}>
+                        {SEVERITY_ICONS[sev]} {sev.charAt(0).toUpperCase() + sev.slice(1)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Source</label>
                   <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} className="input">
-                    <option value="pagasa">PAGASA</option>
-                    <option value="ndrrmc">NDRRMC</option>
-                    <option value="lgu">LGU</option>
-                    <option value="cdrrmo">CDRRMO</option>
-                    <option value="admin">Admin</option>
+                    {advisoryMeta.sources.map(src => (
+                      <option key={src} value={src}>{srcLabel(src)}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

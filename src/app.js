@@ -34,6 +34,7 @@ const helmet      = require('helmet');
 const morgan      = require('morgan');
 const rateLimit   = require('express-rate-limit');
 
+const metaRoutes          = require('./routes/meta');
 const authRoutes          = require('./routes/auth');
 const attractionsRoutes   = require('./routes/attractions');
 const advisoriesRoutes    = require('./routes/advisories');
@@ -161,6 +162,7 @@ app.get('/health', async (req, res) => {
 });
 
 // Routes
+app.use('/api/meta',          metaRoutes);
 app.use('/api/auth',          authRoutes);
 app.use('/api/attractions',   attractionsRoutes);
 app.use('/api/advisories',    advisoriesRoutes);

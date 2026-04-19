@@ -93,6 +93,7 @@ exports.updateProfile = async (req, res, next) => {
     }
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.user.id]);
+    socket.emitToAdmins('user:profile-updated', { id: req.user.id });
     res.json({ user });
   } catch (err) { next(err); }
 };
@@ -121,6 +122,7 @@ exports.uploadAvatar = async (req, res, next) => {
       [profilePicture, new Date(), req.user.id]
     );
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.user.id]);
+    socket.emitToAdmins('user:profile-updated', { id: req.user.id });
     res.json({ user });
   } catch (err) { next(err); }
 };
@@ -139,6 +141,7 @@ exports.verifyPicture = async (req, res, next) => {
       [verified ? 1 : 0, new Date(), req.params.id]
     );
 
+    socket.emitToAdmins('user:verified', { id: req.params.id, verified });
     res.json({ verified, reason: result.reason });
   } catch (err) {
     if (err.code === 'NO_API_KEY')     return res.status(503).json({ error: 'OpenAI API key not configured.', hint: 'Set OPENAI_API_KEY in .env' });

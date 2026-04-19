@@ -129,10 +129,10 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String email, String password, {bool rememberMe = true}) async {
     state = state.copyWith(isLoading: true, error: null, isSuspended: false);
     try {
-      final data = await _authService.login(email, password);
+      final data = await _authService.login(email, password, rememberMe: rememberMe);
       final user = UserModel.fromJson(data['user']);
       await _authService.cacheUser(user);
       state = AuthState(user: user, token: data['token']);
