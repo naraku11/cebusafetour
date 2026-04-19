@@ -12,12 +12,30 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  final _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationsProvider.notifier).markAllRead();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      final notifier = ref.read(notificationsProvider.notifier);
+      final state    = ref.read(notificationsProvider);
+      if (!state.isLoading && state.hasMore) notifier.loadMore();
+    }
   }
 
   @override
@@ -37,16 +55,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             ),
         ],
       ),
-      body: state.isLoading
+      body: state.isLoading && state.notifications.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : state.notifications.isEmpty
               ? _EmptyState(l: l)
               : RefreshIndicator(
                   onRefresh: () => ref.read(notificationsProvider.notifier).refresh(),
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    itemCount: state.notifications.length,
-                    itemBuilder: (ctx, i) => _NotificationCard(n: state.notifications[i], l: l),
+                    // +1 slot for the bottom loader when more pages remain
+                    itemCount: state.notifications.length + (state.hasMore ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      if (i == state.notifications.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        );
+                      }
+                      return _NotificationCard(n: state.notifications[i], l: l);
+                    },
                   ),
                 ),
     );
@@ -68,7 +96,7 @@ class _NotificationCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: n.isRead ? Colors.white : const Color(0xFFF0F7FF),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: n.isEmergency

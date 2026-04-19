@@ -20,11 +20,15 @@ class AppNotification {
   });
 
   factory AppNotification.fromRemote(RemoteMessage msg) => AppNotification(
-    id: msg.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-    title: msg.notification?.title ?? 'Notification',
-    body: msg.notification?.body ?? '',
-    type: msg.data['type'] ?? 'announcement',
-    priority: msg.data['priority'] ?? 'normal',
+    // Prefer the backend UUID sent in FCM data so deduplication against
+    // the /notifications/public API response works correctly.
+    id: msg.data['notificationId'] as String?
+        ?? msg.messageId
+        ?? DateTime.now().millisecondsSinceEpoch.toString(),
+    title: msg.notification?.title ?? msg.data['title'] as String? ?? 'Notification',
+    body: msg.notification?.body ?? msg.data['body'] as String? ?? '',
+    type: msg.data['type'] as String? ?? 'announcement',
+    priority: msg.data['priority'] as String? ?? 'normal',
     receivedAt: DateTime.now(),
   );
 

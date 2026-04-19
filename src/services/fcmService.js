@@ -2,6 +2,26 @@ const { getMessaging } = require('../config/firebase');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
 
+const INVALID_TOKEN_CODES = new Set([
+  'messaging/registration-token-not-registered',
+  'messaging/invalid-registration-token',
+]);
+
+// Removes tokens that Firebase reports as invalid/unregistered from the users table.
+const pruneInvalidTokens = async (tokens, batchResponse) => {
+  const invalid = tokens.filter((_, i) => {
+    const err = batchResponse.responses[i]?.error;
+    return err && INVALID_TOKEN_CODES.has(err.code);
+  });
+  if (!invalid.length) return;
+  const placeholders = invalid.map(() => '?').join(',');
+  await db.run(
+    `UPDATE users SET fcm_token = NULL WHERE fcm_token IN (${placeholders})`,
+    invalid
+  ).catch(e => logger.warn('FCM token prune failed:', e.message));
+  logger.info(`Pruned ${invalid.length} invalid FCM token(s)`);
+};
+
 const buildMessage = (tokens, { title, body, data = {} }) => ({
   notification: { title, body },
   data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
@@ -31,7 +51,10 @@ exports.sendPushToAll = async (payload) => {
       for (let i = 0; i < tokens.length; i += BATCH) {
         batches.push(tokens.slice(i, i + BATCH));
       }
-      await Promise.all(batches.map(b => messaging.sendEachForMulticast(buildMessage(b, payload))));
+      await Promise.all(batches.map(async b => {
+        const result = await messaging.sendEachForMulticast(buildMessage(b, payload));
+        await pruneInvalidTokens(b, result);
+      }));
       total += tokens.length;
       if (rows.length < BATCH * PARALLEL) break;
       offset += BATCH * PARALLEL;
@@ -51,7 +74,10 @@ exports.sendPushToUsers = async (tokens, payload) => {
     for (let i = 0; i < tokens.length; i += 500) {
       batches.push(tokens.slice(i, i + 500));
     }
-    await Promise.all(batches.map(b => messaging.sendEachForMulticast(buildMessage(b, payload))));
+    await Promise.all(batches.map(async b => {
+      const result = await messaging.sendEachForMulticast(buildMessage(b, payload));
+      await pruneInvalidTokens(b, result);
+    }));
   } catch (err) {
     logger.error('FCM sendPushToUsers error:', err);
   }
@@ -74,7 +100,3 @@ exports.sendPushToAdmins = async (payload) => {
   }
 };
 
-exports.sendPushToArea = async (lat, lng, radiusKm, payload) => {
-  logger.info(`Geo-targeted push around ${lat},${lng} within ${radiusKm}km`);
-  await exports.sendPushToAll(payload);
-};

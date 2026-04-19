@@ -49,6 +49,9 @@ const logger           = require('./utils/logger');
 const socket           = require('./services/socketService');
 const db               = require('./config/db');
 
+// Scheduled notification dispatcher — runs every 30 s to fire pending notifications
+require('./jobs/notificationScheduler');
+
 // Ensure upload directories exist
 fs.mkdirSync(path.join(__dirname, '..', 'uploads', 'avatars'), { recursive: true });
 

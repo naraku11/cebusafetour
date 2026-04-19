@@ -111,13 +111,51 @@ exports.remove = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// Public endpoint — any authenticated user can fetch recent sent announcements
+// Public endpoint — any authenticated user can fetch sent notifications (cursor-paginated).
+// GET /notifications/public?before=<ISO-date>&limit=<n>
 exports.listPublic = async (req, res, next) => {
   try {
-    const notifications = await db.findMany(
-      `SELECT id, title, body, type, priority, sent_at, created_at
-       FROM notifications WHERE status = 'sent' ORDER BY sent_at DESC LIMIT 50`
+    const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
+    const before = req.query.before ? new Date(req.query.before) : null;
+
+    const params = [];
+    let   where  = "WHERE status = 'sent'";
+    if (before && !isNaN(before)) {
+      where += ' AND sent_at < ?';
+      params.push(before);
+    }
+
+    // Fetch last_read_notifications_at for the current user so mobile can
+    // derive isRead without a separate round-trip.
+    const [notifications, userRow] = await Promise.all([
+      db.findMany(
+        `SELECT id, title, body, type, priority, sent_at, created_at
+         FROM notifications ${where} ORDER BY sent_at DESC LIMIT ?`,
+        [...params, limit]
+      ),
+      db.findOne(
+        'SELECT last_read_notifications_at FROM users WHERE id = ? LIMIT 1',
+        [req.user.id]
+      ),
+    ]);
+
+    const lastRead = userRow?.lastReadNotificationsAt ?? null;
+    const enriched = notifications.map(n => ({
+      ...n,
+      isRead: lastRead ? new Date(n.sentAt ?? n.createdAt) <= new Date(lastRead) : false,
+    }));
+
+    res.json({ notifications: enriched, lastReadAt: lastRead });
+  } catch (err) { next(err); }
+};
+
+// Mark all notifications as read for the current user
+exports.markRead = async (req, res, next) => {
+  try {
+    await db.run(
+      'UPDATE users SET last_read_notifications_at = ? WHERE id = ?',
+      [new Date(), req.user.id]
     );
-    res.json({ notifications });
+    res.json({ ok: true });
   } catch (err) { next(err); }
 };

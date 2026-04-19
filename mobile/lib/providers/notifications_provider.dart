@@ -9,19 +9,29 @@ import '../services/connectivity_service.dart';
 class NotificationsState {
   final List<AppNotification> notifications;
   final bool isLoading;
+  final bool hasMore;
+  final DateTime? lastReadAt;
 
   const NotificationsState({
     this.notifications = const [],
     this.isLoading = false,
+    this.hasMore = true,
+    this.lastReadAt,
   });
 
   int get unreadCount => notifications.where((n) => !n.isRead).length;
 
-  NotificationsState copyWith({List<AppNotification>? notifications, bool? isLoading}) =>
-      NotificationsState(
-        notifications: notifications ?? this.notifications,
-        isLoading: isLoading ?? this.isLoading,
-      );
+  NotificationsState copyWith({
+    List<AppNotification>? notifications,
+    bool? isLoading,
+    bool? hasMore,
+    DateTime? lastReadAt,
+  }) => NotificationsState(
+    notifications: notifications ?? this.notifications,
+    isLoading: isLoading ?? this.isLoading,
+    hasMore: hasMore ?? this.hasMore,
+    lastReadAt: lastReadAt ?? this.lastReadAt,
+  );
 }
 
 final _api = ApiService();
@@ -52,14 +62,56 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
     return const NotificationsState();
   }
 
-  Future<void> _fetchPublic() async {
+  static const _pageSize = 20;
+
+  Future<void> _fetchPublic({bool loadMore = false}) async {
+    if (state.isLoading) return;
     state = state.copyWith(isLoading: true);
     try {
-      final res = await _api.get('/notifications/public');
-      final list = (res.data['notifications'] as List)
+      final before = loadMore && state.notifications.isNotEmpty
+          ? state.notifications.last.receivedAt.toUtc().toIso8601String()
+          : null;
+
+      final res = await _api.get(
+        '/notifications/public',
+        params: {
+          'limit': _pageSize,
+          if (before != null) 'before': before,
+        },
+      );
+
+      final apiList = (res.data['notifications'] as List)
           .map((e) => AppNotification.fromJson(e as Map<String, dynamic>))
           .toList();
-      state = state.copyWith(notifications: list, isLoading: false);
+
+      final rawLastRead = res.data['lastReadAt'] as String?;
+      final lastReadAt  = rawLastRead != null ? DateTime.parse(rawLastRead) : state.lastReadAt;
+
+      if (loadMore) {
+        // Append, deduplicate, keep sort order
+        final existingIds = state.notifications.map((n) => n.id).toSet();
+        final newItems    = apiList.where((n) => !existingIds.contains(n.id)).toList();
+        state = state.copyWith(
+          notifications: [...state.notifications, ...newItems],
+          isLoading: false,
+          hasMore: apiList.length >= _pageSize,
+          lastReadAt: lastReadAt,
+        );
+      } else {
+        // Initial / refresh: API list is authoritative; keep FCM-only items
+        // not yet confirmed by the backend (arrived in the current session).
+        final apiIds  = apiList.map((n) => n.id).toSet();
+        final fcmOnly = state.notifications.where((n) => !apiIds.contains(n.id)).toList();
+        final merged  = [...apiList, ...fcmOnly]
+          ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
+
+        state = state.copyWith(
+          notifications: merged,
+          isLoading: false,
+          hasMore: apiList.length >= _pageSize,
+          lastReadAt: lastReadAt,
+        );
+      }
     } catch (_) {
       state = state.copyWith(isLoading: false);
     }
@@ -74,10 +126,15 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
     state = state.copyWith(notifications: [notif, ...state.notifications]);
   }
 
-  void markAllRead() {
+  Future<void> markAllRead() async {
+    // Optimistic update
     final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
-    state = state.copyWith(notifications: updated);
+    state = state.copyWith(notifications: updated, lastReadAt: DateTime.now());
+    // Persist to server so the badge survives app restarts
+    await _api.post('/notifications/read').catchError((e) => e as dynamic);
   }
+
+  Future<void> loadMore() => _fetchPublic(loadMore: true);
 
   Future<void> refresh() => _fetchPublic();
 }
