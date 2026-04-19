@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/review.dart';
 import '../../providers/attractions_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/favorites_provider.dart';
 import '../../widgets/safety_badge.dart';
 import '../../widgets/emergency_fab.dart';
 
@@ -120,29 +121,39 @@ class AttractionDetail extends ConsumerWidget {
                 Row(children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => launchUrl(Uri.parse('https://maps.google.com/?q=${a.latitude},${a.longitude}')),
+                      onPressed: () async {
+                    final uri = Uri.parse('https://maps.google.com/?q=${a.latitude},${a.longitude}');
+                    final messenger = ScaffoldMessenger.of(context);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Could not open maps')),
+                      );
+                    }
+                  },
                       icon: const Icon(Icons.directions_outlined),
                       label: Text(l.getDirections),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l.savedToList(a.name)),
+                  Consumer(builder: (ctx, ref, _) {
+                    final saved = ref.watch(
+                      favoritesProvider.select((list) => list.any((f) => f.id == a.id)),
+                    );
+                    return OutlinedButton.icon(
+                      onPressed: () {
+                        ref.read(favoritesProvider.notifier).toggle(a);
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                          content: Text(saved ? '${a.name} removed from saved' : l.savedToList(a.name)),
                           backgroundColor: const Color(0xFF0EA5E9),
-                          action: SnackBarAction(
-                            label: l.ok,
-                            textColor: Colors.white,
-                            onPressed: () {},
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.bookmark_border_outlined),
-                    label: Text(l.save),
-                  ),
+                          duration: const Duration(seconds: 2),
+                        ));
+                      },
+                      icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border_outlined),
+                      label: Text(saved ? 'Saved' : l.save),
+                    );
+                  }),
                 ]),
 
                 const SizedBox(height: 24),
@@ -385,6 +396,15 @@ class _ReviewTile extends ConsumerStatefulWidget {
   final String attractionId;
   const _ReviewTile({required this.review, required this.attractionId});
 
+  static String formatDate(DateTime dt, AppLocalizations l) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays == 0) return l.justNow;
+    if (diff.inDays == 1) return l.daysAgo(1);
+    if (diff.inDays < 30)  return l.daysAgo(diff.inDays);
+    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
+    return '${(diff.inDays / 365).floor()}y ago';
+  }
+
   @override
   ConsumerState<_ReviewTile> createState() => _ReviewTileState();
 }
@@ -429,7 +449,7 @@ class _ReviewTileState extends ConsumerState<_ReviewTile> {
                 )),
                 const SizedBox(width: 6),
                 Text(
-                  _formatDate(widget.review.createdAt),
+                  _ReviewTile.formatDate(widget.review.createdAt, AppLocalizations.of(context)),
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
               ]),
@@ -496,13 +516,4 @@ class _ReviewTileState extends ConsumerState<_ReviewTile> {
     );
   }
 
-  String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
-    if (diff.inDays < 30) return '${diff.inDays}d ago';
-    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
-    return '${(diff.inDays / 365).floor()}y ago';
-  }
 }

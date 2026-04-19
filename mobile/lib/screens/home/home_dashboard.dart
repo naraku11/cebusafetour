@@ -153,7 +153,7 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                       Text(l.quickActions, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
                       LayoutBuilder(builder: (ctx, constraints) {
-                        final crossAxisCount = constraints.maxWidth < 300 ? 2 : 4;
+                        final crossAxisCount = constraints.maxWidth < 300 ? 2 : 3;
                         return GridView.builder(
                           shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

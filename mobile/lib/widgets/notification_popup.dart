@@ -510,17 +510,24 @@ class NotificationPopupManager {
     AppNotification notification,
     void Function(String route) navigator,
   ) {
-    _currentEntry = OverlayEntry(
+    late final OverlayEntry entry;
+    void dismissThis() {
+      entry.remove();
+      if (_currentEntry == entry) _currentEntry = null;
+    }
+
+    entry = OverlayEntry(
       builder: (_) => EmergencyOverlay(
         notification: notification,
-        onDismiss: dismiss,
+        onDismiss: dismissThis,
         onViewDetails: () {
-          dismiss();
+          dismissThis();
           navigator('/notifications');
         },
       ),
     );
-    Overlay.of(context).insert(_currentEntry!);
+    _currentEntry = entry;
+    Overlay.of(context).insert(entry);
   }
 
   static void _showBanner(
@@ -531,25 +538,31 @@ class NotificationPopupManager {
     final route = _routeFor(notification);
     final isAdvisory = notification.type == 'advisory';
 
-    _currentEntry = OverlayEntry(
+    late final OverlayEntry entry;
+    void dismissThis() {
+      entry.remove();
+      if (_currentEntry == entry) _currentEntry = null;
+    }
+
+    entry = OverlayEntry(
       builder: (_) => NotificationBanner(
         notification: notification,
-        onDismiss: dismiss,
+        onDismiss: dismissThis,
         onTap: () {
-          dismiss();
+          dismissThis();
           navigator(route);
         },
-        // Advisory banners show a messenger-style "View Advisory" action pill
         actionLabel: isAdvisory ? 'View Advisory' : null,
         onAction: isAdvisory
             ? () {
-                dismiss();
+                dismissThis();
                 navigator('/advisories');
               }
             : null,
       ),
     );
-    Overlay.of(context).insert(_currentEntry!);
+    _currentEntry = entry;
+    Overlay.of(context).insert(entry);
   }
 }
 

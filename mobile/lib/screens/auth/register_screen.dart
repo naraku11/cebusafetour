@@ -152,7 +152,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             const SizedBox(height: 16),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(l.alreadyHaveAccount + ' '),
+              Text('${l.alreadyHaveAccount} '),
               GestureDetector(
                 onTap: () => context.go('/auth/login'),
                 child: Text(l.signIn, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0EA5E9))),

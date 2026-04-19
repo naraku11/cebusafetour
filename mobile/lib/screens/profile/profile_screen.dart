@@ -201,7 +201,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
               ]),
             ),
-            if (user?.profilePicture != null) ...[
+            if (user?.profilePictureVerified != null) ...[
               const SizedBox(height: 4),
               _VerificationBadge(verified: user!.profilePictureVerified),
             ],

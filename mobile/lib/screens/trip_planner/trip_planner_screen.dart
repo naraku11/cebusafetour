@@ -472,7 +472,7 @@ class _ExploreTabState extends ConsumerState<_ExploreTab> {
   Widget build(BuildContext context) {
     final trip = ref.watch(tripProvider);
     final notifier = ref.read(tripProvider.notifier);
-    final allAsync = ref.watch(attractionsProvider('status=published&limit=200'));
+    final allAsync = ref.watch(attractionsProvider('limit=200'));
 
     return Column(children: [
       // Search bar

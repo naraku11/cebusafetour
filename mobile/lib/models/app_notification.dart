@@ -38,7 +38,10 @@ class AppNotification {
     body: json['body'] as String,
     type: json['type'] as String? ?? 'announcement',
     priority: json['priority'] as String? ?? 'normal',
-    receivedAt: DateTime.parse(json['sentAt'] as String? ?? json['createdAt'] as String),
+    receivedAt: DateTime.tryParse(
+      json['sentAt'] as String? ?? json['createdAt'] as String? ?? '',
+    ) ?? DateTime.now(),
+    isRead: json['isRead'] as bool? ?? false,
   );
 
   AppNotification copyWith({bool? isRead}) => AppNotification(

@@ -56,9 +56,9 @@ class Attraction {
   }
 
   factory Attraction.fromJson(Map<String, dynamic> json) => Attraction(
-    id: json['id'],
-    name: json['name'],
-    category: json['category'],
+    id: json['id']?.toString() ?? '',
+    name: json['name']?.toString() ?? '',
+    category: json['category']?.toString() ?? 'other',
     description: json['description'],
     district: json['district'],
     address: json['address'],
