@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Advisory {
   final String id;
   final String title;
@@ -36,9 +38,19 @@ class Advisory {
 
   factory Advisory.fromJson(Map<String, dynamic> json) {
     final raw = json['acknowledgedBy'] ?? json['acknowledged_by'];
-    final ackList = raw is List
-        ? raw.map((e) => e.toString()).toList()
-        : <String>[];
+    List<String> ackList;
+    if (raw is List) {
+      ackList = raw.map((e) => e.toString()).toList();
+    } else if (raw is String && raw.isNotEmpty && raw != 'null') {
+      try {
+        final decoded = jsonDecode(raw);
+        ackList = decoded is List ? decoded.map((e) => e.toString()).toList() : <String>[];
+      } catch (_) {
+        ackList = <String>[];
+      }
+    } else {
+      ackList = <String>[];
+    }
 
     return Advisory(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',

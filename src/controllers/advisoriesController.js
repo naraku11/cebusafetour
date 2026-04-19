@@ -30,10 +30,23 @@ const _insertAdvisoryNotification = async (advisory, createdBy) => {
   return notifId;
 };
 
+// Parse JSON string fields on rows coming out of the DB (stored as TEXT)
+const _parseAdvisory = (a) => {
+  if (!a) return a;
+  if (typeof a.acknowledgedBy === 'string') {
+    try { a.acknowledgedBy = JSON.parse(a.acknowledgedBy); } catch { a.acknowledgedBy = []; }
+  }
+  if (!Array.isArray(a.acknowledgedBy)) a.acknowledgedBy = [];
+  if (typeof a.affectedArea === 'string') {
+    try { a.affectedArea = JSON.parse(a.affectedArea); } catch { a.affectedArea = {}; }
+  }
+  return a;
+};
+
 // Columns for advisory list — all columns are small, keep full set
 const ADVISORY_LIST_COLS = `id, title, description, severity, source, affected_area,
   recommended_actions, start_date, end_date, status, notification_sent,
-  created_by, created_at, updated_at`;
+  acknowledged_by, created_by, created_at, updated_at`;
 
 exports.list = async (req, res, next) => {
   try {
@@ -61,7 +74,7 @@ exports.list = async (req, res, next) => {
     const order = { critical: 0, warning: 1, advisory: 2 };
     advisories.sort((a, b) => order[a.severity] - order[b.severity]);
 
-    res.json({ advisories, total: countRow.n });
+    res.json({ advisories: advisories.map(_parseAdvisory), total: countRow.n });
   } catch (err) { next(err); }
 };
 
@@ -69,7 +82,7 @@ exports.get = async (req, res, next) => {
   try {
     const advisory = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     if (!advisory) return res.status(404).json({ error: 'Advisory not found' });
-    res.json({ advisory });
+    res.json({ advisory: _parseAdvisory(advisory) });
   } catch (err) { next(err); }
 };
 
@@ -96,7 +109,7 @@ exports.create = async (req, res, next) => {
       ]
     );
 
-    const advisory = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [id]);
+    const advisory = _parseAdvisory(await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [id]));
 
     socket.emitToAll('advisory:new', { advisory });
     res.status(201).json({ advisory });
@@ -139,7 +152,7 @@ exports.update = async (req, res, next) => {
       await db.run(`UPDATE advisories SET ${sets.join(', ')} WHERE id = ?`, params);
     }
 
-    const advisory = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
+    const advisory = _parseAdvisory(await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]));
 
     if (reNotify) {
       await sendPushToTopic('cebu_safety_advisories', {
@@ -174,7 +187,7 @@ exports.resolve = async (req, res, next) => {
   try {
     const result = await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
-    const resolved = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
+    const resolved = _parseAdvisory(await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]));
     socket.emitToAll('advisory:updated', { advisory: resolved });
     res.json({ message: 'Advisory resolved' });
   } catch (err) { next(err); }
@@ -184,7 +197,7 @@ exports.archive = async (req, res, next) => {
   try {
     const result = await db.run("UPDATE advisories SET status = 'archived', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
-    const archived = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
+    const archived = _parseAdvisory(await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]));
     socket.emitToAll('advisory:updated', { advisory: archived });
     res.json({ message: 'Advisory archived' });
   } catch (err) { next(err); }
@@ -194,7 +207,7 @@ exports.unarchive = async (req, res, next) => {
   try {
     const result = await db.run("UPDATE advisories SET status = 'resolved', updated_at = ? WHERE id = ?", [new Date(), req.params.id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Advisory not found' });
-    const restored = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
+    const restored = _parseAdvisory(await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]));
     socket.emitToAll('advisory:updated', { advisory: restored });
     res.json({ message: 'Advisory restored to resolved' });
   } catch (err) { next(err); }
@@ -218,10 +231,10 @@ exports.destroy = async (req, res, next) => {
 
 exports.acknowledge = async (req, res, next) => {
   try {
-    const advisory = await db.findOne(
+    const advisory = _parseAdvisory(await db.findOne(
       'SELECT id, acknowledged_by FROM advisories WHERE id = ? LIMIT 1',
       [req.params.id]
-    );
+    ));
     if (!advisory) return res.status(404).json({ error: 'Advisory not found' });
 
     const list = Array.isArray(advisory.acknowledgedBy) ? advisory.acknowledgedBy : [];
