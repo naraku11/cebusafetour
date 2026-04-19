@@ -40,7 +40,8 @@ router.get('/summary', authenticate, requireAdmin, async (req, res, next) => {
         `SELECT
            COUNT(*) as total,
            SUM(safety_status = 'safe') as safe,
-           SUM(safety_status = 'caution') as caution
+           SUM(safety_status = 'caution') as caution,
+           SUM(safety_status = 'restricted') as restricted
          FROM attractions WHERE status = 'published'`
       ),
       db.findOne(
@@ -68,7 +69,7 @@ router.get('/summary', authenticate, requireAdmin, async (req, res, next) => {
 
     res.json({
       users:       { total: Number(userStats.total), active: Number(userStats.active), suspended: Number(userStats.suspended), banned: Number(userStats.banned), newThisMonth: Number(userStats.newThisMonth) },
-      attractions: { total: Number(attrStats.total), safe: Number(attrStats.safe), caution: Number(attrStats.caution), danger: Number(attrStats.total) - Number(attrStats.safe) - Number(attrStats.caution) },
+      attractions: { total: Number(attrStats.total), safe: Number(attrStats.safe), caution: Number(attrStats.caution), restricted: Number(attrStats.restricted) },
       incidents:   { total: totalIncidents, active: Number(incidentStats.active), resolved: resolvedIncidents, today: Number(incidentStats.today), thisMonth: Number(incidentStats.thisMonth), resolveRate },
       advisories:  { total: Number(advisoryStats.total), active: Number(advisoryStats.active), critical: Number(advisoryStats.critical) },
     });

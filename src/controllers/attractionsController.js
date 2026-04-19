@@ -198,6 +198,10 @@ exports.nearby = async (req, res, next) => {
     const uLng = parseFloat(lng);
     const r    = parseFloat(radius);
 
+    if (isNaN(uLat) || isNaN(uLng)) {
+      return res.status(400).json({ error: 'Valid lat and lng query parameters are required' });
+    }
+
     const attractions = await db.findMany(
       `SELECT ${LIST_COLS}, (
          6371 * acos(

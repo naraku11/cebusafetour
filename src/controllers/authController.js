@@ -4,33 +4,15 @@ const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const { sendOtpEmail } = require('../services/emailService');
 
-const otpStore = new Map();
-const OTP_MAX_ENTRIES = 500; // hard cap to prevent memory exhaustion
-
-// Purge expired OTPs every 60s (was 5 min — too slow under load)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of otpStore) {
-    if (now > val.expiresAt) otpStore.delete(key);
-  }
-}, 60_000).unref();
-
-// Safe setter — evicts oldest entries when cap is reached
-function otpSet(key, val) {
-  if (otpStore.size >= OTP_MAX_ENTRIES) {
-    // Delete the first (oldest) entry
-    const first = otpStore.keys().next().value;
-    otpStore.delete(first);
-  }
-  otpStore.set(key, val);
-}
-
 const generateToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '30d',
   });
 
 const sanitize = ({ password, fcmToken, ...safe }) => safe;
+
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+const otpExpiry  = () => new Date(Date.now() + 10 * 60 * 1000);
 
 exports.register = async (req, res, next) => {
   try {
@@ -49,8 +31,11 @@ exports.register = async (req, res, next) => {
       [id, name, email, hashed, nationality ?? null, contactNumber ?? null, now, now]
     );
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpSet(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+    const otp = generateOtp();
+    await db.run(
+      'UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE email = ?',
+      [otp, otpExpiry(), email]
+    );
 
     let emailSent = true;
     try {
@@ -74,13 +59,17 @@ exports.register = async (req, res, next) => {
 exports.verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
-    const record = otpStore.get(email);
-    if (!record || record.otp !== otp || Date.now() > record.expiresAt) {
+    const user = await db.findOne(
+      'SELECT * FROM users WHERE email = ? LIMIT 1',
+      [email]
+    );
+    if (!user || user.otpCode !== otp || !user.otpExpiresAt || new Date() > new Date(user.otpExpiresAt)) {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
-    await db.run('UPDATE users SET is_verified = 1 WHERE email = ?', [email]);
-    const user = await db.findOne('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
-    otpStore.delete(email);
+    await db.run(
+      'UPDATE users SET is_verified = 1, otp_code = NULL, otp_expires_at = NULL WHERE email = ?',
+      [email]
+    );
     res.json({ message: 'Email verified', token: generateToken(user) });
   } catch (err) { next(err); }
 };
@@ -104,10 +93,17 @@ exports.forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     const user = await db.findOne('SELECT id, name FROM users WHERE email = ? LIMIT 1', [email]);
-    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpSet(`reset_${email}`, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+    // Always return 200 regardless of whether the email exists — prevents user enumeration
+    if (!user) {
+      return res.json({ message: 'If that email is registered, an OTP has been sent.', emailSent: false });
+    }
+
+    const otp = generateOtp();
+    await db.run(
+      'UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE email = ?',
+      [otp, otpExpiry(), email]
+    );
 
     let emailSent = true;
     try {
@@ -120,7 +116,7 @@ exports.forgotPassword = async (req, res, next) => {
 
     res.json({
       message: emailSent
-        ? 'OTP sent to your email'
+        ? 'If that email is registered, an OTP has been sent.'
         : 'Email delivery failed — please try again in a moment.',
       emailSent,
     });
@@ -130,13 +126,18 @@ exports.forgotPassword = async (req, res, next) => {
 exports.resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
-    const record = otpStore.get(`reset_${email}`);
-    if (!record || record.otp !== otp || Date.now() > record.expiresAt) {
+    const user = await db.findOne(
+      'SELECT otp_code, otp_expires_at FROM users WHERE email = ? LIMIT 1',
+      [email]
+    );
+    if (!user || user.otpCode !== otp || !user.otpExpiresAt || new Date() > new Date(user.otpExpiresAt)) {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
     const hashed = await bcrypt.hash(newPassword, 12);
-    await db.run('UPDATE users SET password = ? WHERE email = ?', [hashed, email]);
-    otpStore.delete(`reset_${email}`);
+    await db.run(
+      'UPDATE users SET password = ?, otp_code = NULL, otp_expires_at = NULL WHERE email = ?',
+      [hashed, email]
+    );
     res.json({ message: 'Password reset successful' });
   } catch (err) { next(err); }
 };
@@ -148,8 +149,11 @@ exports.resendOtp = async (req, res, next) => {
     if (!user) return res.status(404).json({ error: 'Email not found' });
     if (user.isVerified) return res.status(400).json({ error: 'Email already verified' });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpSet(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+    const otp = generateOtp();
+    await db.run(
+      'UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE email = ?',
+      [otp, otpExpiry(), email]
+    );
     await sendOtpEmail(email, user.name, otp);
     res.json({ message: 'OTP resent to your email' });
   } catch (err) { next(err); }
@@ -162,5 +166,17 @@ exports.updateFcmToken = async (req, res, next) => {
     const { fcmToken } = req.body;
     await db.run('UPDATE users SET fcm_token = ? WHERE id = ?', [fcmToken, req.user.id]);
     res.json({ message: 'FCM token updated' });
+  } catch (err) { next(err); }
+};
+
+// Used by the admin panel's PasswordUnlockModal to verify identity without creating a session
+exports.verifyPassword = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    const user = await db.findOne('SELECT id, password FROM users WHERE email = ? LIMIT 1', [email]);
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    res.json({ verified: true });
   } catch (err) { next(err); }
 };

@@ -137,6 +137,8 @@ model User {
   profilePicture         String?      @map("profile_picture")
   profilePictureVerified Boolean?     @map("profile_picture_verified")
   isVerified             Boolean      @default(false) @map("is_verified")
+  otpCode           String?      @map("otp_code") @db.VarChar(6)
+  otpExpiresAt      DateTime?    @map("otp_expires_at")
   lastActive        DateTime?    @map("last_active")
   emergencyContacts Json         @default("[]") @map("emergency_contacts")
   municipality      String?      @map("municipality")

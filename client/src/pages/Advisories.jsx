@@ -535,7 +535,7 @@ function PasswordUnlockModal({ advisory, purpose, adminEmail, onCancel, onUnlock
     if (!password.trim()) { setError('Enter your admin password'); return; }
     setLoading(true); setError('');
     try {
-      await api.post('/auth/login', { email: adminEmail, password }, { skipToast: true });
+      await api.post('/auth/verify-password', { email: adminEmail, password }, { skipToast: true });
       onUnlocked();
     } catch {
       setError('Incorrect password. Try again.');

@@ -93,7 +93,8 @@ exports.sendPushToAdmins = async (payload) => {
     );
     const tokens = admins.map(u => u.fcmToken).filter(Boolean);
     if (tokens.length) {
-      await messaging.sendEachForMulticast(buildMessage(tokens, payload));
+      const result = await messaging.sendEachForMulticast(buildMessage(tokens, payload));
+      await pruneInvalidTokens(tokens, result);
     }
   } catch (err) {
     logger.error('FCM sendPushToAdmins error:', err);

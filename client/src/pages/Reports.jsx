@@ -232,12 +232,12 @@ function OverviewTab({ role }) {
             <h4 className="font-medium text-gray-700 mb-3">Attraction Safety</h4>
             <Doughnut
               data={{
-                labels: ['Safe', 'Caution', 'Danger'],
+                labels: ['Safe', 'Caution', 'Restricted'],
                 datasets: [{
                   data: [
                     summary.attractions.safe,
                     summary.attractions.caution,
-                    summary.attractions.danger,
+                    summary.attractions.restricted,
                   ],
                   backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                   borderWidth: 0,
@@ -381,7 +381,7 @@ function IncidentsTab() {
   };
 
   const typeChart = {
-    labels: data?.byType?.map(r => r.type.replace('_', ' ')) ?? [],
+    labels: data?.byType?.map(r => r.type?.replace('_', ' ') ?? '—') ?? [],
     datasets: [{
       label: 'Count',
       data: data?.byType?.map(r => r.count) ?? [],
@@ -467,7 +467,7 @@ function IncidentsTab() {
                 <tr><td colSpan={5} className="py-8 text-center text-gray-400">No incidents found</td></tr>
               ) : data?.incidents?.map(inc => (
                 <tr key={inc.id} className="hover:bg-gray-50">
-                  <td className="py-3 capitalize">{inc.type.replace('_', ' ')}</td>
+                  <td className="py-3 capitalize">{inc.type?.replace('_', ' ') ?? '—'}</td>
                   <td className="py-3 text-gray-500 max-w-xs truncate">
                     {inc.nearestLandmark || `${inc.latitude?.toFixed(4)}, ${inc.longitude?.toFixed(4)}`}
                   </td>
@@ -480,7 +480,7 @@ function IncidentsTab() {
                   </td>
                   <td className="py-3 text-gray-500">{inc.assignedTo || '—'}</td>
                   <td className="py-3 text-gray-500 whitespace-nowrap">
-                    {format(new Date(inc.createdAt), 'MMM d, yyyy')}
+                    {inc.createdAt ? format(new Date(inc.createdAt), 'MMM d, yyyy') : '—'}
                   </td>
                 </tr>
               ))}
@@ -590,7 +590,7 @@ function AdvisoriesTab() {
                     }`}>{adv.status}</span>
                   </td>
                   <td className="py-3 text-gray-500 whitespace-nowrap">
-                    {format(new Date(adv.createdAt), 'MMM d, yyyy')}
+                    {adv.createdAt ? format(new Date(adv.createdAt), 'MMM d, yyyy') : '—'}
                   </td>
                 </tr>
               ))}

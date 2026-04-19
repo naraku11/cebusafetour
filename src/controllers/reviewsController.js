@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
+const cache = require('../utils/cache');
 const socket = require('../services/socketService');
 
 // Map a flat JOIN row (reviews + users) to a nested review object

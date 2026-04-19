@@ -25,5 +25,9 @@ router.post('/forgot-password', [body('email').isEmail()], validate, ctrl.forgot
 router.post('/reset-password', ctrl.resetPassword);
 router.get('/me', authenticate, ctrl.getMe);
 router.patch('/fcm-token', authenticate, ctrl.updateFcmToken);
+router.post('/verify-password', [
+  body('email').isEmail(),
+  body('password').notEmpty(),
+], validate, ctrl.verifyPassword);
 
 module.exports = router;
