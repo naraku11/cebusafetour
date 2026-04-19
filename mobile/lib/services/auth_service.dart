@@ -11,14 +11,32 @@ import '../utils/exceptions.dart';
 /// Safely extracts the `error` string from a Dio error response.
 /// Works even if the body is HTML (String) instead of JSON (Map).
 String _errorMsg(DioException e, String fallback) {
-  if (e.type == DioExceptionType.connectionTimeout ||
-      e.type == DioExceptionType.receiveTimeout ||
-      e.type == DioExceptionType.sendTimeout) {
-    return 'Connection timed out. Check your internet and try again.';
+  switch (e.type) {
+    case DioExceptionType.connectionTimeout:
+    case DioExceptionType.sendTimeout:
+    case DioExceptionType.receiveTimeout:
+      return 'Connection timed out. Check your internet and try again.';
+
+    case DioExceptionType.connectionError:
+      return 'Cannot reach the server. Check your internet connection.';
+
+    case DioExceptionType.unknown:
+      final inner = e.error;
+      // SocketException: no route / network unreachable (WiFi with no internet)
+      if (inner is SocketException) {
+        return 'Cannot reach the server. Check your internet connection.';
+      }
+      // HandshakeException: SSL/TLS failure — common on WiFi networks that
+      // use HTTPS inspection proxies (hotels, offices, captive portals).
+      if (inner is HandshakeException) {
+        return 'Secure connection failed. Try switching to mobile data or a different network.';
+      }
+      return 'Connection error. Try switching from WiFi to mobile data.';
+
+    default:
+      break;
   }
-  if (e.type == DioExceptionType.connectionError) {
-    return 'Cannot reach the server. Check your internet connection.';
-  }
+
   final data = e.response?.data;
   if (data is Map) return data['error'] as String? ?? fallback;
   return fallback;
@@ -31,6 +49,14 @@ class AuthService {
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final res = await _api.post('/auth/login', data: {'email': email, 'password': password});
+      // Guard against captive-portal / proxy responses that return HTML instead
+      // of JSON — without this the cast throws a TypeError, not a DioException.
+      if (res.data is! Map<String, dynamic>) {
+        throw Exception(
+          'Unexpected response from server. You may be on a restricted WiFi '
+          'network (captive portal). Try mobile data instead.',
+        );
+      }
       final data = res.data as Map<String, dynamic>;
       await _storage.write(key: 'auth_token', value: data['token']);
       return data;

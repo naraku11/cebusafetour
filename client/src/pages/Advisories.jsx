@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { PlusIcon, CheckCircleIcon, SparklesIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckCircleIcon, SparklesIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useAuthStore } from '../store/authStore';
 import { getSocket } from '../services/socket';
@@ -29,10 +29,12 @@ export default function Advisories() {
   const [aiArea,       setAiArea]       = useState('');
   const [aiLoading,    setAiLoading]    = useState(false);
 
-  // password modal state: { advisory, purpose: 'edit' | 'archive' | 'unarchive' } | null
+  // password modal state: { advisory, purpose: 'edit' | 'archive' | 'unarchive' | 'delete' } | null
   const [passwordLock,   setPasswordLock]   = useState(null);
   // archive confirm state: advisory | null
   const [confirmArchive, setConfirmArchive] = useState(null);
+  // delete confirm state: advisory | null
+  const [confirmDelete,  setConfirmDelete]  = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['advisories', statusFilter, severityFilter],
@@ -41,11 +43,12 @@ export default function Advisories() {
     }).then(r => r.data),
   });
 
-  // Real-time: update acknowledged count when a tourist acknowledges
+  // Real-time socket handlers
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
-    const handler = ({ advisoryId, count }) => {
+
+    const onAcknowledged = ({ advisoryId, count }) => {
       qc.setQueryData(['advisories', statusFilter, severityFilter], (prev) => {
         if (!prev?.advisories) return prev;
         return {
@@ -58,8 +61,24 @@ export default function Advisories() {
         };
       });
     };
-    socket.on('advisory:acknowledged', handler);
-    return () => socket.off('advisory:acknowledged', handler);
+
+    const onDeleted = ({ advisoryId }) => {
+      qc.setQueryData(['advisories', statusFilter, severityFilter], (prev) => {
+        if (!prev?.advisories) return prev;
+        return {
+          ...prev,
+          advisories: prev.advisories.filter(a => a.id !== advisoryId),
+          total: Math.max(0, (prev.total ?? 1) - 1),
+        };
+      });
+    };
+
+    socket.on('advisory:acknowledged', onAcknowledged);
+    socket.on('advisory:deleted',      onDeleted);
+    return () => {
+      socket.off('advisory:acknowledged', onAcknowledged);
+      socket.off('advisory:deleted',      onDeleted);
+    };
   }, [qc, statusFilter, severityFilter]);
 
   // Source filter is client-side (no backend param)
@@ -119,6 +138,16 @@ export default function Advisories() {
     onError: () => toast.error('Failed to restore advisory'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/advisories/${id}`),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['advisories'] });
+      setConfirmDelete(null);
+      toast.success('Advisory permanently deleted');
+    },
+    onError: () => toast.error('Failed to delete advisory'),
+  });
+
   const openEdit = (a) => {
     setEditing(a);
     setForm({ ...a, startDate: a.startDate?.split('T')[0] || '', endDate: a.endDate?.split('T')[0] || '' });
@@ -151,6 +180,12 @@ export default function Advisories() {
     if (purpose === 'edit')      openEdit(advisory);
     if (purpose === 'archive')   setConfirmArchive(advisory);
     if (purpose === 'unarchive') unarchiveMutation.mutate(advisory.id);
+    if (purpose === 'delete')    setConfirmDelete(advisory);
+  };
+
+  // Delete always requires password — it's permanent and irreversible
+  const requestDelete = (advisory) => {
+    setPasswordLock({ advisory, purpose: 'delete' });
   };
 
   const handleAiFill = async () => {
@@ -328,6 +363,18 @@ export default function Advisories() {
                       🔄 Restore
                     </button>
                   )}
+
+                  {/* Delete button — super admin only, permanent, always password-locked */}
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => requestDelete(advisory)}
+                      className="flex items-center gap-1 text-xs py-1.5 px-3 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100"
+                    >
+                      <LockClosedIcon className="w-3.5 h-3.5" />
+                      <TrashIcon className="w-3.5 h-3.5" />
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -457,6 +504,16 @@ export default function Advisories() {
           archiving={archiveMutation.isPending}
         />
       )}
+
+      {/* Delete Confirm Modal */}
+      {confirmDelete && (
+        <DeleteConfirmModal
+          advisory={confirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => deleteMutation.mutate(confirmDelete.id)}
+          deleting={deleteMutation.isPending}
+        />
+      )}
     </div>
   );
 }
@@ -469,8 +526,9 @@ function PasswordUnlockModal({ advisory, purpose, adminEmail, onCancel, onUnlock
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
 
-  const purposeLabel = purpose === 'edit'      ? 'edit this advisory'    :
-                       purpose === 'archive'   ? 'archive this advisory' :
+  const purposeLabel = purpose === 'edit'      ? 'edit this advisory'              :
+                       purpose === 'archive'   ? 'archive this advisory'            :
+                       purpose === 'delete'    ? 'permanently delete this advisory' :
                        'restore this advisory';
 
   const verify = async () => {
@@ -529,6 +587,46 @@ function PasswordUnlockModal({ advisory, purpose, adminEmail, onCancel, onUnlock
           <button onClick={onCancel} className="btn-secondary flex-1">Cancel</button>
           <button onClick={verify} disabled={loading} className="btn-primary flex-1">
             {loading ? 'Verifying...' : 'Unlock'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
+
+function DeleteConfirmModal({ advisory, onCancel, onConfirm, deleting }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <TrashIcon className="w-5 h-5 text-red-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Delete Advisory?</h3>
+            <p className="text-sm text-red-600 font-medium">This action is permanent and cannot be undone.</p>
+          </div>
+        </div>
+
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1">
+          <p className="text-sm font-medium text-gray-700">{advisory?.title}</p>
+          <p className="text-xs text-gray-500 capitalize">{advisory?.severity} · {advisory?.status}</p>
+          <p className="text-xs text-red-600 mt-1">
+            All acknowledgment records and the linked push notification will also be removed.
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button onClick={onCancel} className="btn-secondary flex-1">Cancel</button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 transition-colors"
+          >
+            <TrashIcon className="w-4 h-4" />
+            {deleting ? 'Deleting...' : 'Delete Permanently'}
           </button>
         </div>
       </div>

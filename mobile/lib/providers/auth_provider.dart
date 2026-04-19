@@ -88,10 +88,16 @@ class AuthNotifier extends Notifier<AuthState> {
           state = AuthState(user: cachedUser, token: token);
         }
       } on TokenExpiredException {
-        // 401 — token is explicitly rejected by the server → force logout.
-        await _authService.clearUserCache();
-        await _authService.logout();
-        state = const AuthState();
+        // 401 — token expired. Restore cached profile so the user still sees
+        // their account, but clear the token so protected API calls fail
+        // cleanly and the login screen is shown when they try to act.
+        final cachedUser = await _authService.getCachedUser();
+        await _authService.logout(); // clears token from secure storage
+        state = AuthState(
+          user: cachedUser,
+          token: null,
+          error: cachedUser != null ? 'Session expired. Please sign in again.' : null,
+        );
       } on AccountSuspendedException catch (e) {
         await _authService.clearUserCache();
         await _authService.logout();

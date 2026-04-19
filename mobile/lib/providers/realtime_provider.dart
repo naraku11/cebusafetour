@@ -50,6 +50,7 @@ final realtimeProvider = Provider<void>((ref) {
 
   svc.on('advisory:new',     onAdvisoryChange);
   svc.on('advisory:updated', onAdvisoryChange);
+  svc.on('advisory:deleted', onAdvisoryChange);
 
   // ── Review events ───────────────────────────────────────────────────────
   // The server sends { attractionId } so we can invalidate precisely.

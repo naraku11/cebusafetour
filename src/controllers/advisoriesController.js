@@ -200,6 +200,22 @@ exports.unarchive = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.destroy = async (req, res, next) => {
+  try {
+    const existing = await db.findOne('SELECT id FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Advisory not found' });
+
+    // Also remove the mirrored notification record (created when advisory was published)
+    await Promise.all([
+      db.run('DELETE FROM advisories WHERE id = ?', [req.params.id]),
+      db.run("DELETE FROM notifications WHERE related_id = ? AND related_type = 'advisory'", [req.params.id]),
+    ]);
+
+    socket.emitToAll('advisory:deleted', { advisoryId: req.params.id });
+    res.json({ message: 'Advisory deleted' });
+  } catch (err) { next(err); }
+};
+
 exports.acknowledge = async (req, res, next) => {
   try {
     const advisory = await db.findOne(

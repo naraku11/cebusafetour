@@ -158,10 +158,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50, borderRadius: BorderRadius.circular(8),
+                    color: auth.error!.contains('expired')
+                        ? Colors.amber.shade50
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: auth.error!.contains('expired')
+                          ? Colors.amber.shade300
+                          : Colors.red.shade100,
+                    ),
                   ),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(auth.error!, style: TextStyle(color: Colors.red.shade700)),
+                    Row(children: [
+                      Icon(
+                        auth.error!.contains('expired')
+                            ? Icons.access_time_outlined
+                            : Icons.error_outline,
+                        size: 16,
+                        color: auth.error!.contains('expired')
+                            ? Colors.amber.shade700
+                            : Colors.red.shade700,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          auth.error!,
+                          style: TextStyle(
+                            color: auth.error!.contains('expired')
+                                ? Colors.amber.shade800
+                                : Colors.red.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ]),
                     if (auth.error!.toLowerCase().contains('verify')) ...[
                       const SizedBox(height: 8),
                       GestureDetector(
@@ -187,7 +217,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               const SizedBox(height: 24),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(l.dontHaveAccount + ' '),
+                Text('${l.dontHaveAccount} '),
                 GestureDetector(
                   onTap: () => context.push('/auth/register'),
                   child: Text(l.signUp,

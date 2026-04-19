@@ -265,12 +265,16 @@ class NotificationBanner extends StatefulWidget {
   final AppNotification notification;
   final VoidCallback onDismiss;
   final VoidCallback onTap;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const NotificationBanner({
     super.key,
     required this.notification,
     required this.onDismiss,
     required this.onTap,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -297,10 +301,12 @@ class _NotificationBannerState extends State<NotificationBanner>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
 
-    // Auto-dismiss based on type
-    final duration = widget.notification.isCritical
-        ? const Duration(seconds: 8)
-        : const Duration(seconds: 5);
+    // Auto-dismiss: advisories stay longer since they require a conscious tap
+    final duration = widget.notification.isEmergency || widget.notification.isCritical
+        ? const Duration(seconds: 10)
+        : widget.notification.type == 'advisory'
+            ? const Duration(seconds: 8)
+            : const Duration(seconds: 5);
     _autoClose = Timer(duration, _dismiss);
   }
 
@@ -413,13 +419,43 @@ class _NotificationBannerState extends State<NotificationBanner>
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'Tap to view  •  Swipe up to dismiss',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: style.color.withValues(alpha: 0.5),
+                        if (widget.actionLabel != null && widget.onAction != null) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  _autoClose?.cancel();
+                                  widget.onAction!();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: style.color,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    widget.actionLabel!,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Swipe up to dismiss',
+                                style: TextStyle(fontSize: 10, color: style.color.withValues(alpha: 0.5)),
+                              ),
+                            ],
                           ),
-                        ),
+                        ] else
+                          Text(
+                            'Tap to view  •  Swipe up to dismiss',
+                            style: TextStyle(fontSize: 10, color: style.color.withValues(alpha: 0.5)),
+                          ),
                       ],
                     ),
                   ),
@@ -465,6 +501,10 @@ class NotificationPopupManager {
     _currentEntry = null;
   }
 
+  // Returns the deep-link route for a given notification type.
+  static String _routeFor(AppNotification n) =>
+      n.type == 'advisory' ? '/advisories' : '/notifications';
+
   static void _showEmergencyOverlay(
     BuildContext context,
     AppNotification notification,
@@ -488,14 +528,25 @@ class NotificationPopupManager {
     AppNotification notification,
     void Function(String route) navigator,
   ) {
+    final route = _routeFor(notification);
+    final isAdvisory = notification.type == 'advisory';
+
     _currentEntry = OverlayEntry(
       builder: (_) => NotificationBanner(
         notification: notification,
         onDismiss: dismiss,
         onTap: () {
           dismiss();
-          navigator('/notifications');
+          navigator(route);
         },
+        // Advisory banners show a messenger-style "View Advisory" action pill
+        actionLabel: isAdvisory ? 'View Advisory' : null,
+        onAction: isAdvisory
+            ? () {
+                dismiss();
+                navigator('/advisories');
+              }
+            : null,
       ),
     );
     Overlay.of(context).insert(_currentEntry!);

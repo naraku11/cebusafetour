@@ -27,7 +27,7 @@ function otpSet(key, val) {
 
 const generateToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '30d',
   });
 
 const sanitize = ({ password, fcmToken, ...safe }) => safe;
