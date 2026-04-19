@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Self-contained localizations — no code generation needed.
-/// Supports 12 languages; all others fall back to English.
+/// Supports 16 languages; all others fall back to English.
 class AppLocalizations {
   final Locale locale;
   const AppLocalizations(this.locale);
@@ -18,18 +18,7 @@ class AppLocalizations {
     Locale('en'),  Locale('zh'),  Locale('ko'),  Locale('ja'),
     Locale('de'),  Locale('es'),  Locale('fr'),  Locale('ar'),
     Locale('hi'),  Locale('ru'),  Locale('fil'), Locale('id'),
-    Locale('th'),  Locale('vi'),  Locale('ms'),  Locale('pt'),
-    Locale('it'),  Locale('nl'),  Locale('tr'),  Locale('pl'),
-    Locale('uk'),  Locale('sv'),  Locale('da'),  Locale('no'),
-    Locale('fi'),  Locale('el'),  Locale('he'),  Locale('bn'),
-    Locale('ta'),  Locale('ro'),  Locale('hu'),  Locale('cs'),
-    Locale('ur'),  Locale('my'),  Locale('km'),
-    Locale('lo'),  Locale('mn'),  Locale('sw'),  Locale('sk'),
-    Locale('hr'),  Locale('bg'),  Locale('sr'),  Locale('lt'),
-    Locale('lv'),  Locale('et'),  Locale('sl'),  Locale('af'),
-    Locale('fa'),  Locale('ne'),  Locale('si'),  Locale('ka'),
-    Locale('hy'),  Locale('az'),  Locale('kk'),  Locale('uz'),
-    Locale('tl'),
+    Locale('th'),  Locale('vi'),  Locale('ms'),
   ];
 
   // ── Lookup helpers ─────────────────────────────────────────────────────────
