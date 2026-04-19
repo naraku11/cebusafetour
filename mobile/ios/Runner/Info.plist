@@ -60,6 +60,11 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	<!-- Allows time-sensitive notifications to break through Focus modes.
+	     interruptionLevel: timeSensitive set in DarwinNotificationDetails
+	     requires this entitlement declared here. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
 
 	<!-- Scene manifest -->
 	<key>UIApplicationSceneManifest</key>
