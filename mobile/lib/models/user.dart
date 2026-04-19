@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class UserModel {
   final String id;
   final String name;
@@ -41,7 +43,10 @@ class UserModel {
     profilePictureVerified: json['profilePictureVerified'],
     emergencyContacts: json['emergencyContacts'] is List
         ? List<Map<String, dynamic>>.from(json['emergencyContacts'])
-        : [],
+        : json['emergencyContacts'] is String
+            ? List<Map<String, dynamic>>.from(
+                jsonDecode(json['emergencyContacts'] as String) as List)
+            : [],
   );
 
   Map<String, dynamic> toJson() => {

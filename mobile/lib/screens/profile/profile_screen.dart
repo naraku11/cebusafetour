@@ -464,8 +464,8 @@ class _EmergencyContactsSheetState extends State<_EmergencyContactsSheet> {
                 setState(() {
                   final contact = {
                     'name': name,
-                    'phone': phone,
                     'relationship': relCtrl.text.trim(),
+                    'phone': phone,
                   };
                   if (isEdit) {
                     _contacts[editIndex] = contact;

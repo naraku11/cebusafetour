@@ -7,7 +7,12 @@ const { sendOtpEmail } = require('../services/emailService');
 const generateToken = (user, expiresIn = process.env.JWT_EXPIRES_IN || '30d') =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn });
 
-const sanitize = ({ password, fcmToken, ...safe }) => safe;
+const sanitize = ({ password, fcmToken, emergencyContacts, ...safe }) => {
+  let contacts = [];
+  try { contacts = typeof emergencyContacts === 'string' ? JSON.parse(emergencyContacts || '[]') : (emergencyContacts ?? []); }
+  catch { /* leave empty */ }
+  return { ...safe, emergencyContacts: contacts };
+};
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const otpExpiry  = () => new Date(Date.now() + 10 * 60 * 1000);

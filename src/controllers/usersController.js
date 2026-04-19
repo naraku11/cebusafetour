@@ -9,6 +9,15 @@ const USER_COLS = `id, name, email, nationality, contact_number, role, status, l
   profile_picture, profile_picture_verified, is_verified, last_active,
   emergency_contacts, municipality, designation, created_by_admin_id, created_at, updated_at`;
 
+// Parse emergencyContacts from JSON string (stored as TEXT in DB) to array
+const parseUser = u => {
+  if (!u) return null;
+  try {
+    const v = u.emergencyContacts;
+    return { ...u, emergencyContacts: typeof v === 'string' ? JSON.parse(v || '[]') : (v ?? []) };
+  } catch { return { ...u, emergencyContacts: [] }; }
+};
+
 exports.list = async (req, res, next) => {
   try {
     const { search, status, nationality, page = 1, limit = 20 } = req.query;
@@ -35,7 +44,7 @@ exports.list = async (req, res, next) => {
       db.findOne(`SELECT COUNT(*) as n FROM users WHERE ${where}`, params),
     ]);
 
-    res.json({ users, total: countRow.n });
+    res.json({ users: users.map(parseUser), total: countRow.n });
   } catch (err) { next(err); }
 };
 
@@ -52,7 +61,7 @@ exports.get = async (req, res, next) => {
       [user.id]
     );
 
-    res.json({ user, incidents });
+    res.json({ user: parseUser(user), incidents });
   } catch (err) { next(err); }
 };
 
@@ -94,7 +103,7 @@ exports.updateProfile = async (req, res, next) => {
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.user.id]);
     socket.emitToAdmins('user:profile-updated', { id: req.user.id });
-    res.json({ user });
+    res.json({ user: parseUser(user) });
   } catch (err) { next(err); }
 };
 
@@ -123,7 +132,7 @@ exports.uploadAvatar = async (req, res, next) => {
     );
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.user.id]);
     socket.emitToAdmins('user:profile-updated', { id: req.user.id });
-    res.json({ user });
+    res.json({ user: parseUser(user) });
   } catch (err) { next(err); }
 };
 
@@ -204,7 +213,7 @@ exports.updateUser = async (req, res, next) => {
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.params.id]);
     socket.emitToAdmins('user:updated', { id: req.params.id });
-    res.json({ user });
+    res.json({ user: parseUser(user) });
   } catch (err) { next(err); }
 };
 
@@ -317,7 +326,7 @@ exports.updateStaff = async (req, res, next) => {
 
     const user = await db.findOne(`SELECT ${USER_COLS} FROM users WHERE id = ? LIMIT 1`, [req.params.id]);
     socket.emitToAdmins('staff:updated', { id: req.params.id });
-    res.json({ user });
+    res.json({ user: parseUser(user) });
   } catch (err) { next(err); }
 };
 
