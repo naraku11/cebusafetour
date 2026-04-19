@@ -8,6 +8,7 @@ class Advisory {
   final String? recommendedActions;
   final DateTime startDate;
   final DateTime? endDate;
+  final List<String> acknowledgedBy;
 
   Advisory({
     required this.id,
@@ -19,17 +20,37 @@ class Advisory {
     this.recommendedActions,
     required this.startDate,
     this.endDate,
+    this.acknowledgedBy = const [],
   });
 
-  factory Advisory.fromJson(Map<String, dynamic> json) => Advisory(
-    id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
-    title: json['title']?.toString() ?? '',
-    description: json['description']?.toString() ?? '',
-    severity: json['severity']?.toString() ?? 'advisory',
-    source: json['source']?.toString() ?? '',
-    status: json['status']?.toString() ?? 'active',
-    recommendedActions: (json['recommendedActions'] ?? json['recommended_actions'])?.toString(),
-    startDate: DateTime.tryParse((json['startDate'] ?? json['start_date'] ?? json['created_at'])?.toString() ?? '') ?? DateTime.now(),
-    endDate: (json['endDate'] ?? json['end_date']) != null ? DateTime.tryParse((json['endDate'] ?? json['end_date']).toString()) : null,
+  int get acknowledgedCount => acknowledgedBy.length;
+
+  bool isAcknowledgedBy(String userId) => acknowledgedBy.contains(userId);
+
+  Advisory copyWith({List<String>? acknowledgedBy}) => Advisory(
+    id: id, title: title, description: description, severity: severity,
+    source: source, status: status, recommendedActions: recommendedActions,
+    startDate: startDate, endDate: endDate,
+    acknowledgedBy: acknowledgedBy ?? this.acknowledgedBy,
   );
+
+  factory Advisory.fromJson(Map<String, dynamic> json) {
+    final raw = json['acknowledgedBy'] ?? json['acknowledged_by'];
+    final ackList = raw is List
+        ? raw.map((e) => e.toString()).toList()
+        : <String>[];
+
+    return Advisory(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      severity: json['severity']?.toString() ?? 'advisory',
+      source: json['source']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'active',
+      recommendedActions: (json['recommendedActions'] ?? json['recommended_actions'])?.toString(),
+      startDate: DateTime.tryParse((json['startDate'] ?? json['start_date'] ?? json['created_at'])?.toString() ?? '') ?? DateTime.now(),
+      endDate: (json['endDate'] ?? json['end_date']) != null ? DateTime.tryParse((json['endDate'] ?? json['end_date']).toString()) : null,
+      acknowledgedBy: ackList,
+    );
+  }
 }

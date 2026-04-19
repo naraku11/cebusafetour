@@ -29,11 +29,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: navigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
-      final isLoggedIn = authState.token != null;
+      final isLoggedIn  = authState.token != null;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
-      final isSplash = state.matchedLocation == '/splash';
+      final isSplash    = state.matchedLocation == '/splash';
+      // Advisories are public — visible even to non-logged-in users so they
+      // can see safety information after tapping a push notification.
+      final isPublic    = state.matchedLocation == '/advisories';
 
-      if (isSplash) return null;
+      if (isSplash || isPublic) return null;
       if (!isLoggedIn && !isAuthRoute) return '/auth/login';
       if (isLoggedIn && isAuthRoute) return '/home';
       return null;

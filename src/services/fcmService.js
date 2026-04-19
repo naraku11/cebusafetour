@@ -100,3 +100,22 @@ exports.sendPushToAdmins = async (payload) => {
   }
 };
 
+// Sends to all devices that have subscribed to a topic — reaches non-logged-in installs.
+exports.sendPushToTopic = async (topic, { title, body, data = {} }) => {
+  try {
+    const messaging = getMessaging();
+    if (!messaging) return;
+
+    await messaging.send({
+      notification: { title, body },
+      data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+      topic,
+      android: { priority: 'high', notification: { channelId: 'cebusafetour_alerts' } },
+      apns: { headers: { 'apns-priority': '10' } },
+    });
+    logger.info(`Topic push sent to "${topic}"`);
+  } catch (err) {
+    logger.error(`FCM sendPushToTopic(${topic}) error:`, err);
+  }
+};
+

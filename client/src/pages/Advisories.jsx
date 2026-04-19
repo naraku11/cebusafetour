@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { PlusIcon, CheckCircleIcon, SparklesIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useAuthStore } from '../store/authStore';
+import { getSocket } from '../services/socket';
 
 const SEVERITY_MAP = { critical: 'badge-critical', warning: 'badge-warning', advisory: 'badge-advisory' };
 const SEVERITY_ICONS = { critical: '🔴', warning: '🟡', advisory: '🟢' };
@@ -39,6 +40,27 @@ export default function Advisories() {
       params: { status: statusFilter, severity: severityFilter || undefined, limit: 50 },
     }).then(r => r.data),
   });
+
+  // Real-time: update acknowledged count when a tourist acknowledges
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handler = ({ advisoryId, count }) => {
+      qc.setQueryData(['advisories', statusFilter, severityFilter], (prev) => {
+        if (!prev?.advisories) return prev;
+        return {
+          ...prev,
+          advisories: prev.advisories.map(a =>
+            a.id === advisoryId
+              ? { ...a, acknowledgedBy: Array(count).fill(null) }
+              : a
+          ),
+        };
+      });
+    };
+    socket.on('advisory:acknowledged', handler);
+    return () => socket.off('advisory:acknowledged', handler);
+  }, [qc, statusFilter, severityFilter]);
 
   // Source filter is client-side (no backend param)
   const visibleAdvisories = sourceFilter

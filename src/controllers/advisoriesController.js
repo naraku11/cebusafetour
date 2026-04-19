@@ -1,9 +1,34 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
-const { sendPushToAll } = require('../services/fcmService');
+const { sendPushToTopic } = require('../services/fcmService');
 const { suggestAdvisory } = require('../services/aiService');
 const socket = require('../services/socketService');
+
+// Insert a mirrored row in the notifications table so the advisory appears
+// in the mobile notifications screen via GET /notifications/public.
+const _insertAdvisoryNotification = async (advisory, createdBy) => {
+  const notifId = uuidv4();
+  const now     = new Date();
+  const priority = advisory.severity === 'critical' ? 'high' : 'normal';
+  await db.run(
+    `INSERT INTO notifications
+       (id, title, body, type, priority, target, scheduled_at, sent_at, status,
+        related_id, related_type, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, 'advisory', ?, '{"type":"all"}', NULL, ?, 'sent', ?, 'advisory', ?, ?, ?)`,
+    [
+      notifId,
+      `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
+      advisory.description.substring(0, 200),
+      priority,
+      now,
+      advisory.id,
+      createdBy,
+      now, now,
+    ]
+  );
+  return notifId;
+};
 
 // Columns for advisory list — all columns are small, keep full set
 const ADVISORY_LIST_COLS = `id, title, description, severity, source, affected_area,
@@ -76,12 +101,13 @@ exports.create = async (req, res, next) => {
     socket.emitToAll('advisory:new', { advisory });
     res.status(201).json({ advisory });
 
-    // Fire-and-forget: send push and mark notification_sent — don't block the response
-    sendPushToAll({
-      title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
-      body:  advisory.description.substring(0, 120),
-      data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity },
-    })
+    // Fire-and-forget: mirror into notifications table, send push to ALL installs via topic
+    _insertAdvisoryNotification(advisory, req.user.id)
+      .then(notifId => sendPushToTopic('cebu_safety_advisories', {
+        title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
+        body:  advisory.description.substring(0, 120),
+        data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity, notificationId: notifId },
+      }))
       .then(() => db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]))
       .catch(err => logger.warn('Advisory push failed:', err.message));
   } catch (err) { next(err); }
@@ -116,7 +142,7 @@ exports.update = async (req, res, next) => {
     const advisory = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
 
     if (reNotify) {
-      await sendPushToAll({
+      await sendPushToTopic('cebu_safety_advisories', {
         title: `[UPDATED] ${advisory.title}`,
         body:  advisory.description.substring(0, 120),
         data:  { type: 'advisory', advisoryId: advisory.id },
@@ -171,5 +197,31 @@ exports.unarchive = async (req, res, next) => {
     const restored = await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]);
     socket.emitToAll('advisory:updated', { advisory: restored });
     res.json({ message: 'Advisory restored to resolved' });
+  } catch (err) { next(err); }
+};
+
+exports.acknowledge = async (req, res, next) => {
+  try {
+    const advisory = await db.findOne(
+      'SELECT id, acknowledged_by FROM advisories WHERE id = ? LIMIT 1',
+      [req.params.id]
+    );
+    if (!advisory) return res.status(404).json({ error: 'Advisory not found' });
+
+    const list = Array.isArray(advisory.acknowledgedBy) ? advisory.acknowledgedBy : [];
+    const userId = req.user.id;
+    const already = list.includes(userId);
+
+    if (!already) {
+      list.push(userId);
+      await db.run(
+        'UPDATE advisories SET acknowledged_by = ?, updated_at = ? WHERE id = ?',
+        [JSON.stringify(list), new Date(), req.params.id]
+      );
+      // Emit real-time count update to admin panel
+      socket.emitToAdmins('advisory:acknowledged', { advisoryId: req.params.id, count: list.length });
+    }
+
+    res.json({ acknowledged: true, count: list.length });
   } catch (err) { next(err); }
 };
