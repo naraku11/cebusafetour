@@ -6,8 +6,8 @@ router.get('/', ctrl.list);
 router.get('/:id', ctrl.get);
 
 // Specific POST paths must come before /:id wildcard routes
-router.post('/ai-suggest', authenticate, requireAdmin, ctrl.aiSuggest);
-router.post('/', authenticate, requireAdmin, ctrl.create);
+router.post('/ai-suggest', authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.aiSuggest);
+router.post('/', authenticate, requireRole('admin_super', 'admin_emergency'), ctrl.create);
 
 // Any authenticated user (tourists acknowledge advisories)
 router.post('/:id/acknowledge', authenticate, ctrl.acknowledge);

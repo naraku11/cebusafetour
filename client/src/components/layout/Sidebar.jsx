@@ -26,7 +26,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/attractions', icon: MapPinIcon,              label: 'Attractions', roles: SC },
       { to: '/reviews',     icon: StarIcon,                label: 'Reviews',     roles: SC },
-      { to: '/advisories',  icon: ExclamationTriangleIcon, label: 'Advisories',  roles: SC },
+      { to: '/advisories',  icon: ExclamationTriangleIcon, label: 'Advisories',  roles: SE },
     ],
   },
   {

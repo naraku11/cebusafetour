@@ -20,8 +20,8 @@ const Profile       = lazy(() => import('./pages/Profile'));
 // Pages each role is allowed to access
 const ROLE_PAGES = {
   admin_super:     ['/dashboard', '/attractions', '/reviews', '/advisories', '/emergency', '/users', '/notifications', '/reports', '/help', '/profile'],
-  admin_content:   ['/dashboard', '/attractions', '/reviews', '/advisories',                          '/notifications', '/reports', '/help', '/profile'],
-  admin_emergency: ['/dashboard',                                             '/emergency',            '/notifications', '/reports', '/help', '/profile'],
+  admin_content:   ['/dashboard', '/attractions', '/reviews',                                          '/notifications', '/reports', '/help', '/profile'],
+  admin_emergency: ['/dashboard',                              '/advisories', '/emergency',            '/notifications', '/reports', '/help', '/profile'],
 };
 
 // First page to land on after login, per role

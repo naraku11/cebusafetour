@@ -18,7 +18,8 @@ const defaultForm = {
 export default function Advisories() {
   const qc = useQueryClient();
   const adminEmail   = useAuthStore(s => s.user?.email);
-  const isSuperAdmin = useAuthStore(s => s.user?.role) === 'admin_super';
+  const isSuperAdmin    = useAuthStore(s => s.user?.role) === 'admin_super';
+  const canPostAdvisory = useAuthStore(s => ['admin_super', 'admin_emergency'].includes(s.user?.role));
 
   const [statusFilter,   setStatusFilter]   = useState('active');
   const [severityFilter, setSeverityFilter] = useState('');
@@ -219,9 +220,11 @@ export default function Advisories() {
           <h2 className="text-2xl font-bold text-gray-900">Safety Advisories</h2>
           <p className="text-gray-500 text-sm">{data?.total ?? 0} advisories</p>
         </div>
-        <button onClick={() => { setEditing(null); setForm(defaultForm); setShowModal(true); }} className="btn-primary flex items-center gap-2">
-          <PlusIcon className="w-4 h-4" /> Create Advisory
-        </button>
+        {canPostAdvisory && (
+          <button onClick={() => { setEditing(null); setForm(defaultForm); setShowModal(true); }} className="btn-primary flex items-center gap-2">
+            <PlusIcon className="w-4 h-4" /> Create Advisory
+          </button>
+        )}
       </div>
 
       {/* Filters */}
