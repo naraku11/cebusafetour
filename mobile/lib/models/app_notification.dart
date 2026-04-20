@@ -1,5 +1,3 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
-
 class AppNotification {
   final String id;
   final String title;
@@ -19,16 +17,13 @@ class AppNotification {
     this.isRead = false,
   });
 
-  factory AppNotification.fromRemote(RemoteMessage msg) => AppNotification(
-    // Prefer the backend UUID sent in FCM data so deduplication against
-    // the /notifications/public API response works correctly.
-    id: msg.data['notificationId'] as String?
-        ?? msg.messageId
+  factory AppNotification.fromSocket(Map<String, dynamic> data) => AppNotification(
+    id: data['id']?.toString()
         ?? DateTime.now().millisecondsSinceEpoch.toString(),
-    title: msg.notification?.title ?? msg.data['title'] as String? ?? 'Notification',
-    body: msg.notification?.body ?? msg.data['body'] as String? ?? '',
-    type: msg.data['type'] as String? ?? 'announcement',
-    priority: msg.data['priority'] as String? ?? 'normal',
+    title: data['title']?.toString() ?? 'Notification',
+    body: data['body']?.toString() ?? '',
+    type: data['type']?.toString() ?? 'announcement',
+    priority: data['priority']?.toString() ?? 'normal',
     receivedAt: DateTime.now(),
   );
 
@@ -49,9 +44,6 @@ class AppNotification {
     receivedAt: receivedAt, isRead: isRead ?? this.isRead,
   );
 
-  /// Whether this notification should show a full-screen emergency overlay
   bool get isEmergency => type == 'emergency';
-
-  /// Whether this notification should show a prominent alert banner
-  bool get isCritical => type == 'safety_alert' || priority == 'high';
+  bool get isCritical  => type == 'safety_alert' || priority == 'high';
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import '../services/notification_service.dart';
 import '../utils/exceptions.dart';
 
 class AuthState {
@@ -77,10 +76,6 @@ class AuthNotifier extends Notifier<AuthState> {
           // Fresh data — update cache and state.
           await _authService.cacheUser(user);
           state = AuthState(user: user, token: token);
-          // Register FCM token for already-logged-in users (fire-and-forget)
-          NotificationService.getToken().then((fcmToken) {
-            if (fcmToken != null) _authService.updateFcmToken(fcmToken);
-          });
         } else {
           // getMe() returned null → network/server error (not a 401).
           // Keep the user logged in using the last cached profile.
@@ -118,9 +113,6 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user == null || token == null) throw Exception('Could not load account after verification.');
       await _authService.cacheUser(user);
       state = AuthState(user: user, token: token);
-      NotificationService.getToken().then((fcmToken) {
-        if (fcmToken != null) _authService.updateFcmToken(fcmToken);
-      });
       return true;
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -136,10 +128,6 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = UserModel.fromJson(data['user']);
       await _authService.cacheUser(user);
       state = AuthState(user: user, token: data['token']);
-      // Register FCM token with backend (fire-and-forget)
-      NotificationService.getToken().then((token) {
-        if (token != null) _authService.updateFcmToken(token);
-      });
       return true;
     } on AccountSuspendedException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message, isSuspended: true);

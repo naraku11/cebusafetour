@@ -1,21 +1,12 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/advisory.dart';
 import '../services/api_service.dart';
-import '../services/notification_service.dart';
 
 final _api = ApiService();
 
 class AdvisoriesNotifier extends AsyncNotifier<List<Advisory>> {
   @override
-  Future<List<Advisory>> build() {
-    // Listen to FCM messages so non-logged-in users see updates without a socket
-    final sub = NotificationService.messageStream.listen((msg) {
-      if (msg.data['type'] == 'advisory') refresh();
-    });
-    ref.onDispose(sub.cancel);
-    return _fetch();
-  }
+  Future<List<Advisory>> build() => _fetch();
 
   Future<List<Advisory>> _fetch() async {
     final res = await _api.get('/advisories', params: {'status': 'active', 'limit': '50'});

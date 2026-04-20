@@ -34,13 +34,7 @@ dependencies:
   geolocator: ^14.0.2
   geocoding: ^4.0.0
 
-  # Firebase
-  firebase_core: ^4.5.0
-  firebase_auth: ^6.2.0
-  firebase_messaging: ^16.1.2
-  cloud_firestore: ^6.1.3
-
-  # Local notifications (system notification bar support)
+  # Local notifications (system notification bar — shown on Socket.IO events)
   flutter_local_notifications: ^17.2.2
 
   # UI components

@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
-const { sendPushToTopic } = require('../services/fcmService');
 const { suggestAdvisory } = require('../services/aiService');
 const socket = require('../services/socketService');
 
@@ -114,15 +113,10 @@ exports.create = async (req, res, next) => {
     socket.emitToAll('advisory:new', { advisory });
     res.status(201).json({ advisory });
 
-    // Fire-and-forget: mirror into notifications table, send push to ALL installs via topic
+    // Fire-and-forget: mirror into notifications table
     _insertAdvisoryNotification(advisory, req.user.id)
-      .then(notifId => sendPushToTopic('cebu_safety_advisories', {
-        title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
-        body:  advisory.description.substring(0, 120),
-        data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity, notificationId: notifId },
-      }))
       .then(() => db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]))
-      .catch(err => logger.warn('Advisory push failed:', err.message));
+      .catch(err => logger.warn('Advisory notification insert failed:', err.message));
   } catch (err) { next(err); }
 };
 
@@ -153,14 +147,6 @@ exports.update = async (req, res, next) => {
     }
 
     const advisory = _parseAdvisory(await db.findOne('SELECT * FROM advisories WHERE id = ? LIMIT 1', [req.params.id]));
-
-    if (reNotify) {
-      await sendPushToTopic('cebu_safety_advisories', {
-        title: `[UPDATED] ${advisory.title}`,
-        body:  advisory.description.substring(0, 120),
-        data:  { type: 'advisory', advisoryId: advisory.id },
-      });
-    }
 
     socket.emitToAll('advisory:updated', { advisory });
     res.json({ advisory });

@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
-const { sendPushToAll, sendPushToUsers } = require('../services/fcmService');
 const socket = require('../services/socketService');
 
 exports.send = async (req, res, next) => {
@@ -25,10 +24,18 @@ exports.send = async (req, res, next) => {
 
     const notification = await db.findOne('SELECT * FROM notifications WHERE id = ? LIMIT 1', [id]);
 
-    if (!scheduledAt) await dispatchNotification(notification);
+    if (!scheduledAt) {
+      await db.run(
+        "UPDATE notifications SET status = 'sent', sent_at = ?, updated_at = ? WHERE id = ?",
+        [now, now, id]
+      );
+    }
 
     socket.emitToAdmins('notification:new', { notification });
-    socket.emitToTourists('notification:new', {});
+    // Pass public fields so mobile can show a banner without an extra API call
+    if (!scheduledAt) {
+      socket.emitToTourists('notification:new', { id, title, body, type, priority });
+    }
     res.status(201).json({
       notification,
       message: scheduledAt ? 'Notification scheduled' : 'Notification sent',
@@ -63,52 +70,6 @@ exports.list = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-const dispatchNotification = async (notification) => {
-  const { title, body, type, priority } = notification;
-  // target is stored as a JSON string in the DB — parse it before use
-  let target;
-  try {
-    target = typeof notification.target === 'string'
-      ? JSON.parse(notification.target || '{}')
-      : (notification.target ?? {});
-  } catch { target = {}; }
-  const fcmPayload = { title, body, data: { type, priority, notificationId: notification.id } };
-
-  try {
-    if (target.type === 'all') {
-      await sendPushToAll(fcmPayload);
-    } else if (target.type === 'nationality') {
-      const users  = await db.findMany(
-        'SELECT fcm_token FROM users WHERE nationality = ? AND fcm_token IS NOT NULL',
-        [target.value]
-      );
-      const tokens = users.map(u => u.fcmToken).filter(Boolean);
-      if (tokens.length) await sendPushToUsers(tokens, fcmPayload);
-    } else if (target.type === 'specific') {
-      const ids    = Array.isArray(target.value) ? target.value : [target.value];
-      const placeholders = ids.map(() => '?').join(',');
-      const users  = await db.findMany(
-        `SELECT fcm_token FROM users WHERE id IN (${placeholders}) AND fcm_token IS NOT NULL`,
-        ids
-      );
-      const tokens = users.map(u => u.fcmToken).filter(Boolean);
-      if (tokens.length) await sendPushToUsers(tokens, fcmPayload);
-    }
-
-    await db.run(
-      "UPDATE notifications SET status = 'sent', sent_at = ?, updated_at = ? WHERE id = ?",
-      [new Date(), new Date(), notification.id]
-    );
-  } catch (err) {
-    logger.error(`Notification dispatch failed for ${notification.id}:`, err.message);
-    await db.run(
-      "UPDATE notifications SET status = 'failed', updated_at = ? WHERE id = ?",
-      [new Date(), notification.id]
-    );
-  }
-};
-
-exports.dispatchNotification = dispatchNotification;
 
 exports.remove = async (req, res, next) => {
   try {

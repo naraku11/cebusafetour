@@ -1,7 +1,7 @@
 const cron   = require('node-cron');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
-const { dispatchNotification } = require('../controllers/notificationsController');
+const socket = require('../services/socketService');
 
 // Runs every 30 seconds — picks up pending notifications whose scheduled_at has passed.
 cron.schedule('*/30 * * * * *', async () => {
@@ -12,11 +12,16 @@ cron.schedule('*/30 * * * * *', async () => {
        LIMIT 20`
     );
     for (const n of due) {
-      // Parse target from JSON string (stored as TEXT in DB)
-      if (typeof n.target === 'string') {
-        try { n.target = JSON.parse(n.target); } catch { n.target = { type: 'all' }; }
-      }
-      await dispatchNotification(n);
+      const now = new Date();
+      await db.run(
+        "UPDATE notifications SET status = 'sent', sent_at = ?, updated_at = ? WHERE id = ?",
+        [now, now, n.id]
+      );
+      // Deliver to connected tourists via Socket.IO
+      socket.emitToTourists('notification:new', {
+        id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority,
+      });
+      socket.emitToAdmins('notification:new', { notification: n });
       logger.info(`Scheduled notification dispatched: ${n.id} ("${n.title}")`);
     }
   } catch (err) {

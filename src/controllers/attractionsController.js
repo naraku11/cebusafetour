@@ -2,7 +2,6 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const logger = require('../utils/logger');
 const socket = require('../services/socketService');
-const { sendPushToAll } = require('../services/fcmService');
 const { suggestByCoords, autocompletePlaces, getPlaceInfo } = require('../services/aiService');
 const { fetchPlacePhotos } = require('../services/placesService');
 
@@ -110,15 +109,6 @@ exports.create = async (req, res, next) => {
 
 
 
-    // Notify mobile users about the new attraction (only if published)
-    if ((body.status || 'draft') === 'published') {
-      sendPushToAll({
-        title: `New Attraction — ${body.name}`,
-        body:  `Discover ${body.name} in ${body.district || 'Cebu'}! Check it out now.`,
-        data:  { type: 'new_attraction', attractionId: id },
-      }).catch(err => logger.warn('Push for new attraction failed:', err.message));
-    }
-
     socket.emitToAll('attraction:new', { id, name: body.name, status: body.status || 'draft' });
     res.status(201).json({ attraction });
   } catch (err) { next(err); }
@@ -146,25 +136,6 @@ exports.update = async (req, res, next) => {
     }
 
     const attraction = await db.findOne('SELECT * FROM attractions WHERE id = ? LIMIT 1', [req.params.id]);
-
-    // Notify on safety status change
-    if (req.body.safetyStatus && req.body.safetyStatus !== existing.safetyStatus) {
-      sendPushToAll({
-        title: `Safety Status Update — ${attraction.name}`,
-        body:  `Status changed to: ${req.body.safetyStatus.toUpperCase()}`,
-        data:  { type: 'safety_status', attractionId: attraction.id },
-      }).catch(err => logger.warn('Push for safety status failed:', err.message));
-    }
-
-    // Notify when attraction gets published (was draft/archived)
-    if (req.body.status === 'published' && existing.status !== 'published') {
-      sendPushToAll({
-        title: `New Attraction — ${attraction.name}`,
-        body:  `Discover ${attraction.name} in ${attraction.district || 'Cebu'}! Check it out now.`,
-        data:  { type: 'new_attraction', attractionId: attraction.id },
-      }).catch(err => logger.warn('Push for published attraction failed:', err.message));
-    }
-
 
     socket.emitToAll('attraction:updated', { id: req.params.id, safetyStatus: attraction.safetyStatus, status: attraction.status });
     res.json({ attraction });

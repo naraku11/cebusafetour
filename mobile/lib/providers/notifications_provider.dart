@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_notification.dart';
 import '../services/api_service.dart';
-import '../services/notification_service.dart';
 import '../services/connectivity_service.dart';
 
 class NotificationsState {
@@ -37,27 +35,14 @@ class NotificationsState {
 final _api = ApiService();
 
 class NotificationsNotifier extends Notifier<NotificationsState> {
-  StreamSubscription<RemoteMessage>? _fcmSub;
   StreamSubscription<void>? _connectSub;
 
   @override
   NotificationsState build() {
-    // Subscribe to foreground FCM messages — prepends them to the list
-    _fcmSub = NotificationService.messageStream.listen(_onRemoteMessage);
-
-    // Subscribe to connectivity-restored events — refresh after a network gap
     _connectSub = ConnectivityService.instance.onReconnected.listen((_) {
-      // Only refresh if we already have data (avoids double-fetch on first load)
       if (state.notifications.isNotEmpty) refresh();
     });
-
-    // Cancel both subscriptions when the provider is disposed
-    ref.onDispose(() {
-      _fcmSub?.cancel();
-      _connectSub?.cancel();
-    });
-
-    // Fetch initial list of announcements from the backend
+    ref.onDispose(() => _connectSub?.cancel());
     _fetchPublic();
     return const NotificationsState();
   }
@@ -74,10 +59,7 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
 
       final res = await _api.get(
         '/notifications/public',
-        params: {
-          'limit': _pageSize,
-          if (before != null) 'before': before,
-        },
+        params: {'limit': _pageSize, if (before != null) 'before': before},
       );
 
       final apiList = (res.data['notifications'] as List)
@@ -88,7 +70,6 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
       final lastReadAt  = rawLastRead != null ? DateTime.parse(rawLastRead) : state.lastReadAt;
 
       if (loadMore) {
-        // Append, deduplicate, keep sort order
         final existingIds = state.notifications.map((n) => n.id).toSet();
         final newItems    = apiList.where((n) => !existingIds.contains(n.id)).toList();
         state = state.copyWith(
@@ -98,13 +79,11 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
           lastReadAt: lastReadAt,
         );
       } else {
-        // Initial / refresh: API list is authoritative; keep FCM-only items
-        // not yet confirmed by the backend (arrived in the current session).
-        final apiIds  = apiList.map((n) => n.id).toSet();
-        final fcmOnly = state.notifications.where((n) => !apiIds.contains(n.id)).toList();
-        final merged  = [...apiList, ...fcmOnly]
+        // Keep socket-only items not yet confirmed by the API
+        final apiIds   = apiList.map((n) => n.id).toSet();
+        final sockOnly = state.notifications.where((n) => !apiIds.contains(n.id)).toList();
+        final merged   = [...apiList, ...sockOnly]
           ..sort((a, b) => b.receivedAt.compareTo(a.receivedAt));
-
         state = state.copyWith(
           notifications: merged,
           isLoading: false,
@@ -117,29 +96,38 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
     }
   }
 
-  void _onRemoteMessage(RemoteMessage msg) {
-    final notif = AppNotification.fromRemote(msg);
-    // Prepend so newest is first; deduplicate by id to guard against FCM
-    // delivering the same message twice on flaky connections.
+  /// Called by realtimeProvider when a socket notification:new event arrives.
+  void addFromSocket(AppNotification notif) {
     final already = state.notifications.any((n) => n.id == notif.id);
     if (already) return;
     state = state.copyWith(notifications: [notif, ...state.notifications]);
   }
 
   Future<void> markAllRead() async {
-    // Optimistic update
     final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
     state = state.copyWith(notifications: updated, lastReadAt: DateTime.now());
-    // Persist to server so the badge survives app restarts
     await _api.post('/notifications/read').catchError((e) => e as dynamic);
   }
 
   Future<void> loadMore() => _fetchPublic(loadMore: true);
-
-  Future<void> refresh() => _fetchPublic();
+  Future<void> refresh()  => _fetchPublic();
 }
 
 final notificationsProvider =
     NotifierProvider<NotificationsNotifier, NotificationsState>(
   NotificationsNotifier.new,
+);
+
+/// Holds the latest notification to show as an in-app popup.
+/// Set by realtimeProvider; cleared by app.dart after showing.
+class NotificationToastNotifier extends Notifier<AppNotification?> {
+  @override
+  AppNotification? build() => null;
+  void show(AppNotification notif) => state = notif;
+  void clear() => state = null;
+}
+
+final notificationToastProvider =
+    NotifierProvider<NotificationToastNotifier, AppNotification?>(
+  NotificationToastNotifier.new,
 );

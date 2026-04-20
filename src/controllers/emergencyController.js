@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
-const { sendPushToAdmins } = require('../services/fcmService');
 const socket = require('../services/socketService');
 
 // Build a row with a nested reporter object from a JOIN result
@@ -45,12 +44,6 @@ exports.reportIncident = async (req, res, next) => {
     );
 
     const incident = await db.findOne('SELECT * FROM incidents WHERE id = ? LIMIT 1', [id]);
-
-    sendPushToAdmins({
-      title: `New Incident: ${type.replace('_', ' ').toUpperCase()}`,
-      body:  `Reported at ${nearestLandmark || `${latitude}, ${longitude}`}`,
-      data:  { type: 'incident', incidentId: incident.id },
-    });
 
     socket.emitToAdmins('incident:new', { incident });
     res.status(201).json({ incident, message: 'Incident reported. Help is on the way.' });

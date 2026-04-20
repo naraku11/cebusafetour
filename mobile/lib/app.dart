@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,43 +25,21 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
     with WidgetsBindingObserver {
 
   bool _wasInBackground = false;
-  StreamSubscription<RemoteMessage>? _popupSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ConnectivityService.instance.init();
-    // Pre-warm meta ranges so screens have values ready on first render.
     ref.read(metaProvider);
-
-    // Show in-app popup directly on every foreground FCM message.
-    // This bypasses the notificationsProvider list entirely, so the popup
-    // fires regardless of deduplication or loading-state race conditions.
-    _popupSub = NotificationService.messageStream.listen(_showPopupForMessage);
-  }
-
-  void _showPopupForMessage(RemoteMessage msg) {
-    final notif = AppNotification.fromRemote(msg);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = navigatorKey.currentContext;
-      if (ctx == null) return;
-      NotificationPopupManager.show(
-        ctx,
-        notif,
-        navigator: (route) => ref.read(routerProvider).push(route),
-      );
-    });
   }
 
   @override
   void dispose() {
-    _popupSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /// Called by Flutter whenever the app lifecycle state changes.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -76,28 +52,43 @@ class _CebuSafeTourAppState extends ConsumerState<CebuSafeTourApp>
       case AppLifecycleState.resumed:
         if (_wasInBackground) {
           _wasInBackground = false;
-          // Refresh time-sensitive data when the user returns to the app.
-          // Advisories change when an admin posts a safety alert — stale
-          // data here could leave tourists unaware of new hazards.
           ref.invalidate(advisoriesProvider);
           ref.read(notificationsProvider.notifier).refresh();
         }
         break;
 
       case AppLifecycleState.inactive:
-        // Transitional state (e.g. incoming call overlay) — do nothing.
         break;
     }
+  }
+
+  void _showPopup(AppNotification notif) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null) return;
+      NotificationPopupManager.show(
+        ctx,
+        notif,
+        navigator: (route) => ref.read(routerProvider).push(route),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
-    // Keep the Socket.IO connection alive for the entire authenticated session.
     ref.watch(realtimeProvider);
 
-    // Wire navigator so FCM tap-to-open works from background/terminated state
+    // Show in-app popup whenever realtimeProvider delivers a notification
+    ref.listen<AppNotification?>(notificationToastProvider, (_, next) {
+      if (next == null) return;
+      _showPopup(next);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(notificationToastProvider.notifier).clear();
+      });
+    });
+
     NotificationService.setNavigator((route) => router.push(route));
 
     return MaterialApp.router(
