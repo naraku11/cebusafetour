@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_notification.dart';
 import '../services/api_service.dart';
 import '../services/connectivity_service.dart';
+import 'auth_provider.dart';
 
 class NotificationsState {
   final List<AppNotification> notifications;
@@ -39,6 +40,9 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
 
   @override
   NotificationsState build() {
+    final token = ref.watch(authProvider.select((s) => s.token));
+    if (token == null) return const NotificationsState();
+
     _connectSub = ConnectivityService.instance.onReconnected.listen((_) {
       if (state.notifications.isNotEmpty) refresh();
     });

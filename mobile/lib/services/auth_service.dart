@@ -163,10 +163,6 @@ class AuthService {
 
   Future<String?> getToken() => _storage.read(key: 'auth_token');
 
-  Future<void> updateFcmToken(String token) async {
-    await _api.patch('/auth/fcm-token', data: {'fcmToken': token});
-  }
-
   Future<UserModel> updateProfile({
     String? name,
     String? nationality,
