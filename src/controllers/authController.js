@@ -166,14 +166,6 @@ exports.resendOtp = async (req, res, next) => {
 
 exports.getMe = (req, res) => res.json({ user: sanitize(req.user) });
 
-exports.updateFcmToken = async (req, res, next) => {
-  try {
-    const { fcmToken } = req.body;
-    await db.run('UPDATE users SET fcm_token = ? WHERE id = ?', [fcmToken, req.user.id]);
-    res.json({ message: 'FCM token updated' });
-  } catch (err) { next(err); }
-};
-
 // Used by the admin panel's PasswordUnlockModal to verify identity without creating a session
 exports.verifyPassword = async (req, res, next) => {
   try {

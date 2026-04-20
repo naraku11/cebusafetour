@@ -4,15 +4,11 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-// Firebase is lazy-initialized on first use (FCM send or Firestore write).
-// This avoids holding gRPC connections open at startup on Hostinger.
-
 // ── Hostinger Process Budget (100-process limit) ─────────────────────────
 // | Component               | Processes | Notes                          |
 // |-------------------------|-----------|--------------------------------|
 // | Node.js main            |     1     | Always running                 |
 // | MySQL pool (idle→max)   |   0 – 10  | idleTimeout 30s reclaims fast  |
-// | Firebase gRPC (lazy)    |   0 – 5   | Only when FCM/Firestore fires  |
 // | SMTP (transient)        |   0 – 2   | Connection per email send      |
 // | Socket.IO WS clients    |   0 – 60  | Capped by WS_MAX_CONNECTIONS   |
 // | SSE clients (HTTP)      |   0 – 20  | Capped by SSE_MAX_CONNECTIONS  |
@@ -131,10 +127,10 @@ app.get('/health', async (req, res) => {
     ? { status: 'configured', host: process.env.SMTP_HOST }
     : { status: 'missing', error: 'SMTP_HOST or SMTP_USER not set' };
 
-  // 3. Firebase config present
-  checks.firebase = process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY
-    ? { status: 'configured', project: process.env.FIREBASE_PROJECT_ID }
-    : { status: 'missing', error: 'FIREBASE_PROJECT_ID or FIREBASE_PRIVATE_KEY not set' };
+  // 3. OneSignal config present
+  checks.onesignal = process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY
+    ? { status: 'configured', appId: process.env.ONESIGNAL_APP_ID }
+    : { status: 'missing', error: 'ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY not set' };
 
   // 4. JWT secret
   checks.jwt = process.env.JWT_SECRET
