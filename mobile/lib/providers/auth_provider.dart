@@ -77,7 +77,7 @@ class AuthNotifier extends Notifier<AuthState> {
           // Fresh data — update cache and state.
           await _authService.cacheUser(user);
           state = AuthState(user: user, token: token);
-          NotificationService.loginUser(user.id, nationality: user.nationality);
+          try { NotificationService.loginUser(user.id, nationality: user.nationality); } catch (_) {}
         } else {
           // getMe() returned null → network/server error (not a 401).
           // Keep the user logged in using the last cached profile.
@@ -130,7 +130,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = UserModel.fromJson(data['user']);
       await _authService.cacheUser(user);
       state = AuthState(user: user, token: data['token']);
-      NotificationService.loginUser(user.id, nationality: user.nationality);
+      try { NotificationService.loginUser(user.id, nationality: user.nationality); } catch (_) {}
       return true;
     } on AccountSuspendedException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message, isSuspended: true);
