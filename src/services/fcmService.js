@@ -22,11 +22,21 @@ const pruneInvalidTokens = async (tokens, batchResponse) => {
   logger.info(`Pruned ${invalid.length} invalid FCM token(s)`);
 };
 
+const _channelFor = (data = {}) => {
+  if (data.severity === 'critical' || data.priority === 'high' || data.type === 'emergency') {
+    return 'cebusafetour_emergency';
+  }
+  if (data.type === 'advisory' || data.type === 'safety_alert' || data.severity === 'warning') {
+    return 'cebusafetour_alerts';
+  }
+  return 'cebusafetour_info';
+};
+
 const buildMessage = (tokens, { title, body, data = {} }) => ({
   notification: { title, body },
   data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
   tokens,
-  android: { priority: 'high', notification: { channelId: 'cebusafetour_alerts' } },
+  android: { priority: 'high', notification: { channelId: _channelFor(data) } },
   apns: { headers: { 'apns-priority': '10' } },
 });
 
@@ -111,7 +121,7 @@ exports.sendPushToTopic = async (topic, { title, body, data = {} }) => {
       notification: { title, body },
       data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
       topic,
-      android: { priority: 'high', notification: { channelId: 'cebusafetour_alerts' } },
+      android: { priority: 'high', notification: { channelId: _channelFor(data) } },
       apns: { headers: { 'apns-priority': '10' } },
     });
     logger.info(`Topic push sent to "${topic}"`);

@@ -28,6 +28,7 @@ exports.send = async (req, res, next) => {
     if (!scheduledAt) await dispatchNotification(notification);
 
     socket.emitToAdmins('notification:new', { notification });
+    socket.emitToTourists('notification:new', {});
     res.status(201).json({
       notification,
       message: scheduledAt ? 'Notification scheduled' : 'Notification sent',
@@ -63,7 +64,14 @@ exports.list = async (req, res, next) => {
 };
 
 const dispatchNotification = async (notification) => {
-  const { target, title, body, type, priority } = notification;
+  const { title, body, type, priority } = notification;
+  // target is stored as a JSON string in the DB — parse it before use
+  let target;
+  try {
+    target = typeof notification.target === 'string'
+      ? JSON.parse(notification.target || '{}')
+      : (notification.target ?? {});
+  } catch { target = {}; }
   const fcmPayload = { title, body, data: { type, priority, notificationId: notification.id } };
 
   try {
