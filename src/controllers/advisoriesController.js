@@ -114,13 +114,24 @@ exports.create = async (req, res, next) => {
     socket.emitToAll('advisory:new', { advisory });
     res.status(201).json({ advisory });
 
-    // Fire-and-forget: mirror into notifications + send OneSignal push to all tourists
+    // Fire-and-forget: mirror into notifications → socket to tourists → OneSignal push
     _insertAdvisoryNotification(advisory, req.user.id)
-      .then(notifId => push.sendToAll({
-        title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
-        body:  advisory.description.substring(0, 120),
-        data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity, notificationId: notifId },
-      }))
+      .then(notifId => {
+        // Emit notification:new so connected tourists' list updates in real-time
+        // (handled by onNotificationNew in realtime_provider which calls addFromSocket)
+        socket.emitToTourists('notification:new', {
+          id:       notifId,
+          title:    `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
+          body:     advisory.description.substring(0, 200),
+          type:     'advisory',
+          priority: advisory.severity === 'critical' ? 'high' : 'normal',
+        });
+        return push.sendToAll({
+          title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
+          body:  advisory.description.substring(0, 120),
+          data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity, notificationId: notifId },
+        });
+      })
       .then(() => db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]))
       .catch(err => logger.warn('Advisory push failed:', err.message));
   } catch (err) { next(err); }

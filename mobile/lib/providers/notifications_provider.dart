@@ -113,6 +113,15 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
     await _api.post('/notifications/read').catchError((e) => e as dynamic);
   }
 
+  /// Mark a single notification as read — optimistic update + fire-and-forget API call.
+  Future<void> markOneRead(String id) async {
+    final updated = state.notifications
+        .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+        .toList();
+    state = state.copyWith(notifications: updated);
+    _api.patch('/notifications/$id/read').catchError((e) => e as dynamic);
+  }
+
   Future<void> loadMore() => _fetchPublic(loadMore: true);
   Future<void> refresh()  => _fetchPublic();
 }

@@ -4,6 +4,21 @@ const logger = require('../utils/logger');
 const socket = require('../services/socketService');
 const push   = require('../services/pushService');
 
+// Target-aware push dispatch — mirrors notificationsController._dispatchPush.
+// Kept inline to avoid a circular require through the controller.
+const _dispatchPush = async ({ id, title, body, type, priority, target }) => {
+  const payload = { title, body, data: { type, priority, notificationId: id } };
+  const t = typeof target === 'string' ? JSON.parse(target || '{}') : (target ?? {});
+  if (t.type === 'all') {
+    await push.sendToAll(payload);
+  } else if (t.type === 'nationality') {
+    await push.sendToNationality(t.value, payload);
+  } else if (t.type === 'specific') {
+    const ids = Array.isArray(t.value) ? t.value : [t.value];
+    await push.sendToUsers(ids, payload);
+  }
+};
+
 // Runs every 30 seconds — picks up pending notifications whose scheduled_at has passed.
 cron.schedule('*/30 * * * * *', async () => {
   try {
@@ -23,11 +38,9 @@ cron.schedule('*/30 * * * * *', async () => {
       socket.emitToTourists('notification:new', {
         id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority,
       });
-      // Background push via OneSignal (fire-and-forget)
-      push.sendToAll({
-        title: n.title, body: n.body,
-        data: { type: n.type, priority: n.priority, notificationId: n.id },
-      }).catch(err => logger.warn(`Scheduled push failed for ${n.id}:`, err.message));
+      // Background push via OneSignal — target-aware (nationality/specific/all)
+      _dispatchPush({ id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority, target: n.target })
+        .catch(err => logger.warn(`Scheduled push failed for ${n.id}:`, err.message));
       logger.info(`Scheduled notification dispatched: ${n.id} ("${n.title}")`);
     }
   } catch (err) {

@@ -4,6 +4,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 
 router.get('/public',     authenticate, ctrl.listPublic);   // tourists: recent announcements
 router.post('/read',      authenticate, ctrl.markRead);      // mark all read (server-side)
+router.patch('/:id/read', authenticate, ctrl.markOneRead);   // mark single notification read
 router.get('/',           authenticate, requireAdmin, ctrl.list);
 router.post('/',          authenticate, requireAdmin, ctrl.send);
 router.delete('/:id',     authenticate, requireAdmin, ctrl.remove);

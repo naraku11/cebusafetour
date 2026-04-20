@@ -99,50 +99,102 @@ exports.remove = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// Public endpoint — any authenticated user can fetch sent notifications (cursor-paginated).
+// Public endpoint — authenticated users fetch their own sent notifications (cursor-paginated).
+// Target filter: 'all' → everyone; 'nationality' → matching users; 'specific' → listed users only.
 // GET /notifications/public?before=<ISO-date>&limit=<n>
 exports.listPublic = async (req, res, next) => {
   try {
-    const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
-    const before = req.query.before ? new Date(req.query.before) : null;
+    const userId       = req.user.id;
+    const limit        = Math.min(parseInt(req.query.limit) || 20, 100);
+    const before       = req.query.before ? new Date(req.query.before) : null;
+    const beforeClause = (before && !isNaN(before)) ? 'AND n.sent_at < ?' : '';
 
-    const params = [];
-    let   where  = "WHERE status = 'sent'";
-    if (before && !isNaN(before)) {
-      where += ' AND sent_at < ?';
-      params.push(before);
-    }
+    const params = [
+      userId,  // JOIN users u ON u.id = ?
+      userId,  // LEFT JOIN … r.user_id = ?
+      userId,  // nationality sub-query WHERE id = ?
+      userId,  // JSON_CONTAINS JSON_QUOTE(?)
+      ...(before && !isNaN(before) ? [before] : []),
+      limit,
+    ];
 
-    // Fetch last_read_notifications_at for the current user so mobile can
-    // derive isRead without a separate round-trip.
     const [notifications, userRow] = await Promise.all([
       db.findMany(
-        `SELECT id, title, body, type, priority, sent_at, created_at
-         FROM notifications ${where} ORDER BY sent_at DESC LIMIT ?`,
-        [...params, limit]
+        `SELECT n.id, n.title, n.body, n.type, n.priority, n.sent_at, n.created_at,
+           CASE
+             WHEN u.last_read_notifications_at IS NOT NULL
+                  AND n.sent_at <= u.last_read_notifications_at THEN 1
+             WHEN r.notification_id IS NOT NULL THEN 1
+             ELSE 0
+           END AS is_read
+         FROM notifications n
+         JOIN  users u ON u.id = ?
+         LEFT JOIN user_notification_reads r
+                ON r.notification_id = n.id AND r.user_id = ?
+         WHERE n.status = 'sent'
+           AND (
+             JSON_UNQUOTE(JSON_EXTRACT(n.target, '$.type')) = 'all'
+             OR (
+               JSON_UNQUOTE(JSON_EXTRACT(n.target, '$.type')) = 'nationality'
+               AND JSON_UNQUOTE(JSON_EXTRACT(n.target, '$.value'))
+                   = (SELECT nationality FROM users WHERE id = ? LIMIT 1)
+             )
+             OR (
+               JSON_UNQUOTE(JSON_EXTRACT(n.target, '$.type')) = 'specific'
+               AND JSON_CONTAINS(JSON_EXTRACT(n.target, '$.value'), JSON_QUOTE(?))
+             )
+           )
+           ${beforeClause}
+         ORDER BY n.sent_at DESC LIMIT ?`,
+        params
       ),
       db.findOne(
         'SELECT last_read_notifications_at FROM users WHERE id = ? LIMIT 1',
-        [req.user.id]
+        [userId]
       ),
     ]);
 
     const lastRead = userRow?.lastReadNotificationsAt ?? null;
     const enriched = notifications.map(n => ({
       ...n,
-      isRead: lastRead ? new Date(n.sentAt ?? n.createdAt) <= new Date(lastRead) : false,
+      isRead: n.isRead === 1 || n.isRead === true,
     }));
 
     res.json({ notifications: enriched, lastReadAt: lastRead });
   } catch (err) { next(err); }
 };
 
-// Mark all notifications as read for the current user
+// Mark all sent notifications as read for the current user.
+// Updates the coarse timestamp AND batch-inserts individual read rows.
 exports.markRead = async (req, res, next) => {
   try {
+    const userId = req.user.id;
+    const now    = new Date();
     await db.run(
-      'UPDATE users SET last_read_notifications_at = ? WHERE id = ?',
-      [new Date(), req.user.id]
+      'UPDATE users SET last_read_notifications_at = ?, updated_at = ? WHERE id = ?',
+      [now, now, userId]
+    );
+    await db.run(
+      `INSERT IGNORE INTO user_notification_reads (user_id, notification_id, read_at)
+       SELECT ?, id, ? FROM notifications WHERE status = 'sent'`,
+      [userId, now]
+    );
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+};
+
+// Mark a single notification as read for the current user.
+// PATCH /notifications/:id/read
+exports.markOneRead = async (req, res, next) => {
+  try {
+    const notif = await db.findOne(
+      "SELECT id FROM notifications WHERE id = ? AND status = 'sent' LIMIT 1",
+      [req.params.id]
+    );
+    if (!notif) return res.status(404).json({ error: 'Notification not found' });
+    await db.run(
+      'INSERT IGNORE INTO user_notification_reads (user_id, notification_id, read_at) VALUES (?, ?, ?)',
+      [req.user.id, req.params.id, new Date()]
     );
     res.json({ ok: true });
   } catch (err) { next(err); }

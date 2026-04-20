@@ -73,7 +73,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                         );
                       }
-                      return _NotificationCard(n: state.notifications[i], l: l);
+                      return _NotificationCard(
+                        n: state.notifications[i],
+                        l: l,
+                        onTap: () => ref.read(notificationsProvider.notifier)
+                            .markOneRead(state.notifications[i].id),
+                      );
                     },
                   ),
                 ),
@@ -86,14 +91,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 class _NotificationCard extends StatelessWidget {
   final AppNotification n;
   final AppLocalizations l;
-  const _NotificationCard({required this.n, required this.l});
+  final VoidCallback? onTap;
+  const _NotificationCard({required this.n, required this.l, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final color = _typeColor(n.type);
     final isHighPriority = n.priority == 'high';
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: n.isRead ? Colors.white : const Color(0xFFF0F7FF),
@@ -208,7 +216,8 @@ class _NotificationCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),  // Container (child of GestureDetector)
+    );  // GestureDetector
   }
 
   String _typeLabel(String type) {
