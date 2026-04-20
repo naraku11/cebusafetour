@@ -4,7 +4,7 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../models/app_notification.dart';
 
 // OneSignal App ID — get from https://app.onesignal.com → Your App → Keys & IDs
-const _kOneSignalAppId = 'YOUR_ONESIGNAL_APP_ID';
+const _kOneSignalAppId = '9f3a0501-b77f-4306-913b-5ce066ac5b3b';
 
 // ── Android notification channels ─────────────────────────────────────────
 //

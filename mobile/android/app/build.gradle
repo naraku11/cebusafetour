@@ -54,6 +54,11 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
+    // Suppress obsolete-options warnings from transitive deps that still declare Java 8
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['-Xlint:-options']
+    }
+
     kotlinOptions {
         jvmTarget = '11'
     }
