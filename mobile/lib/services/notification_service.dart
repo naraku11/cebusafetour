@@ -1,16 +1,19 @@
+import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../models/app_notification.dart';
 
-// ── Notification channels ─────────────────────────────────────────────────
+// OneSignal App ID — get from https://app.onesignal.com → Your App → Keys & IDs
+const _kOneSignalAppId = 'YOUR_ONESIGNAL_APP_ID';
+
+// ── Android notification channels ─────────────────────────────────────────
 //
-//  Heads-up  (cebusafetour_emergency)  IMPORTANCE_MAX
-//    Floats over any foreground app; for emergency type, critical severity.
+//  cebusafetour_emergency  IMPORTANCE_MAX   → heads-up floating card
+//  cebusafetour_alerts     IMPORTANCE_HIGH  → status-bar banner slide-in
+//  cebusafetour_info       IMPORTANCE_DEFAULT → drawer only, silent
 //
-//  Banner    (cebusafetour_alerts)     IMPORTANCE_HIGH
-//    Slides in from the status bar; for advisories, safety alerts, warnings.
-//
-//  Remote    (cebusafetour_info)       IMPORTANCE_DEFAULT
-//    Appears in the notification drawer only; for general announcements.
+// These channels are registered on first launch. The correct channel is chosen
+// per-notification based on type / severity / priority in the payload.
 
 const _kChHeadsUp     = 'cebusafetour_emergency';
 const _kChHeadsUpName = 'Emergency Alerts';
@@ -42,20 +45,20 @@ String _channelIdFor(String? type, String? severity, String? priority) {
 NotificationDetails _detailsFor(String channelId) {
   final isHeadsUp = channelId == _kChHeadsUp;
   final isBanner  = channelId == _kChBanner;
-
   return NotificationDetails(
     android: AndroidNotificationDetails(
       channelId,
       isHeadsUp ? _kChHeadsUpName : isBanner ? _kChBannerName : _kChRemoteName,
-      channelDescription: isHeadsUp ? _kChHeadsUpDesc : isBanner ? _kChBannerDesc : _kChRemoteDesc,
+      channelDescription: isHeadsUp ? _kChHeadsUpDesc
+          : isBanner ? _kChBannerDesc : _kChRemoteDesc,
       importance: isHeadsUp ? Importance.max
           : isBanner        ? Importance.high
           :                   Importance.defaultImportance,
       priority: isHeadsUp   ? Priority.max
           : isBanner        ? Priority.high
           :                   Priority.defaultPriority,
-      icon:            '@mipmap/ic_launcher',
-      ticker:          isHeadsUp ? 'Emergency alert' : null,
+      icon:             '@mipmap/ic_launcher',
+      ticker:           isHeadsUp ? 'Emergency alert' : null,
       fullScreenIntent: isHeadsUp,
       enableVibration:  isHeadsUp || isBanner,
       playSound:        true,
@@ -68,9 +71,7 @@ NotificationDetails _detailsFor(String channelId) {
           : null,
     ),
     iOS: DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
+      presentAlert: true, presentBadge: true, presentSound: true,
       interruptionLevel: isHeadsUp ? InterruptionLevel.timeSensitive
           : isBanner               ? InterruptionLevel.active
           :                          InterruptionLevel.passive,
@@ -80,18 +81,21 @@ NotificationDetails _detailsFor(String channelId) {
 }
 
 class NotificationService {
+  // Broadcast stream — realtimeProvider subscribes to trigger in-app popup + list update.
+  // Fires when OneSignal delivers a notification while the app is foregrounded.
+  static final _foregroundCtrl = StreamController<AppNotification>.broadcast();
+  static Stream<AppNotification> get foregroundStream => _foregroundCtrl.stream;
+
   static void Function(String route)? _navigator;
   static void setNavigator(void Function(String route) nav) => _navigator = nav;
 
-  static String _routeFor(String? type) {
-    if (type == 'advisory' || type == 'safety_alert' || type == 'emergency') {
-      return '/advisories';
-    }
-    return '/notifications';
-  }
+  static String _routeFor(String? type) =>
+      (type == 'advisory' || type == 'safety_alert' || type == 'emergency')
+          ? '/advisories'
+          : '/notifications';
 
   static Future<void> initialize() async {
-    // 1. Create Android notification channels (required on Android 8.0+)
+    // 1. Create Android notification channels (must run before any notification)
     final androidPlugin = _localNotif
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
@@ -111,17 +115,14 @@ class NotificationService {
       playSound: false, showBadge: true,
     ));
 
-    // 2. Request iOS permission
-    await androidPlugin?.requestNotificationsPermission();
-
-    // 3. Initialise plugin — tap handler routes to the correct screen
+    // 2. Initialise flutter_local_notifications (handles tap → navigate)
     await _localNotif.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: false, // OneSignal handles this
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         ),
       ),
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -129,21 +130,55 @@ class NotificationService {
         _navigator?.call(_routeFor(response.payload));
       },
     );
+
+    // 3. Initialise OneSignal
+    OneSignal.initialize(_kOneSignalAppId);
+    await OneSignal.Notifications.requestPermission(true);
+
+    // 4. Foreground handler — OneSignal delivers but we control display channel
+    //    preventDefault() stops the default OS display; we re-show via
+    //    flutter_local_notifications to use the correct importance channel.
+    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+      event.preventDefault();
+
+      final n    = event.notification;
+      final data = Map<String, dynamic>.from(n.additionalData ?? {});
+      final notif = AppNotification(
+        id:        n.notificationId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        title:     n.title ?? 'CebuSafeTour',
+        body:      n.body ?? '',
+        type:      data['type']     as String? ?? 'announcement',
+        priority:  data['priority'] as String? ?? 'normal',
+        receivedAt: DateTime.now(),
+      );
+
+      // Show via local notifications (correct channel/importance)
+      show(notif);
+      // Notify subscribers — realtimeProvider adds to list + triggers popup
+      _foregroundCtrl.add(notif);
+    });
+
+    // 5. Tap handler — routes to correct screen from system tray
+    OneSignal.Notifications.addClickListener((event) {
+      final type = (event.notification.additionalData ?? {})['type'] as String?;
+      _navigator?.call(_routeFor(type));
+    });
   }
 
-  /// Show a system notification banner for a Socket.IO-delivered event.
+  /// Show a system notification using the correct importance channel.
+  /// Using the same numeric ID for the same notification.id replaces any
+  /// existing system notification (prevents duplicates).
   static Future<void> show(AppNotification notif) async {
     final channelId = _channelIdFor(notif.type, null, notif.priority);
     await _localNotif.show(
       notif.id.hashCode.abs() % 2147483647,
-      notif.title,
-      notif.body,
+      notif.title, notif.body,
       _detailsFor(channelId),
       payload: notif.type,
     );
   }
 
-  /// Convenience overload for advisory-style events where severity is known.
+  /// Overload for advisory-style events where severity is known.
   static Future<void> showRaw({
     required String id,
     required String title,
@@ -159,5 +194,18 @@ class NotificationService {
       _detailsFor(channelId),
       payload: type,
     );
+  }
+
+  /// Called after login — maps this device to the user for targeted pushes.
+  static void loginUser(String userId, {String? nationality}) {
+    OneSignal.login(userId);
+    if (nationality != null && nationality.isNotEmpty) {
+      OneSignal.User.addTags({'nationality': nationality});
+    }
+  }
+
+  /// Called after logout — removes user mapping.
+  static void logoutUser() {
+    OneSignal.logout();
   }
 }

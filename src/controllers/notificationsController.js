@@ -2,6 +2,20 @@ const { v4: uuidv4 } = require('uuid');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
 const socket = require('../services/socketService');
+const push   = require('../services/pushService');
+
+const _dispatchPush = async ({ id, title, body, type, priority, target }) => {
+  const payload = { title, body, data: { type, priority, notificationId: id } };
+  const t = typeof target === 'string' ? JSON.parse(target || '{}') : (target ?? {});
+  if (t.type === 'all') {
+    await push.sendToAll(payload);
+  } else if (t.type === 'nationality') {
+    await push.sendToNationality(t.value, payload);
+  } else if (t.type === 'specific') {
+    const ids = Array.isArray(t.value) ? t.value : [t.value];
+    await push.sendToUsers(ids, payload);
+  }
+};
 
 exports.send = async (req, res, next) => {
   try {
@@ -32,9 +46,13 @@ exports.send = async (req, res, next) => {
     }
 
     socket.emitToAdmins('notification:new', { notification });
-    // Pass public fields so mobile can show a banner without an extra API call
     if (!scheduledAt) {
+      // Socket: delivers to connected tourists instantly
       socket.emitToTourists('notification:new', { id, title, body, type, priority });
+      // OneSignal: delivers to background/killed app via push
+      _dispatchPush({ id, title, body, type, priority, target }).catch(
+        err => logger.warn('Push dispatch failed:', err.message)
+      );
     }
     res.status(201).json({
       notification,

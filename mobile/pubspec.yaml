@@ -34,7 +34,10 @@ dependencies:
   geolocator: ^14.0.2
   geocoding: ^4.0.0
 
-  # Local notifications (system notification bar — shown on Socket.IO events)
+  # Push notifications — background delivery via OneSignal (wraps APNs/FCM)
+  onesignal_flutter: ^5.2.6
+
+  # Local notifications — system tray display with correct channel/importance
   flutter_local_notifications: ^17.2.2
 
   # UI components

@@ -2,6 +2,7 @@ const cron   = require('node-cron');
 const db     = require('../config/db');
 const logger = require('../utils/logger');
 const socket = require('../services/socketService');
+const push   = require('../services/pushService');
 
 // Runs every 30 seconds — picks up pending notifications whose scheduled_at has passed.
 cron.schedule('*/30 * * * * *', async () => {
@@ -18,10 +19,15 @@ cron.schedule('*/30 * * * * *', async () => {
         [now, now, n.id]
       );
       // Deliver to connected tourists via Socket.IO
+      socket.emitToAdmins('notification:new', { notification: n });
       socket.emitToTourists('notification:new', {
         id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority,
       });
-      socket.emitToAdmins('notification:new', { notification: n });
+      // Background push via OneSignal (fire-and-forget)
+      push.sendToAll({
+        title: n.title, body: n.body,
+        data: { type: n.type, priority: n.priority, notificationId: n.id },
+      }).catch(err => logger.warn(`Scheduled push failed for ${n.id}:`, err.message));
       logger.info(`Scheduled notification dispatched: ${n.id} ("${n.title}")`);
     }
   } catch (err) {

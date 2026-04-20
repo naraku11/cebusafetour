@@ -3,6 +3,7 @@ const db     = require('../config/db');
 const logger = require('../utils/logger');
 const { suggestAdvisory } = require('../services/aiService');
 const socket = require('../services/socketService');
+const push   = require('../services/pushService');
 
 // Insert a mirrored row in the notifications table so the advisory appears
 // in the mobile notifications screen via GET /notifications/public.
@@ -113,10 +114,15 @@ exports.create = async (req, res, next) => {
     socket.emitToAll('advisory:new', { advisory });
     res.status(201).json({ advisory });
 
-    // Fire-and-forget: mirror into notifications table
+    // Fire-and-forget: mirror into notifications + send OneSignal push to all tourists
     _insertAdvisoryNotification(advisory, req.user.id)
+      .then(notifId => push.sendToAll({
+        title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
+        body:  advisory.description.substring(0, 120),
+        data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity, notificationId: notifId },
+      }))
       .then(() => db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]))
-      .catch(err => logger.warn('Advisory notification insert failed:', err.message));
+      .catch(err => logger.warn('Advisory push failed:', err.message));
   } catch (err) { next(err); }
 };
 

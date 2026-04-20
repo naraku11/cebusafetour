@@ -4,6 +4,7 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../utils/exceptions.dart';
+import '../services/notification_service.dart';
 
 class AuthState {
   final UserModel? user;
@@ -76,6 +77,7 @@ class AuthNotifier extends Notifier<AuthState> {
           // Fresh data — update cache and state.
           await _authService.cacheUser(user);
           state = AuthState(user: user, token: token);
+          NotificationService.loginUser(user.id, nationality: user.nationality);
         } else {
           // getMe() returned null → network/server error (not a 401).
           // Keep the user logged in using the last cached profile.
@@ -128,6 +130,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = UserModel.fromJson(data['user']);
       await _authService.cacheUser(user);
       state = AuthState(user: user, token: data['token']);
+      NotificationService.loginUser(user.id, nationality: user.nationality);
       return true;
     } on AccountSuspendedException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message, isSuspended: true);
@@ -140,6 +143,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    NotificationService.logoutUser();
     await _authService.clearUserCache();
     await _authService.logout();
     state = const AuthState();

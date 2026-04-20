@@ -25,6 +25,14 @@ final realtimeProvider = Provider<void>((ref) {
   SocketService.instance.connect(token);
   final svc = SocketService.instance;
 
+  // ── OneSignal foreground events ───────────────────────────────────────────
+  // When a push arrives while the app is open, OneSignal fires foregroundStream.
+  // We use the same path as socket events (addFromSocket deduplicates by ID).
+  final osSub = NotificationService.foregroundStream.listen((notif) {
+    ref.read(notificationsProvider.notifier).addFromSocket(notif);
+    ref.read(notificationToastProvider.notifier).show(notif);
+  });
+
   // ── Attraction events ─────────────────────────────────────────────────
   void onAttractionChange(dynamic _) {
     ref.invalidate(attractionsProvider);
@@ -111,6 +119,7 @@ final realtimeProvider = Provider<void>((ref) {
 
   // ── Cleanup ───────────────────────────────────────────────────────────
   ref.onDispose(() {
+    osSub.cancel();
     reconnectSub.cancel();
     svc
       ..off('attraction:new',       onAttractionChange)
