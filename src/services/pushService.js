@@ -11,17 +11,20 @@ const logger = require('../utils/logger');
 
 const APP_ID  = process.env.ONESIGNAL_APP_ID;
 const API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+const CH_EMERGENCY = process.env.ONESIGNAL_ANDROID_CHANNEL_ID_EMERGENCY || null;
+const CH_ALERTS    = process.env.ONESIGNAL_ANDROID_CHANNEL_ID_ALERTS || null;
+const CH_INFO      = process.env.ONESIGNAL_ANDROID_CHANNEL_ID_INFO || null;
 const _recentAttempts = [];
 const _maxAttempts = 20;
 
 const _channelFor = (data = {}) => {
   if (data.severity === 'critical' || data.priority === 'high' || data.type === 'emergency') {
-    return 'cebusafetour_emergency';
+    return CH_EMERGENCY;
   }
   if (data.type === 'advisory' || data.type === 'safety_alert' || data.severity === 'warning') {
-    return 'cebusafetour_alerts';
+    return CH_ALERTS;
   }
-  return 'cebusafetour_info';
+  return CH_INFO;
 };
 
 const _post = async (payload) => {
@@ -53,16 +56,32 @@ const _post = async (payload) => {
   return res.json().catch(() => ({}));
 };
 
+const _sendWithChannelFallback = async (payload) => {
+  try {
+    return await _post(payload);
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const badChannel = msg.includes('Could not find android_channel_id');
+    if (badChannel && payload?.android_channel_id) {
+      const { android_channel_id, ...withoutChannel } = payload;
+      logger.warn(`OneSignal channel "${android_channel_id}" invalid; retrying without android_channel_id`);
+      return _post(withoutChannel);
+    }
+    throw err;
+  }
+};
+
 // ── Send to all subscribers ────────────────────────────────────────────────
 exports.sendToAll = async ({ title, body, data = {} }) => {
   try {
-    const out = await _post({
+    const finalChannelId = _channelFor(data);
+    const out = await _sendWithChannelFallback({
       app_id: APP_ID,
       included_segments: ['All'],
       headings:  { en: title },
       contents:  { en: body },
       data,
-      android_channel_id: _channelFor(data),
+      ...(finalChannelId ? { android_channel_id: finalChannelId } : {}),
       priority:  10,
     });
     _recentAttempts.unshift({
@@ -90,13 +109,14 @@ exports.sendToAll = async ({ title, body, data = {} }) => {
 // ── Send to users with a specific nationality tag ─────────────────────────
 exports.sendToNationality = async (nationality, { title, body, data = {} }) => {
   try {
-    const out = await _post({
+    const finalChannelId = _channelFor(data);
+    const out = await _sendWithChannelFallback({
       app_id: APP_ID,
       filters: [{ field: 'tag', key: 'nationality', relation: '=', value: nationality }],
       headings:  { en: title },
       contents:  { en: body },
       data,
-      android_channel_id: _channelFor(data),
+      ...(finalChannelId ? { android_channel_id: finalChannelId } : {}),
       priority:  10,
     });
     _recentAttempts.unshift({
@@ -127,14 +147,15 @@ exports.sendToNationality = async (nationality, { title, body, data = {} }) => {
 exports.sendToUsers = async (userIds, { title, body, data = {} }) => {
   if (!userIds?.length) return;
   try {
-    const out = await _post({
+    const finalChannelId = _channelFor(data);
+    const out = await _sendWithChannelFallback({
       app_id: APP_ID,
       include_aliases: { external_id: userIds },
       target_channel: 'push',
       headings:  { en: title },
       contents:  { en: body },
       data,
-      android_channel_id: _channelFor(data),
+      ...(finalChannelId ? { android_channel_id: finalChannelId } : {}),
       priority:  10,
     });
     _recentAttempts.unshift({
@@ -165,5 +186,10 @@ exports.getDiagnostics = () => ({
   configured: Boolean(APP_ID && API_KEY),
   appId: APP_ID || null,
   hasRestKey: Boolean(API_KEY),
+  androidChannels: {
+    emergency: CH_EMERGENCY,
+    alerts: CH_ALERTS,
+    info: CH_INFO,
+  },
   recentAttempts: [..._recentAttempts],
 });
