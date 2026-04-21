@@ -81,7 +81,10 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
             ],
           ),
         );
-        if (shouldExit == true) SystemNavigator.pop();
+        if (shouldExit == true) {
+          await ref.read(authProvider.notifier).logout();
+          if (mounted) SystemNavigator.pop();
+        }
       },
       child: Scaffold(
       body: SafeArea(
