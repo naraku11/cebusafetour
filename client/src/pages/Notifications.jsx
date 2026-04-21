@@ -122,6 +122,14 @@ export default function Notifications() {
     }).then(r => r.data),
   });
 
+  const { data: diagData, isLoading: diagLoading, refetch: refetchDiag } = useQuery({
+    queryKey: ['notifications-delivery-diagnostics'],
+    queryFn: () => api.get('/notifications/delivery-diagnostics').then(r => r.data),
+    staleTime: 10000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+  });
+
   // Fetch users for specific target — debounced to avoid per-keystroke requests
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ['users-search', debouncedUserSearch],
@@ -219,6 +227,64 @@ export default function Notifications() {
           </button>
         )}
         <span className="ml-auto text-sm text-gray-500">{data?.total ?? 0} total</span>
+      </div>
+
+      {/* Push diagnostics */}
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Push Diagnostics</h3>
+            <p className="text-xs text-gray-500">OneSignal configuration and recent delivery attempts</p>
+          </div>
+          <button
+            onClick={() => refetchDiag()}
+            className="btn-secondary text-xs px-3 py-1.5"
+            disabled={diagLoading}
+          >
+            {diagLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+          <div className={`rounded-lg px-3 py-2 border ${diagData?.push?.configured ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+            Configured: {diagData?.push?.configured ? 'Yes' : 'No'}
+          </div>
+          <div className="rounded-lg px-3 py-2 border border-gray-200 bg-gray-50 text-gray-700">
+            App ID: {diagData?.push?.appId || '—'}
+          </div>
+          <div className={`rounded-lg px-3 py-2 border ${diagData?.push?.hasRestKey ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+            REST Key: {diagData?.push?.hasRestKey ? 'Present' : 'Missing'}
+          </div>
+        </div>
+
+        <div className="border border-gray-100 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+            Recent Attempts
+          </div>
+          {!diagData?.push?.recentAttempts?.length ? (
+            <div className="px-3 py-4 text-sm text-gray-400">No push attempts yet.</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {diagData.push.recentAttempts.map((a, idx) => (
+                <div key={`${a.at}-${idx}`} className="px-3 py-2 flex items-center gap-2 text-sm">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${a.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {a.ok ? 'Success' : 'Failed'}
+                  </span>
+                  <span className="text-gray-700">{a.target || 'unknown'}</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-600 truncate">{a.title || 'Untitled'}</span>
+                  {!a.ok && a.error ? (
+                    <>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-red-600 truncate">{a.error}</span>
+                    </>
+                  ) : null}
+                  <span className="ml-auto text-xs text-gray-400">{a.at ? format(new Date(a.at), 'MMM d, h:mm:ss a') : '—'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Notification log */}

@@ -125,6 +125,18 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
 
   Future<void> loadMore() => _fetchPublic(loadMore: true);
   Future<void> refresh()  => _fetchPublic();
+
+  /// Clear all notifications from the current device view.
+  /// Keeps them marked as read server-side, then empties the local list.
+  Future<void> clearAll() async {
+    await markAllRead();
+    state = state.copyWith(
+      notifications: const [],
+      hasMore: false,
+      isLoading: false,
+      lastReadAt: DateTime.now(),
+    );
+  }
 }
 
 final notificationsProvider =

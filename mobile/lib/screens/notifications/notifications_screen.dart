@@ -13,6 +13,29 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final _scrollController = ScrollController();
+  Future<void> _confirmClearAll() async {
+    final notifier = ref.read(notificationsProvider.notifier);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear notifications?'),
+        content: const Text('This will clear all notifications from this screen.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await notifier.clearAll();
+    }
+  }
 
   @override
   void initState() {
@@ -47,6 +70,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       appBar: AppBar(
         title: Text(l.notifications),
         actions: [
+          if (state.notifications.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear_all_outlined),
+              onPressed: _confirmClearAll,
+              tooltip: 'Clear all',
+            ),
           if (state.notifications.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.refresh_outlined),

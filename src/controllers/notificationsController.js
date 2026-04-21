@@ -207,3 +207,9 @@ exports.markOneRead = async (req, res, next) => {
     res.json({ ok: true });
   } catch (err) { next(err); }
 };
+
+// Admin diagnostics endpoint to verify OneSignal send status in real time.
+exports.deliveryDiagnostics = async (_req, res) => {
+  const diag = push.getDiagnostics();
+  res.json({ ok: true, push: diag, serverTime: new Date().toISOString() });
+};

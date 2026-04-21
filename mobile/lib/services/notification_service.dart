@@ -145,17 +145,15 @@ class NotificationService {
         _navigator?.call(_routeFor(response.payload));
       },
     );
+    await androidPlugin?.requestNotificationsPermission();
 
     // 3. Initialise OneSignal
     OneSignal.initialize(_kOneSignalAppId);
     await OneSignal.Notifications.requestPermission(true);
 
-    // 4. Foreground handler — OneSignal delivers but we control display channel
-    //    preventDefault() stops the default OS display; we re-show via
-    //    flutter_local_notifications to use the correct importance channel.
+    // 4. Foreground handler — keep default OS display (status bar/tray) like
+    //    common apps, and only propagate to in-app listeners here.
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-      event.preventDefault();
-
       final n    = event.notification;
       final data = Map<String, dynamic>.from(n.additionalData ?? {});
       final normalizedId = (data['notificationId']?.toString().trim().isNotEmpty == true)
@@ -170,9 +168,6 @@ class NotificationService {
         priority:  data['priority'] as String? ?? 'normal',
         receivedAt: DateTime.now(),
       );
-
-      // Show via local notifications (correct channel/importance)
-      show(notif);
       // Notify subscribers — realtimeProvider adds to list + triggers popup
       _foregroundCtrl.add(notif);
     });
