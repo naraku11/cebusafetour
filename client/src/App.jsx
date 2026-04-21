@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
+import ErrorPage from './pages/ErrorPage';
 
 // Lazy-load heavy pages — only the active route's JS is downloaded
 const Dashboard     = lazy(() => import('./pages/Dashboard'));
@@ -37,7 +38,14 @@ function RoleRoute({ path, children }) {
   const role = user?.role ?? '';
   const allowed = ROLE_PAGES[role] ?? [];
   if (!allowed.includes(path)) {
-    return <Navigate to={ROLE_HOME[role] ?? '/dashboard'} replace />;
+    return (
+      <ErrorPage
+        code={403}
+        title="Access Forbidden"
+        message="Your role doesn't have permission to view this page."
+        fullScreen={false}
+      />
+    );
   }
   return children;
 }
@@ -79,6 +87,16 @@ export default function App() {
           <Route path="help"         element={<RoleRoute path="/help">         <Help />        </RoleRoute>} />
           <Route path="profile"      element={<RoleRoute path="/profile">      <Profile />     </RoleRoute>} />
         </Route>
+        <Route
+          path="*"
+          element={
+            <ErrorPage
+              code={404}
+              title="Page Not Found"
+              message="The page you're looking for doesn't exist or has been moved."
+            />
+          }
+        />
       </Routes>
     </Suspense>
   );

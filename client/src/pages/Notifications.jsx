@@ -81,6 +81,7 @@ function NotificationMobileRow({ n, onDelete }) {
 const fmtType = (t) => t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function Notifications() {
+  const DIAG_PAGE_SIZE = 10;
   const qc = useQueryClient();
   const { notification: notifMeta } = useMeta();
   const [form, setForm] = useState(defaultForm);
@@ -94,6 +95,7 @@ export default function Notifications() {
   const searchTimer = useRef(null);
   const [debouncedUserSearch, setDebouncedUserSearch] = useState('');
   const [debouncedSearch,     setDebouncedSearch]     = useState('');
+  const [diagPage, setDiagPage] = useState(1);
 
   // Debounce userSearch so the query doesn't fire on every keystroke
   useEffect(() => {
@@ -129,6 +131,24 @@ export default function Notifications() {
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
   });
+  const clearDiagMutation = useMutation({
+    mutationFn: () => api.delete('/notifications/delivery-diagnostics'),
+    onSuccess: async () => {
+      toast.success('Push diagnostics cleared');
+      setDiagPage(1);
+      await qc.invalidateQueries({ queryKey: ['notifications-delivery-diagnostics'] });
+    },
+    onError: () => toast.error('Failed to clear push diagnostics'),
+  });
+  const diagAttempts = diagData?.push?.recentAttempts ?? [];
+  const diagTotalPages = Math.max(1, Math.ceil(diagAttempts.length / DIAG_PAGE_SIZE));
+  const normalizedDiagPage = Math.min(diagPage, diagTotalPages);
+  const diagSliceStart = (normalizedDiagPage - 1) * DIAG_PAGE_SIZE;
+  const pagedDiagAttempts = diagAttempts.slice(diagSliceStart, diagSliceStart + DIAG_PAGE_SIZE);
+
+  useEffect(() => {
+    setDiagPage(1);
+  }, [diagAttempts.length]);
 
   // Fetch users for specific target — debounced to avoid per-keystroke requests
   const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -231,18 +251,27 @@ export default function Notifications() {
 
       {/* Push diagnostics */}
       <div className="card p-4 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-semibold text-gray-900">Push Diagnostics</h3>
             <p className="text-xs text-gray-500">OneSignal configuration and recent delivery attempts</p>
           </div>
-          <button
-            onClick={() => refetchDiag()}
-            className="btn-secondary text-xs px-3 py-1.5"
-            disabled={diagLoading}
-          >
-            {diagLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => clearDiagMutation.mutate()}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50"
+              disabled={clearDiagMutation.isPending || diagAttempts.length === 0}
+            >
+              {clearDiagMutation.isPending ? 'Clearing...' : 'Clear'}
+            </button>
+            <button
+              onClick={() => refetchDiag()}
+              className="btn-secondary text-xs px-3 py-1.5"
+              disabled={diagLoading}
+            >
+              {diagLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
@@ -265,7 +294,7 @@ export default function Notifications() {
             <div className="px-3 py-4 text-sm text-gray-400">No push attempts yet.</div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {diagData.push.recentAttempts.map((a, idx) => (
+              {pagedDiagAttempts.map((a, idx) => (
                 <div key={`${a.at}-${idx}`} className="px-3 py-2 flex items-center gap-2 text-sm">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${a.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {a.ok ? 'Success' : 'Failed'}
@@ -285,6 +314,30 @@ export default function Notifications() {
             </div>
           )}
         </div>
+        {diagAttempts.length > DIAG_PAGE_SIZE && (
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>
+              Showing {diagSliceStart + 1}-{Math.min(diagSliceStart + DIAG_PAGE_SIZE, diagAttempts.length)} of {diagAttempts.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 rounded border border-gray-200 disabled:opacity-50"
+                onClick={() => setDiagPage(p => Math.max(1, p - 1))}
+                disabled={normalizedDiagPage <= 1}
+              >
+                Prev
+              </button>
+              <span>Page {normalizedDiagPage} / {diagTotalPages}</span>
+              <button
+                className="px-2 py-1 rounded border border-gray-200 disabled:opacity-50"
+                onClick={() => setDiagPage(p => Math.min(diagTotalPages, p + 1))}
+                disabled={normalizedDiagPage >= diagTotalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Notification log */}

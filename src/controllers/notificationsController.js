@@ -213,3 +213,8 @@ exports.deliveryDiagnostics = async (_req, res) => {
   const diag = push.getDiagnostics();
   res.json({ ok: true, push: diag, serverTime: new Date().toISOString() });
 };
+
+exports.clearDeliveryDiagnostics = async (_req, res) => {
+  push.clearDiagnostics();
+  res.json({ ok: true, message: 'Delivery diagnostics cleared' });
+};

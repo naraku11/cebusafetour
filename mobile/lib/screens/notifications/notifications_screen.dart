@@ -70,6 +70,19 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       appBar: AppBar(
         title: Text(l.notifications),
         actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'show_all_history') {
+                await ref.read(notificationsProvider.notifier).showAllHistory();
+              }
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem<String>(
+                value: 'show_all_history',
+                child: Text('Show all history'),
+              ),
+            ],
+          ),
           if (state.notifications.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.clear_all_outlined),

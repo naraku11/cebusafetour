@@ -193,3 +193,7 @@ exports.getDiagnostics = () => ({
   },
   recentAttempts: [..._recentAttempts],
 });
+
+exports.clearDiagnostics = () => {
+  _recentAttempts.length = 0;
+};
