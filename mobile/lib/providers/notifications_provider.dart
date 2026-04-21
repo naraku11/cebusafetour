@@ -43,6 +43,7 @@ class NotificationsNotifier extends Notifier<NotificationsState> {
     final token = ref.watch(authProvider.select((s) => s.token));
     if (token == null) return const NotificationsState();
 
+    _connectSub?.cancel();
     _connectSub = ConnectivityService.instance.onReconnected.listen((_) {
       if (state.notifications.isNotEmpty) refresh();
     });

@@ -47,6 +47,9 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
     final userPicture = ref.watch(authProvider.select((s) => s.user?.profilePicture));
     final advisories = ref.watch(advisoriesProvider);
     final unread = ref.watch(notificationsProvider.select((s) => s.unreadCount));
+    final notificationsLoading = ref.watch(
+      notificationsProvider.select((s) => s.isLoading),
+    );
     final l = AppLocalizations.of(context);
 
     final quickActions = [
@@ -120,7 +123,25 @@ class _HomeDashboardState extends ConsumerState<HomeDashboard> {
                             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                             onPressed: () => context.push('/notifications'),
                           ),
-                          if (unread > 0)
+                          if (notificationsLoading)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.95),
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(3),
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 1.8,
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                                ),
+                              ),
+                            )
+                          else if (unread > 0)
                             Positioned(
                               right: 8, top: 8,
                               child: Container(

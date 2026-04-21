@@ -17,7 +17,18 @@ final realtimeProvider = Provider<void>((ref) {
   final token   = ref.watch(authProvider.select((s) => s.token));
   final userId  = ref.read(authProvider).user?.id;
 
+  // Keep foreground push handling active even for guest users (no login).
+  // This enables in-app banners/popups for advisories/announcements delivered
+  // by OneSignal while still avoiding authenticated socket features.
+  final osSub = NotificationService.foregroundStream.listen((notif) {
+    if (token != null) {
+      ref.read(notificationsProvider.notifier).addFromSocket(notif);
+    }
+    ref.read(notificationToastProvider.notifier).show(notif);
+  });
+
   if (token == null) {
+    ref.onDispose(() => osSub.cancel());
     SocketService.instance.disconnect();
     return;
   }
@@ -27,14 +38,6 @@ final realtimeProvider = Provider<void>((ref) {
   // Ensure notification list/unread badge is updated immediately on login.
   // Without this eager fetch, users may wait for a later socket/poll event.
   Future.microtask(() => ref.read(notificationsProvider.notifier).refresh());
-
-  // ── OneSignal foreground events ───────────────────────────────────────────
-  // When a push arrives while the app is open, OneSignal fires foregroundStream.
-  // We use the same path as socket events (addFromSocket deduplicates by ID).
-  final osSub = NotificationService.foregroundStream.listen((notif) {
-    ref.read(notificationsProvider.notifier).addFromSocket(notif);
-    ref.read(notificationToastProvider.notifier).show(notif);
-  });
 
   // ── Attraction events ─────────────────────────────────────────────────
   void onAttractionChange(dynamic _) {
@@ -90,6 +93,7 @@ final realtimeProvider = Provider<void>((ref) {
   void onNotificationNew(dynamic data) {
     if (data is Map && data['id'] != null) {
       final notif = AppNotification.fromSocket(Map<String, dynamic>.from(data));
+      if (NotificationService.shouldSkipDuplicate(notif.id)) return;
       ref.read(notificationsProvider.notifier).addFromSocket(notif);
       NotificationService.show(notif);
       ref.read(notificationToastProvider.notifier).show(notif);

@@ -85,6 +85,8 @@ class NotificationService {
   // Fires when OneSignal delivers a notification while the app is foregrounded.
   static final _foregroundCtrl = StreamController<AppNotification>.broadcast();
   static Stream<AppNotification> get foregroundStream => _foregroundCtrl.stream;
+  static final Map<String, DateTime> _recentNotificationIds = {};
+  static const Duration _dedupeWindow = Duration(seconds: 20);
 
   static void Function(String route)? _navigator;
   static void setNavigator(void Function(String route) nav) => _navigator = nav;
@@ -93,6 +95,19 @@ class NotificationService {
       (type == 'advisory' || type == 'safety_alert' || type == 'emergency')
           ? '/advisories'
           : '/notifications';
+
+  static bool shouldSkipDuplicate(String id) {
+    final now = DateTime.now();
+    _recentNotificationIds.removeWhere(
+      (_, ts) => now.difference(ts) > _dedupeWindow,
+    );
+    final seenAt = _recentNotificationIds[id];
+    if (seenAt != null && now.difference(seenAt) <= _dedupeWindow) {
+      return true;
+    }
+    _recentNotificationIds[id] = now;
+    return false;
+  }
 
   static Future<void> initialize() async {
     // 1. Create Android notification channels (must run before any notification)
@@ -143,8 +158,12 @@ class NotificationService {
 
       final n    = event.notification;
       final data = Map<String, dynamic>.from(n.additionalData ?? {});
+      final normalizedId = (data['notificationId']?.toString().trim().isNotEmpty == true)
+          ? data['notificationId'].toString()
+          : (n.notificationId ?? DateTime.now().millisecondsSinceEpoch.toString());
+      if (shouldSkipDuplicate(normalizedId)) return;
       final notif = AppNotification(
-        id:        n.notificationId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:        normalizedId,
         title:     n.title ?? 'CebuSafeTour',
         body:      n.body ?? '',
         type:      data['type']     as String? ?? 'announcement',
