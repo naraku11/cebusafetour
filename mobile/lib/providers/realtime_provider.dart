@@ -27,17 +27,14 @@ final realtimeProvider = Provider<void>((ref) {
     ref.read(notificationToastProvider.notifier).show(notif);
   });
 
-  if (token == null) {
-    ref.onDispose(() => osSub.cancel());
-    SocketService.instance.disconnect();
-    return;
-  }
-
   SocketService.instance.connect(token);
   final svc = SocketService.instance;
-  // Ensure notification list/unread badge is updated immediately on login.
-  // Without this eager fetch, users may wait for a later socket/poll event.
-  Future.microtask(() => ref.read(notificationsProvider.notifier).refresh());
+
+  if (token != null) {
+    // Ensure notification list/unread badge is updated immediately on login.
+    // Without this eager fetch, users may wait for a later socket/poll event.
+    Future.microtask(() => ref.read(notificationsProvider.notifier).refresh());
+  }
 
   // ── Attraction events ─────────────────────────────────────────────────
   void onAttractionChange(dynamic _) {
@@ -103,6 +100,15 @@ final realtimeProvider = Provider<void>((ref) {
   }
 
   svc.on('notification:new', onNotificationNew);
+
+  if (token == null) {
+    ref.onDispose(() {
+      osSub.cancel();
+      svc.off('notification:new', onNotificationNew);
+      SocketService.instance.disconnect();
+    });
+    return;
+  }
 
   // ── User events ───────────────────────────────────────────────────────
   void onUserUpdated(dynamic data) {

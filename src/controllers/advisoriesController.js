@@ -126,6 +126,13 @@ exports.create = async (req, res, next) => {
           type:     'advisory',
           priority: advisory.severity === 'critical' ? 'high' : 'normal',
         });
+        socket.emitToGuests('notification:new', {
+          id:       notifId,
+          title:    `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
+          body:     advisory.description.substring(0, 200),
+          type:     'advisory',
+          priority: advisory.severity === 'critical' ? 'high' : 'normal',
+        });
         return push.sendToAll({
           title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
           body:  advisory.description.substring(0, 120),

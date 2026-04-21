@@ -38,7 +38,10 @@ function init(httpServer) {
     const token =
       socket.handshake.auth?.token ||
       (socket.handshake.headers?.authorization || '').replace('Bearer ', '');
-    if (!token) return next(new Error('Authentication required'));
+    if (!token) {
+      socket.user = { id: null, role: 'guest' };
+      return next();
+    }
     try {
       socket.user = jwt.verify(token, process.env.JWT_SECRET);
       next();
@@ -49,8 +52,9 @@ function init(httpServer) {
 
   io.on('connection', (socket) => {
     const { id, role } = socket.user;
-    socket.join(`user:${id}`);
+    if (id) socket.join(`user:${id}`);
     if (ADMIN_ROLES.includes(role)) socket.join('admins');
+    else if (role === 'guest') socket.join('guests');
     else socket.join('tourists');
   });
 
@@ -74,6 +78,9 @@ function emitToTourists(event, data) {
   io?.to('tourists').emit(event, data);
   _sse()?.('tourists', event, data);
 }
+function emitToGuests(event, data) {
+  io?.to('guests').emit(event, data);
+}
 function emitToAll(event, data) {
   io?.emit(event, data);
   _sse()?.(null, event, data);
@@ -83,4 +90,4 @@ function emitToUser(userId, event, data) {
   // SSE has no user-level room; skip per-user targeted events
 }
 
-module.exports = { init, getIo, emitToAdmins, emitToTourists, emitToAll, emitToUser };
+module.exports = { init, getIo, emitToAdmins, emitToTourists, emitToGuests, emitToAll, emitToUser };

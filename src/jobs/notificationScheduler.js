@@ -38,6 +38,12 @@ cron.schedule('*/30 * * * * *', async () => {
       socket.emitToTourists('notification:new', {
         id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority,
       });
+      const t = typeof n.target === 'string' ? JSON.parse(n.target || '{}') : (n.target ?? {});
+      if (t.type === 'all') {
+        socket.emitToGuests('notification:new', {
+          id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority,
+        });
+      }
       // Background push via OneSignal — target-aware (nationality/specific/all)
       _dispatchPush({ id: n.id, title: n.title, body: n.body, type: n.type, priority: n.priority, target: n.target })
         .catch(err => logger.warn(`Scheduled push failed for ${n.id}:`, err.message));

@@ -17,6 +17,9 @@ const _dispatchPush = async ({ id, title, body, type, priority, target }) => {
   }
 };
 
+const _targetObject = (target) =>
+  typeof target === 'string' ? JSON.parse(target || '{}') : (target ?? {});
+
 exports.send = async (req, res, next) => {
   try {
     const { title, body, type, priority = 'normal', target, scheduledAt } = req.body;
@@ -47,8 +50,13 @@ exports.send = async (req, res, next) => {
 
     socket.emitToAdmins('notification:new', { notification });
     if (!scheduledAt) {
+      const t = _targetObject(target);
       // Socket: delivers to connected tourists instantly
       socket.emitToTourists('notification:new', { id, title, body, type, priority });
+      // Guest sockets only receive global announcements/advisories.
+      if (t.type === 'all') {
+        socket.emitToGuests('notification:new', { id, title, body, type, priority });
+      }
       // OneSignal: delivers to background/killed app via push
       _dispatchPush({ id, title, body, type, priority, target }).catch(
         err => logger.warn('Push dispatch failed:', err.message)

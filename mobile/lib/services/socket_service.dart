@@ -26,23 +26,22 @@ class SocketService {
 
   /// Connects to the backend Socket.IO server.
   /// Safe to call multiple times — reconnects only when not already connected.
-  void connect(String token) {
+  void connect([String? token]) {
     if (_socket?.connected == true) return;
 
     _socket?.dispose(); // clean up any stale socket
 
-    _socket = io.io(
-      AppConstants.serverUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket'])        // skip HTTP long-poll
-          .setAuth({'token': token})
-          .enableReconnection()
-          .setReconnectionDelay(2000)          // ms before first retry
-          .setReconnectionDelayMax(30000)      // cap backoff at 30 s
-          .setReconnectionAttempts(15)
-          .disableAutoConnect()                // we call connect() manually
-          .build(),
-    );
+    final builder = io.OptionBuilder()
+        .setTransports(['websocket'])        // skip HTTP long-poll
+        .enableReconnection()
+        .setReconnectionDelay(2000)          // ms before first retry
+        .setReconnectionDelayMax(30000)      // cap backoff at 30 s
+        .setReconnectionAttempts(15)
+        .disableAutoConnect();               // we call connect() manually
+    if (token != null && token.isNotEmpty) {
+      builder.setAuth({'token': token});
+    }
+    _socket = io.io(AppConstants.serverUrl, builder.build());
 
     _socket!.connect();
   }
