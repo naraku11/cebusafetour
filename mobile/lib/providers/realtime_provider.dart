@@ -24,6 +24,9 @@ final realtimeProvider = Provider<void>((ref) {
 
   SocketService.instance.connect(token);
   final svc = SocketService.instance;
+  // Ensure notification list/unread badge is updated immediately on login.
+  // Without this eager fetch, users may wait for a later socket/poll event.
+  Future.microtask(() => ref.read(notificationsProvider.notifier).refresh());
 
   // ── OneSignal foreground events ───────────────────────────────────────────
   // When a push arrives while the app is open, OneSignal fires foregroundStream.
