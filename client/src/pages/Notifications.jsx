@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { PaperAirplaneIcon, XMarkIcon, MagnifyingGlassIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, XMarkIcon, MagnifyingGlassIcon, TrashIcon, ChevronDownIcon, CheckIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { useMeta } from '../hooks/useMeta';
 import { format } from 'date-fns';
 
@@ -19,7 +19,10 @@ const STATUS_CLS = {
 
 const TARGET_LABEL = (target) => {
   if (target?.type === 'nationality') return `🌍 ${target.value}`;
-  if (target?.type === 'specific')    return '👤 Specific User';
+  if (target?.type === 'specific') {
+    const count = Array.isArray(target.value) ? target.value.length : (target.value ? 1 : 0);
+    return count === 1 ? '👤 1 specific user' : `👤 ${count} specific users`;
+  }
   return '🌐 All Users';
 };
 
@@ -83,7 +86,7 @@ export default function Notifications() {
   const [form, setForm] = useState(defaultForm);
   const [showCompose, setShowCompose] = useState(false);
   const [userSearch, setUserSearch] = useState('');
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, title } | null
   const [typeFilter,   setTypeFilter]   = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -123,7 +126,7 @@ export default function Notifications() {
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ['users-search', debouncedUserSearch],
     queryFn: () => api.get('/users', { params: { search: debouncedUserSearch || undefined, limit: 20 } }).then(r => r.data),
-    enabled: showCompose && form.target.type === 'specific' && !selectedUser,
+    enabled: showCompose && form.target.type === 'specific',
     staleTime: 30000,
   });
 
@@ -157,14 +160,23 @@ export default function Notifications() {
 
   const setTarget = (type, value) => {
     setForm(f => ({ ...f, target: { type, value } }));
-    if (type !== 'specific') { setSelectedUser(null); setUserSearch(''); }
+    if (type !== 'specific') { setSelectedUsers([]); setUserSearch(''); }
   };
 
   const closeCompose = () => {
     setShowCompose(false);
     setForm(defaultForm);
-    setSelectedUser(null);
+    setSelectedUsers([]);
     setUserSearch('');
+  };
+
+  const toggleUser = (u) => {
+    setSelectedUsers(prev => {
+      const already = prev.some(s => s.id === u.id);
+      const next = already ? prev.filter(s => s.id !== u.id) : [...prev, u];
+      setForm(f => ({ ...f, target: { type: 'specific', value: next.map(s => s.id) } }));
+      return next;
+    });
   };
 
   return (
@@ -374,87 +386,74 @@ export default function Notifications() {
                 )}
 
                 {form.target.type === 'specific' && (
-                  <div className="mt-2">
-                    {selectedUser ? (
-                      // Selected user card
-                      <div className="flex items-center gap-3 p-3 bg-sky-50 border border-sky-200 rounded-xl">
-                        <div className="w-9 h-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          {selectedUser.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{selectedUser.name}</p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {selectedUser.email}
-                            {selectedUser.nationality && <span className="ml-1">· {selectedUser.nationality}</span>}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => { setSelectedUser(null); setTarget('specific', null); }}
-                          className="text-gray-400 hover:text-red-500 flex-shrink-0 transition-colors"
-                          title="Remove"
-                        >
+                  <div className="mt-2 space-y-2">
+                    {/* Selected chips */}
+                    {selectedUsers.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedUsers.map(u => (
+                          <span key={u.id} className="flex items-center gap-1 pl-2 pr-1 py-0.5 bg-sky-100 text-sky-800 rounded-full text-xs font-medium">
+                            {u.name}
+                            <button onClick={() => toggleUser(u)} className="ml-0.5 hover:text-red-500 transition-colors">
+                              <XMarkIcon className="w-3.5 h-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Search input — always visible */}
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        className="input pl-9"
+                        placeholder="Search by name or email…"
+                        value={userSearch}
+                        onChange={e => setUserSearch(e.target.value)}
+                      />
+                      {userSearch && (
+                        <button onClick={() => setUserSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                           <XMarkIcon className="w-4 h-4" />
                         </button>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Search input */}
-                        <div className="relative">
-                          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <input
-                            className="input pl-9"
-                            placeholder="Search by name or email…"
-                            value={userSearch}
-                            onChange={e => setUserSearch(e.target.value)}
-                            autoFocus
-                          />
-                          {userSearch && (
-                            <button
-                              onClick={() => setUserSearch('')}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                              <XMarkIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                      )}
+                    </div>
+                    {/* User list with checkmarks */}
+                    <div className="max-h-52 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
+                      {usersLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-6 text-gray-400 text-sm">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                          Loading users…
                         </div>
-                        {/* User list */}
-                        <div className="mt-2 max-h-52 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
-                          {usersLoading ? (
-                            <div className="flex items-center justify-center gap-2 py-6 text-gray-400 text-sm">
-                              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                              </svg>
-                              Loading users…
+                      ) : usersData?.users?.length > 0 ? usersData.users.map(u => {
+                        const isSelected = selectedUsers.some(s => s.id === u.id);
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => toggleUser(u)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${isSelected ? 'bg-sky-50' : 'hover:bg-gray-50'}`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${isSelected ? 'bg-sky-600' : 'bg-sky-400'}`}>
+                              {isSelected ? <CheckIcon className="w-4 h-4" /> : u.name.charAt(0).toUpperCase()}
                             </div>
-                          ) : usersData?.users?.length > 0 ? usersData.users.map(u => (
-                            <button
-                              key={u.id}
-                              onClick={() => { setSelectedUser(u); setTarget('specific', u.id); }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-sky-50 text-left transition-colors"
-                            >
-                              <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                {u.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
-                                <p className="text-xs text-gray-500 truncate">
-                                  {u.email}
-                                  {u.nationality && <span className="ml-1">· {u.nationality}</span>}
-                                </p>
-                              </div>
-                              <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                u.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                              }`}>{u.status}</span>
-                            </button>
-                          )) : (
-                            <p className="text-sm text-gray-400 text-center py-6 italic">
-                              {userSearch ? `No users found for "${userSearch}"` : 'No users found'}
-                            </p>
-                          )}
-                        </div>
-                      </>
-                    )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {u.email}
+                                {u.nationality && <span className="ml-1">· {u.nationality}</span>}
+                              </p>
+                            </div>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                              u.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                            }`}>{u.status}</span>
+                          </button>
+                        );
+                      }) : (
+                        <p className="text-sm text-gray-400 text-center py-6 italic">
+                          {userSearch ? `No users found for "${userSearch}"` : 'No users found'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -473,7 +472,7 @@ export default function Notifications() {
                   !form.title.trim() ||
                   !form.body.trim() ||
                   (form.target.type === 'nationality' && !form.target.value) ||
-                  (form.target.type === 'specific' && !form.target.value)
+                  (form.target.type === 'specific' && (!Array.isArray(form.target.value) || form.target.value.length === 0))
                 }
                 className="btn-primary flex items-center gap-2"
               >
