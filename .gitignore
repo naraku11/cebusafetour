@@ -38,3 +38,7 @@ Thumbs.db
 # Claude Code
 .claude/
 mobile/android/build/reports/problems/problems-report.html
+README.docx
+scripts/readme_to_docx.py
+mobile/android/build/reports/problems/problems-report.html
+mobile/devtools_options.yaml
