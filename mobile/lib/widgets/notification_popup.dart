@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/app_notification.dart';
-
-const _kMapsKey = 'AIzaSyDQ2JLuyUdoWVJ11Nfvn7bLe1OBvGh2M9M';
 
 // ── Notification Type Styling ───────────────────────────────────────────────
 
@@ -422,10 +419,6 @@ class _NotificationBannerState extends State<NotificationBanner>
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        // Advisory extra details: location, map, source, actions
-                        if (widget.notification.isAdvisory)
-                          _AdvisoryDetails(notification: widget.notification),
-
                         if (widget.actionLabel != null && widget.onAction != null) ...[
                           const SizedBox(height: 6),
                           Row(
@@ -570,121 +563,6 @@ class NotificationPopupManager {
     );
     _currentEntry = entry;
     Overlay.of(context).insert(entry);
-  }
-}
-
-// ── Advisory Detail Section ─────────────────────────────────────────────────
-
-class _AdvisoryDetails extends StatelessWidget {
-  final AppNotification notification;
-  const _AdvisoryDetails({required this.notification});
-
-  static const _sourceLabels = {
-    'pagasa':  'PAGASA',
-    'ndrrmc':  'NDRRMC',
-    'lgu':     'LGU',
-    'cdrrmo':  'CDRRMO',
-    'admin':   'Admin',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final n      = notification;
-    final style  = _styleFor(n);
-    final hasMap = n.lat != null && n.lng != null;
-    final mapUrl = hasMap
-        ? 'https://maps.googleapis.com/maps/api/staticmap'
-          '?center=${n.lat},${n.lng}&zoom=13&size=640x320'
-          '&markers=color:red%7C${n.lat},${n.lng}'
-          '&key=$_kMapsKey'
-        : null;
-
-    final sourceLabel = _sourceLabels[n.source?.toLowerCase()] ?? n.source;
-    final actions     = n.recommendedActions;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Divider(height: 16, thickness: 1, color: style.borderColor),
-
-        // Location row
-        if (n.locationName != null && n.locationName!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                Icon(Icons.location_on_outlined, size: 14, color: style.color),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    n.locationName!,
-                    style: TextStyle(fontSize: 12, color: style.color, fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-        // Static map thumbnail
-        if (mapUrl != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: CachedNetworkImage(
-                imageUrl: mapUrl,
-                height: 100,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  height: 100,
-                  color: style.color.withValues(alpha: 0.08),
-                  child: Center(
-                    child: Icon(Icons.map_outlined, color: style.color.withValues(alpha: 0.4), size: 28),
-                  ),
-                ),
-                errorWidget: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-          ),
-
-        // Source
-        if (sourceLabel != null && sourceLabel.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                Icon(Icons.source_outlined, size: 13, color: style.color.withValues(alpha: 0.7)),
-                const SizedBox(width: 4),
-                Text(
-                  'Source: $sourceLabel',
-                  style: TextStyle(fontSize: 11, color: style.color.withValues(alpha: 0.8)),
-                ),
-              ],
-            ),
-          ),
-
-        // Recommended actions (first line only)
-        if (actions != null && actions.isNotEmpty)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.bolt_outlined, size: 13, color: style.color.withValues(alpha: 0.7)),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  actions,
-                  style: TextStyle(fontSize: 11, color: style.color.withValues(alpha: 0.8)),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
   }
 }
 

@@ -7,7 +7,6 @@ import { format } from 'date-fns';
 import { useAuthStore } from '../store/authStore';
 import { getSocket } from '../services/socket';
 import { useMeta } from '../hooks/useMeta';
-import MapPicker from '../components/MapPicker';
 
 const SEVERITY_MAP = { critical: 'badge-critical', warning: 'badge-warning', advisory: 'badge-advisory' };
 const SEVERITY_ICONS = { critical: '🔴', warning: '🟡', advisory: '🟢' };
@@ -15,7 +14,6 @@ const SEVERITY_ICONS = { critical: '🔴', warning: '🟡', advisory: '🟢' };
 const defaultForm = {
   title: '', description: '', severity: 'advisory', source: 'admin',
   startDate: '', endDate: '', recommendedActions: '',
-  affectedArea: { name: '', lat: 10.3157, lng: 123.8854 },
 };
 
 export default function Advisories() {
@@ -109,9 +107,6 @@ export default function Advisories() {
     recommendedActions: f.recommendedActions || undefined,
     startDate: f.startDate,
     endDate: f.endDate || undefined,
-    affectedArea: f.affectedArea?.name?.trim()
-      ? { name: f.affectedArea.name.trim(), lat: f.affectedArea.lat, lng: f.affectedArea.lng }
-      : undefined,
   });
 
   const saveMutation = useMutation({
@@ -162,12 +157,7 @@ export default function Advisories() {
 
   const openEdit = (a) => {
     setEditing(a);
-    setForm({
-      ...a,
-      startDate: a.startDate?.split('T')[0] || '',
-      endDate: a.endDate?.split('T')[0] || '',
-      affectedArea: a.affectedArea ?? { name: '', lat: 10.3157, lng: 123.8854 },
-    });
+    setForm({ ...a, startDate: a.startDate?.split('T')[0] || '', endDate: a.endDate?.split('T')[0] || '' });
     setAiArea('');
     setShowModal(true);
   };
@@ -488,23 +478,6 @@ export default function Advisories() {
               <div>
                 <label className="block text-sm font-medium mb-1">Recommended Actions</label>
                 <textarea value={form.recommendedActions} onChange={e => setForm(f => ({ ...f, recommendedActions: e.target.value }))} className="input h-20 resize-none" placeholder="Evacuation instructions, what to do..." />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Affected Location <span className="text-gray-400 font-normal">(optional)</span></label>
-                <input
-                  value={form.affectedArea?.name ?? ''}
-                  onChange={e => setForm(f => ({ ...f, affectedArea: { ...f.affectedArea, name: e.target.value } }))}
-                  className="input mb-2"
-                  placeholder="e.g. Lapu-Lapu City, Cebu"
-                />
-                <p className="text-xs text-gray-500 mb-1">Pin the map to set exact coordinates for the mobile map thumbnail.</p>
-                <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 220 }}>
-                  <MapPicker
-                    lat={form.affectedArea?.lat ?? 10.3157}
-                    lng={form.affectedArea?.lng ?? 123.8854}
-                    onChange={({ lat, lng }) => setForm(f => ({ ...f, affectedArea: { ...f.affectedArea, lat, lng } }))}
-                  />
-                </div>
               </div>
             </div>
 

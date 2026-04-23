@@ -18,13 +18,12 @@ final realtimeProvider = Provider<void>((ref) {
   final userId  = ref.read(authProvider).user?.id;
 
   // Keep foreground push handling active even for guest users (no login).
-  // Native OS banner is shown via event.notification.display() in NotificationService;
-  // in-app we also show the rich custom banner (with map + details for advisories).
+  // Native OS banner is shown by event.notification.display() in NotificationService;
+  // here we only update the in-app notification list.
   final osSub = NotificationService.foregroundStream.listen((notif) {
     if (token != null) {
       ref.read(notificationsProvider.notifier).addFromSocket(notif);
     }
-    ref.read(notificationToastProvider.notifier).show(notif);
   });
 
   SocketService.instance.connect(token);
@@ -85,15 +84,14 @@ final realtimeProvider = Provider<void>((ref) {
   svc.on('review:deleted', onReviewChange);
 
   // ── Notification events ───────────────────────────────────────────────
-  // Backend passes notification + advisory extras in the tourist event.
-  // Show a native OS banner and the rich in-app banner (map + details for advisories).
+  // Backend passes { id, title, body, type, priority } in the tourist event.
+  // Show a native OS banner and update the list.
   void onNotificationNew(dynamic data) {
     if (data is Map && data['id'] != null) {
       final notif = AppNotification.fromSocket(Map<String, dynamic>.from(data));
       if (NotificationService.shouldSkipDuplicate(notif.id)) return;
       ref.read(notificationsProvider.notifier).addFromSocket(notif);
       NotificationService.show(notif);
-      ref.read(notificationToastProvider.notifier).show(notif);
     } else {
       ref.read(notificationsProvider.notifier).refresh();
     }
