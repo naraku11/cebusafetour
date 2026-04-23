@@ -18,8 +18,8 @@ final realtimeProvider = Provider<void>((ref) {
   final userId  = ref.read(authProvider).user?.id;
 
   // Keep foreground push handling active even for guest users (no login).
-  // This enables in-app banners/popups for advisories/announcements delivered
-  // by OneSignal while still avoiding authenticated socket features.
+  // Native OS banner is shown via event.notification.display() in NotificationService;
+  // in-app we also show the rich custom banner (with map + details for advisories).
   final osSub = NotificationService.foregroundStream.listen((notif) {
     if (token != null) {
       ref.read(notificationsProvider.notifier).addFromSocket(notif);
@@ -85,8 +85,8 @@ final realtimeProvider = Provider<void>((ref) {
   svc.on('review:deleted', onReviewChange);
 
   // ── Notification events ───────────────────────────────────────────────
-  // Backend passes { id, title, body, type, priority } in the tourist event.
-  // Show a system banner, prepend to the list, and trigger the in-app popup.
+  // Backend passes notification + advisory extras in the tourist event.
+  // Show a native OS banner and the rich in-app banner (map + details for advisories).
   void onNotificationNew(dynamic data) {
     if (data is Map && data['id'] != null) {
       final notif = AppNotification.fromSocket(Map<String, dynamic>.from(data));

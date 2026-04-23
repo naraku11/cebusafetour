@@ -119,24 +119,33 @@ exports.create = async (req, res, next) => {
       .then(notifId => {
         // Emit notification:new so connected tourists' list updates in real-time
         // (handled by onNotificationNew in realtime_provider which calls addFromSocket)
-        socket.emitToTourists('notification:new', {
+        const area        = advisory.affectedArea ?? {};
+        const locationName = area.name  ?? null;
+        const lat          = area.lat   ?? null;
+        const lng          = area.lng   ?? null;
+        const notifPayload = {
           id:       notifId,
           title:    `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
           body:     advisory.description.substring(0, 200),
           type:     'advisory',
           priority: advisory.severity === 'critical' ? 'high' : 'normal',
-        });
-        socket.emitToGuests('notification:new', {
-          id:       notifId,
-          title:    `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
-          body:     advisory.description.substring(0, 200),
-          type:     'advisory',
-          priority: advisory.severity === 'critical' ? 'high' : 'normal',
-        });
+          severity: advisory.severity,
+          source:   advisory.source,
+          recommendedActions: advisory.recommendedActions ?? null,
+          locationName,
+          lat,
+          lng,
+        };
+        socket.emitToTourists('notification:new', notifPayload);
+        socket.emitToGuests('notification:new', notifPayload);
         return push.sendToAll({
           title: `[${advisory.severity.toUpperCase()}] ${advisory.title}`,
           body:  advisory.description.substring(0, 120),
-          data:  { type: 'advisory', advisoryId: advisory.id, severity: advisory.severity, notificationId: notifId },
+          data:  {
+            type: 'advisory', advisoryId: advisory.id,
+            severity: advisory.severity, notificationId: notifId,
+            locationName, lat, lng,
+          },
         });
       })
       .then(() => db.run('UPDATE advisories SET notification_sent = 1 WHERE id = ?', [id]))

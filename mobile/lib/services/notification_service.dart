@@ -151,8 +151,8 @@ class NotificationService {
     OneSignal.initialize(_kOneSignalAppId);
     await OneSignal.Notifications.requestPermission(true);
 
-    // 4. Foreground handler — keep default OS display (status bar/tray) like
-    //    common apps, and only propagate to in-app listeners here.
+    // 4. Foreground handler — display the native OS banner (same as background)
+    //    and propagate to in-app listeners for list updates.
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
       final n    = event.notification;
       final data = Map<String, dynamic>.from(n.additionalData ?? {});
@@ -160,6 +160,10 @@ class NotificationService {
           ? data['notificationId'].toString()
           : (n.notificationId ?? DateTime.now().millisecondsSinceEpoch.toString());
       if (shouldSkipDuplicate(normalizedId)) return;
+
+      // Show the native OS notification banner (required in OneSignal v5 foreground).
+      event.notification.display();
+
       final notif = AppNotification(
         id:        normalizedId,
         title:     n.title ?? 'CebuSafeTour',
@@ -168,7 +172,7 @@ class NotificationService {
         priority:  data['priority'] as String? ?? 'normal',
         receivedAt: DateTime.now(),
       );
-      // Notify subscribers — realtimeProvider adds to list + triggers popup
+      // Notify subscribers — realtimeProvider updates notification list only.
       _foregroundCtrl.add(notif);
     });
 
