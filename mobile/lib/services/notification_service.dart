@@ -161,6 +161,9 @@ class NotificationService {
           : (n.notificationId ?? DateTime.now().millisecondsSinceEpoch.toString());
       if (shouldSkipDuplicate(normalizedId)) return;
 
+      // Show the native OS notification banner (required in OneSignal v5 foreground).
+      event.notification.display();
+
       final notif = AppNotification(
         id:        normalizedId,
         title:     n.title ?? 'CebuSafeTour',
