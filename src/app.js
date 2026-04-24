@@ -173,7 +173,17 @@ app.use('/api/events',        eventsRouter);
 // Serve admin panel static files (built into backend/public during deployment)
 const adminDist = path.join(__dirname, '..', 'public');
 if (fs.existsSync(adminDist)) {
-  app.use(express.static(adminDist, { maxAge: '1d' }));
+  app.use(express.static(adminDist, {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      }
+    },
+  }));
   // SPA fallback — all non-API routes return index.html
   app.get('/{*splat}', (_req, res) => res.sendFile(path.join(adminDist, 'index.html')));
 } else {
