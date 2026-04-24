@@ -26,7 +26,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _agreed = false;
   bool _obscurePass = true;
   bool _obscureConfirm = true;
-  String? _emailError; // inline duplicate-email feedback
+  String? _emailError;
+  String _password = '';
 
   @override
   void dispose() {
@@ -117,6 +118,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             TextFormField(
               controller: _passCtrl,
               obscureText: _obscurePass,
+              onChanged: (v) => setState(() => _password = v),
               decoration: InputDecoration(
                 labelText: l.passwordHint,
                 prefixIcon: const Icon(Icons.lock_outlined),
@@ -125,8 +127,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   onPressed: () => setState(() => _obscurePass = !_obscurePass),
                 ),
               ),
-              validator: (v) => v!.length >= 8 ? null : l.minChars,
+              validator: (v) {
+                final p = v ?? '';
+                if (p.length < 8) return 'At least 8 characters required';
+                if (!p.contains(RegExp(r'[A-Z]'))) return 'Include at least one uppercase letter';
+                if (!p.contains(RegExp(r'[a-z]'))) return 'Include at least one lowercase letter';
+                if (!p.contains(RegExp(r'[0-9]'))) return 'Include at least one number';
+                if (!p.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) return 'Include at least one special character';
+                return null;
+              },
             ),
+            _PasswordStrengthIndicator(password: _password),
             const SizedBox(height: 16),
             TextFormField(
               controller: _confirmPassCtrl,
@@ -187,6 +198,98 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ]),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+// ── Password Strength Indicator ─────────────────────────────────────────────
+
+class _PasswordRule {
+  final String label;
+  final bool met;
+  const _PasswordRule(this.label, this.met);
+}
+
+class _PasswordStrengthIndicator extends StatelessWidget {
+  final String password;
+  const _PasswordStrengthIndicator({required this.password});
+
+  @override
+  Widget build(BuildContext context) {
+    if (password.isEmpty) return const SizedBox.shrink();
+
+    final rules = [
+      _PasswordRule('8+ characters', password.length >= 8),
+      _PasswordRule('Uppercase letter', password.contains(RegExp(r'[A-Z]'))),
+      _PasswordRule('Lowercase letter', password.contains(RegExp(r'[a-z]'))),
+      _PasswordRule('Number', password.contains(RegExp(r'[0-9]'))),
+      _PasswordRule('Special character', password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))),
+    ];
+
+    final metCount = rules.where((r) => r.met).length;
+    final strength = metCount / rules.length;
+
+    final Color barColor = strength <= 0.4
+        ? const Color(0xFFDC2626)
+        : strength <= 0.6
+            ? const Color(0xFFF59E0B)
+            : strength <= 0.8
+                ? const Color(0xFF0284C7)
+                : const Color(0xFF059669);
+
+    final String strengthLabel = strength <= 0.4
+        ? 'Weak'
+        : strength <= 0.6
+            ? 'Fair'
+            : strength <= 0.8
+                ? 'Good'
+                : 'Strong';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: strength,
+                  minHeight: 4,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(strengthLabel,
+                style: TextStyle(fontSize: 12, color: barColor, fontWeight: FontWeight.w600)),
+          ]),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: rules
+                .map((r) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          r.met ? Icons.check_circle : Icons.radio_button_unchecked,
+                          size: 13,
+                          color: r.met ? const Color(0xFF059669) : Colors.grey,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(r.label,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: r.met ? const Color(0xFF059669) : Colors.grey)),
+                      ],
+                    ))
+                .toList(),
+          ),
+        ],
       ),
     );
   }
