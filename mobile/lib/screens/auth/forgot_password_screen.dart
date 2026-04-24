@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
+import '../../utils/app_toast.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   /// Pre-filled email (passed from login screen when user typed one).
@@ -36,22 +37,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final emailSent = await AuthService().forgotPassword(_emailCtrl.text.trim());
       if (mounted) {
         if (!emailSent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email delivery failed — check your inbox or try again.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 5),
-            ),
-          );
+          AppToast.warning(context, 'Email delivery failed — check your inbox or try again.');
         }
         context.push('/auth/reset-password', extra: _emailCtrl.text.trim());
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().replaceFirst('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
-        );
+        AppToast.error(context, e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _loading = false);

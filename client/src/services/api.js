@@ -23,7 +23,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    const msg = err.response?.data?.error || 'Something went wrong';
+    const details = err.response?.data?.details;
+    const msg =
+      (details?.length ? details[0].msg : null) ||
+      err.response?.data?.error ||
+      err.response?.data?.message ||
+      'Something went wrong';
     if (err.response?.status === 401) {
       localStorage.removeItem('cebusafetour-auth');
       window.location.href = '/login';

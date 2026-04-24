@@ -7,6 +7,7 @@ import '../../models/review.dart';
 import '../../providers/attractions_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/favorites_provider.dart';
+import '../../utils/app_toast.dart';
 import '../../widgets/safety_badge.dart';
 import '../../widgets/emergency_fab.dart';
 
@@ -123,13 +124,10 @@ class AttractionDetail extends ConsumerWidget {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                     final uri = Uri.parse('https://maps.google.com/?q=${a.latitude},${a.longitude}');
-                    final messenger = ScaffoldMessenger.of(context);
                     if (await canLaunchUrl(uri)) {
                       await launchUrl(uri, mode: LaunchMode.externalApplication);
                     } else {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Could not open maps')),
-                      );
+                      if (context.mounted) AppToast.error(context, 'Could not open maps');
                     }
                   },
                       icon: const Icon(Icons.directions_outlined),
@@ -144,11 +142,7 @@ class AttractionDetail extends ConsumerWidget {
                     return OutlinedButton.icon(
                       onPressed: () {
                         ref.read(favoritesProvider.notifier).toggle(a);
-                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                          content: Text(saved ? '${a.name} removed from saved' : l.savedToList(a.name)),
-                          backgroundColor: const Color(0xFF0EA5E9),
-                          duration: const Duration(seconds: 2),
-                        ));
+                        AppToast.info(ctx, saved ? '${a.name} removed from saved' : l.savedToList(a.name));
                       },
                       icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border_outlined),
                       label: Text(saved ? 'Saved' : l.save),
@@ -194,9 +188,7 @@ class AttractionDetail extends ConsumerWidget {
   void _showRatingSheet(BuildContext context, WidgetRef ref, AppLocalizations l) {
     final auth = ref.read(authProvider);
     if (auth.user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.loginRequired)),
-      );
+      AppToast.warning(context, l.loginRequired);
       return;
     }
     showModalBottomSheet(
@@ -300,24 +292,16 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 : () async {
                     await ref.read(reviewNotifierProvider.notifier)
                         .submit(widget.attractionId, _selected, _commentCtrl.text);
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     final state = ref.read(reviewNotifierProvider);
                     if (state is AsyncError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: ${state.error}')));
+                      AppToast.error(context, 'Error: ${state.error}');
                     } else {
                       ref.invalidate(reviewsProvider(widget.attractionId));
                       ref.invalidate(attractionDetailProvider(widget.attractionId));
                       ref.invalidate(attractionsProvider);
-                      // Capture messenger BEFORE pop — sheet context is invalid after pop
-                      final messenger = ScaffoldMessenger.of(context);
+                      AppToast.info(context, l.reviewSubmitted);
                       Navigator.of(context).pop();
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(l.reviewSubmitted),
-                          backgroundColor: const Color(0xFF0EA5E9),
-                        ),
-                      );
                     }
                   },
             child: isLoading
@@ -502,9 +486,7 @@ class _ReviewTileState extends ConsumerState<_ReviewTile> {
                 ref.invalidate(attractionsProvider);
               } catch (e) {
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to delete: $e')),
-                );
+                AppToast.error(context, 'Failed to delete: $e');
               } finally {
                 if (mounted) setState(() => _deleting = false);
               }

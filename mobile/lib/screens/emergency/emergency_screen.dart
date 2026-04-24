@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/api_service.dart';
+import '../../utils/app_toast.dart';
 import '../../utils/constants.dart';
 
 class EmergencyScreen extends StatefulWidget {
@@ -121,10 +122,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Failed to send report. Please try again.'),
-          backgroundColor: const Color(0xFFEF4444),
-        ));
+        AppToast.error(context, 'Failed to send report. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _reporting = false);

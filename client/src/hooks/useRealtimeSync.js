@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { useAuthStore } from '../store/authStore';
 
@@ -64,8 +65,17 @@ const EVENT_KEYS = {
  * • Clears debounce timer to avoid state updates after unmount.
  * • Re-connects socket on tab-visible if the connection dropped while hidden.
  */
+const INCIDENT_LABELS = {
+  medical:          'Medical Emergency',
+  fire:             'Fire / Disaster',
+  crime:            'Crime / Theft',
+  natural_disaster: 'Natural Disaster',
+  lost_person:      'Lost / Missing',
+};
+
 export function useRealtimeSync() {
   const token       = useAuthStore((s) => s.token);
+  const userId      = useAuthStore((s) => s.user?.id);
   const qc          = useQueryClient();
   const pendingKeys = useRef(new Set());
   const debounceRef = useRef(null);
@@ -101,6 +111,25 @@ export function useRealtimeSync() {
     sseRef.current = null;
   }, []);
 
+  // Toast handlers for events that other admins or tourists trigger.
+  // Defined inside the hook so they close over the current userId for deduplication.
+  const toastHandlers = {
+    'incident:new': (data) => {
+      const inc   = data?.incident;
+      const label = INCIDENT_LABELS[inc?.type] ?? inc?.type ?? 'Unknown';
+      toast.error(`New incident: ${label}`, { duration: 6000, id: inc?.id });
+    },
+    'advisory:new': (data) => {
+      const a = data?.advisory;
+      if (a?.created_by === userId) return; // own mutation already toasted
+      const isCritical = a?.severity === 'critical';
+      const msg        = a?.title ?? 'New advisory';
+      isCritical
+        ? toast.error(`[CRITICAL] ${msg}`, { duration: 8000, id: a?.id })
+        : toast(`⚠️ Advisory: ${msg}`, { duration: 6000, id: a?.id });
+    },
+  };
+
   useEffect(() => {
     if (!token) return;
 
@@ -110,7 +139,10 @@ export function useRealtimeSync() {
     // preventing listener accumulation across reconnect cycles.
     const handlers = new Map();
     for (const [event, keys] of Object.entries(EVENT_KEYS)) {
-      const handler = () => scheduleInvalidation(...keys);
+      const handler = (data) => {
+        scheduleInvalidation(...keys);
+        toastHandlers[event]?.(data);
+      };
       handlers.set(event, handler);
       s.on(event, handler);
     }

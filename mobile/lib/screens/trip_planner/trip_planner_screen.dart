@@ -7,6 +7,7 @@ import '../../models/attraction.dart';
 import '../../models/trip_plan.dart';
 import '../../providers/attractions_provider.dart';
 import '../../providers/trip_provider.dart';
+import '../../utils/app_toast.dart';
 import '../../utils/theme.dart';
 import '../../widgets/safety_badge.dart';
 import '../../widgets/emergency_fab.dart';
@@ -246,7 +247,6 @@ class _TripPlannerScreenState extends ConsumerState<TripPlannerScreen> {
   }
 
   Future<void> _confirmNewTrip(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -260,11 +260,7 @@ class _TripPlannerScreenState extends ConsumerState<TripPlannerScreen> {
     );
     if (confirmed == true && mounted) {
       await ref.read(tripProvider.notifier).newTrip();
-      if (mounted) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('New trip started!')),
-        );
-      }
+      if (context.mounted) AppToast.success(context, 'New trip started!');
     }
   }
 

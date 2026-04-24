@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
+import '../../utils/app_toast.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String email;
@@ -58,9 +59,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       context.go('/home');
     } else {
       final err = ref.read(authProvider).error ?? 'Verification failed. Please try again.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err), backgroundColor: Colors.red.shade700),
-      );
+      AppToast.error(context, err);
     }
   }
 
@@ -70,19 +69,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       await AuthService().resendOtp(widget.email);
       if (mounted) {
         _startCountdown();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('A new verification code has been sent to your email.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, 'A new verification code has been sent to your email.');
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().replaceFirst('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
-        );
+        AppToast.error(context, e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _resending = false);

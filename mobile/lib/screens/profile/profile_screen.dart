@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../utils/app_toast.dart';
 import '../../utils/constants.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -66,16 +67,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           .read(authProvider.notifier)
           .updateProfilePicture(File(picked.path));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(updatedUser != null ? l.profileUpdated : l.failedToUpdate),
-        backgroundColor: updatedUser != null ? Colors.green : Colors.red,
-      ));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l.failedToUpdate}: $e'), backgroundColor: Colors.red),
-        );
+      if (updatedUser != null) {
+        AppToast.success(context, l.profileUpdated);
+      } else {
+        AppToast.error(context, l.failedToUpdate);
       }
+    } catch (e) {
+      if (mounted) AppToast.error(context, '${l.failedToUpdate}: $e');
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -123,12 +121,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   nationality: natCtrl.text.trim().isEmpty ? null : natCtrl.text.trim(),
                   contactNumber: phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
                 );
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(ok ? l.profileUpdated : l.failedToUpdate),
-                    backgroundColor: ok ? Colors.green : Colors.red,
-                  ));
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  if (ok) {
+                    AppToast.success(context, l.profileUpdated);
+                  } else {
+                    AppToast.error(context, l.failedToUpdate);
+                  }
                 }
               },
               child: saving
@@ -151,11 +150,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         initialContacts: List.from(ref.read(authProvider).user?.emergencyContacts ?? []),
         onSave: (contacts) async {
           final ok = await ref.read(authProvider.notifier).updateProfile(emergencyContacts: contacts);
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(ok ? l.profileUpdated : l.failedToUpdate),
-              backgroundColor: ok ? Colors.green : Colors.red,
-            ));
+          if (mounted) {
+            if (ok) {
+              AppToast.success(context, l.profileUpdated);
+            } else {
+              AppToast.error(context, l.failedToUpdate);
+            }
           }
           return ok;
         },

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
+import '../../utils/app_toast.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
@@ -57,19 +58,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await AuthService().forgotPassword(widget.email);
       if (mounted) {
         _startCountdown();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('A new reset code has been sent to your email.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, 'A new reset code has been sent to your email.');
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().replaceFirst('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
-        );
+        AppToast.error(context, e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _resending = false);
@@ -86,23 +79,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _passCtrl.text,
       );
       if (mounted) {
-        // Capture messenger BEFORE context.go() disposes this widget
-        final messenger = ScaffoldMessenger.of(context);
+        // Show toast before navigation so the ScaffoldMessenger is still valid
+        AppToast.success(context, 'Password reset! Please sign in with your new password.');
         context.go('/auth/login');
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Password reset! Please sign in with your new password.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().replaceFirst('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
-        );
+        AppToast.error(context, e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _loading = false);

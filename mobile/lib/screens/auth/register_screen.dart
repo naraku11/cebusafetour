@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
+import '../../utils/app_toast.dart';
 import '../../utils/nationalities.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -72,9 +73,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         setState(() => _emailError = msg);
         _formKey.currentState!.validate(); // re-run to show inline error
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
-        );
+        AppToast.error(context, msg);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
