@@ -18,16 +18,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _confirmPassCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _nationalityDisplay = TextEditingController();
   String? _nationality;
   bool _loading = false;
   bool _agreed = false;
+  bool _obscurePass = true;
+  bool _obscureConfirm = true;
   String? _emailError; // inline duplicate-email feedback
 
   @override
   void dispose() {
-    for (final c in [_nameCtrl, _emailCtrl, _passCtrl, _phoneCtrl, _nationalityDisplay]) c.dispose();
+    for (final c in [_nameCtrl, _emailCtrl, _passCtrl, _confirmPassCtrl, _phoneCtrl, _nationalityDisplay]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -60,10 +65,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         nationality: _nationality,
         contactNumber: _phoneCtrl.text.trim(),
       );
-      if (mounted) context.push('/auth/otp', extra: {
-        'email':     _emailCtrl.text.trim(),
-        'emailSent': result['emailSent'] as bool? ?? true,
-      });
+      if (mounted) {
+        context.push('/auth/otp', extra: {
+          'email':     _emailCtrl.text.trim(),
+          'emailSent': result['emailSent'] as bool? ?? true,
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -109,9 +116,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _passCtrl,
-              obscureText: true,
-              decoration: InputDecoration(labelText: l.passwordHint, prefixIcon: const Icon(Icons.lock_outlined)),
+              obscureText: _obscurePass,
+              decoration: InputDecoration(
+                labelText: l.passwordHint,
+                prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                ),
+              ),
               validator: (v) => v!.length >= 8 ? null : l.minChars,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmPassCtrl,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'Confirm Password',
+                prefixIcon: const Icon(Icons.lock_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+              ),
+              validator: (v) => v == _passCtrl.text ? null : 'Passwords do not match',
             ),
             const SizedBox(height: 16),
 
