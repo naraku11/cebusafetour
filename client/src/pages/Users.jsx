@@ -7,6 +7,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { SparklesIcon, CheckBadgeIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { UserGroupIcon, ShieldCheckIcon, PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
+const CEBU_MUNICIPALITIES = [
+  'Alcantara','Alcoy','Alegria','Aloguinsan','Argao','Asturias','Badian',
+  'Balamban','Bantayan','Barili','Bogo','Boljoon','Borbon','Carcar','Carmen',
+  'Catmon','Cebu City','Compostela','Consolacion','Cordova','Dalaguete',
+  'Danao','Dumanjug','Ginatilan','Lapu-Lapu','Liloan','Madridejos',
+  'Malabuyoc','Mandaue','Medellin','Minglanilla','Moalboal','Naga','Oslob',
+  'Pilar','Pinamungahan','Poro','Ronda','Samboan','San Fernando',
+  'San Francisco','San Remigio','Santa Fe','Santander','Sibonga','Sogod',
+  'Tabogon','Tabuelan','Talisay','Toledo','Tuburan','Tudela',
+];
+
 // ── shared helpers ─────────────────────────────────────────────────────────────
 const STATUS_STYLES = {
   active:    'bg-green-100 text-green-700',
@@ -101,7 +112,7 @@ function ConfirmDialog({ action, isPending, onConfirm, onCancel }) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function CreateStaffModal({ onClose, onSave, defaultRole = 'admin_content' }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: defaultRole, contactNumber: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: defaultRole, contactNumber: '', municipality: '', designation: '' });
   const [showPass, setShowPass] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -155,6 +166,17 @@ function CreateStaffModal({ onClose, onSave, defaultRole = 'admin_content' }) {
             <label className="block text-xs font-medium text-gray-500 mb-1">Contact Number</label>
             <input value={form.contactNumber} onChange={f('contactNumber')} className="input w-full" placeholder="+63..." />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Municipality / City</label>
+            <select value={form.municipality} onChange={f('municipality')} className="input w-full">
+              <option value="">— Select municipality —</option>
+              {CEBU_MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Designation</label>
+            <input value={form.designation} onChange={f('designation')} className="input w-full" placeholder="e.g. Tourism Officer" />
+          </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">
               Cancel
@@ -173,6 +195,7 @@ function EditStaffModal({ staff, onClose, onSave }) {
   const [form, setForm] = useState({
     name: staff.name ?? '', email: staff.email ?? '',
     role: staff.role ?? 'admin_content', contactNumber: staff.contactNumber ?? '',
+    municipality: staff.municipality ?? '', designation: staff.designation ?? '',
   });
   const [saving, setSaving] = useState(false);
   const f = (field) => (e) => setForm(p => ({ ...p, [field]: e.target.value }));
@@ -206,6 +229,17 @@ function EditStaffModal({ staff, onClose, onSave }) {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Contact Number</label>
             <input value={form.contactNumber} onChange={f('contactNumber')} className="input w-full" placeholder="+63..." />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Municipality / City</label>
+            <select value={form.municipality} onChange={f('municipality')} className="input w-full">
+              <option value="">— Select municipality —</option>
+              {CEBU_MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Designation</label>
+            <input value={form.designation} onChange={f('designation')} className="input w-full" placeholder="e.g. Tourism Officer" />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">Cancel</button>
@@ -261,6 +295,14 @@ function StaffMobileRow({ u, currentUser, onEdit, onConfirm }) {
               <dd className="text-gray-600 text-xs">{u.contactNumber || '—'}</dd>
             </div>
             <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Municipality</dt>
+              <dd className="text-gray-600 text-xs">{u.municipality || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-400 text-xs mb-0.5">Designation</dt>
+              <dd className="text-gray-600 text-xs">{u.designation || '—'}</dd>
+            </div>
+            <div>
               <dt className="text-gray-400 text-xs mb-0.5">Joined</dt>
               <dd className="text-gray-600 text-xs">{new Date(u.createdAt).toLocaleDateString()}</dd>
             </div>
@@ -294,20 +336,22 @@ function StaffMobileRow({ u, currentUser, onEdit, onConfirm }) {
 function StaffSection() {
   const qc = useQueryClient();
   const currentUser = useAuthStore(s => s.user);
-  const [roleFilter, setRoleFilter]     = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [search, setSearch]             = useState('');
+  const [roleFilter, setRoleFilter]             = useState('');
+  const [statusFilter, setStatusFilter]         = useState('');
+  const [municipalityFilter, setMunicipalityFilter] = useState('');
+  const [search, setSearch]                     = useState('');
   const [showCreate, setShowCreate]     = useState(false);
   const [editStaff, setEditStaff]       = useState(null);
   const [confirm, setConfirm]           = useState(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['staff', search, statusFilter, roleFilter],
+    queryKey: ['staff', search, statusFilter, roleFilter, municipalityFilter],
     queryFn: () => api.get('/users/staff', {
       params: {
-        search: search       || undefined,
-        status: statusFilter || undefined,
-        role:   roleFilter   || undefined,
+        search:       search             || undefined,
+        status:       statusFilter       || undefined,
+        role:         roleFilter         || undefined,
+        municipality: municipalityFilter || undefined,
       },
     }).then(r => r.data),
   });
@@ -375,7 +419,7 @@ function StaffSection() {
     { key: 'archived',  label: 'Archived' },
   ];
 
-  const switchRole = (key) => { setRoleFilter(key); setStatusFilter(''); setSearch(''); };
+  const switchRole = (key) => { setRoleFilter(key); setStatusFilter(''); setMunicipalityFilter(''); setSearch(''); };
 
   return (
     <div className="space-y-5">
@@ -431,6 +475,14 @@ function StaffSection() {
             </button>
           ))}
         </div>
+        <select
+          value={municipalityFilter}
+          onChange={e => setMunicipalityFilter(e.target.value)}
+          className="input w-auto"
+        >
+          <option value="">All Municipalities</option>
+          {CEBU_MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
         <button onClick={() => setShowCreate(true)}
           className="ml-auto flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-xl hover:bg-violet-700">
           <PlusIcon className="w-4 h-4" /> Add Staff
@@ -458,6 +510,8 @@ function StaffSection() {
                 <th className="px-6 py-3 font-medium">Email</th>
                 <th className="px-6 py-3 font-medium">Role</th>
                 <th className="px-6 py-3 font-medium">Contact</th>
+                <th className="px-6 py-3 font-medium">Municipality</th>
+                <th className="px-6 py-3 font-medium">Designation</th>
                 <th className="px-6 py-3 font-medium">Status</th>
                 <th className="px-6 py-3 font-medium">Joined</th>
                 <th className="px-6 py-3 font-medium">Actions</th>
@@ -465,9 +519,9 @@ function StaffSection() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {isLoading ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading…</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-400">Loading…</td></tr>
               ) : staff.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400">No staff accounts found</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-gray-400">No staff accounts found</td></tr>
               ) : staff.map(u => {
                 const roleInfo = ROLE_STYLES[u.role];
                 const isSelf   = u.id === currentUser?.id;
@@ -489,6 +543,8 @@ function StaffSection() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-500">{u.contactNumber || '—'}</td>
+                    <td className="px-6 py-4 text-gray-500">{u.municipality || '—'}</td>
+                    <td className="px-6 py-4 text-gray-500">{u.designation || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[u.status] ?? 'bg-gray-100 text-gray-500'}`}>
                         {u.status}
