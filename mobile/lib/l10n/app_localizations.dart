@@ -471,7 +471,7 @@ class AppLocalizations {
       'faqWhatIsCebuSafeTour': 'What is CebuSafeTour?',
       'faqWhatIsCebuSafeTourAnswer': 'CebuSafeTour is a tourism safety app designed to help travelers explore Cebu safely. It provides real-time safety advisories, attraction information with safety ratings, emergency reporting, trip planning tools, and direct access to local emergency services. Whether you\'re a first-time visitor or a seasoned traveler, the app keeps you informed and protected throughout your Cebu adventure.',
       'faqHowToCreateAccount': 'How do I create an account?',
-      'faqHowToCreateAccountAnswer': 'Tap "Sign Up" on the login screen. Enter your full name, email address, nationality, and create a password (minimum 8 characters). After submitting, you\'ll receive a 6-digit OTP code via email. Enter the code to verify your account. Once verified, you can start exploring Cebu safely!',
+      'faqHowToCreateAccountAnswer': 'Tap "Sign Up" on the login screen. Enter your full name, email address, nationality, and contact number. Create a strong password — it must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character (e.g. !@#\$). After submitting, you\'ll receive a 6-digit OTP code via email. Enter the code to verify your account. Once verified, you can start exploring Cebu safely!',
       'faqIsAppFree': 'Is the app free to use?',
       'faqIsAppFreeAnswer': 'Yes! CebuSafeTour is completely free to download and use. All features including safety advisories, attraction browsing, emergency reporting, trip planning, and notifications are available at no cost. Our mission is to make every tourist\'s visit to Cebu safe and enjoyable.',
       'faqLanguageSupport': 'What languages are supported?',
@@ -502,7 +502,7 @@ class AppLocalizations {
       'faqChangePhoto': 'How do I change my profile photo?',
       'faqChangePhotoAnswer': 'Go to Profile and tap on your avatar photo. You can take a new photo with your camera or choose one from your gallery. Photos are reviewed for verification. You\'ll see a verification badge once your photo is approved.',
       'faqResetPassword': 'How do I reset my password?',
-      'faqResetPasswordAnswer': 'On the login screen, tap "Forgot Password?". Enter your registered email address. You\'ll receive a 6-digit OTP code. Enter the code to verify your identity, then create a new password (minimum 8 characters). The OTP expires after 10 minutes for security.',
+      'faqResetPasswordAnswer': 'On the login screen, tap "Forgot Password?". Enter your registered email address. You\'ll receive a 6-digit OTP code. Enter the code to verify your identity, then create a new password. It must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character. The OTP expires after 10 minutes for security.',
       'faqDeleteAccount': 'Can I delete my account?',
       'faqDeleteAccountAnswer': 'To request account deletion, please contact our support team at support@cebusafetour.com with your registered email address. Your account and all associated data (reviews, incident reports, profile information) will be permanently removed within 30 days of the request.',
       // FAQ — Notifications

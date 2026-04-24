@@ -18,12 +18,12 @@ final realtimeProvider = Provider<void>((ref) {
   final userId  = ref.read(authProvider).user?.id;
 
   // Keep foreground push handling active even for guest users (no login).
-  // Native OS banner is shown by event.notification.display() in NotificationService;
-  // here we only update the in-app notification list.
+  // OS heads-up is suppressed in NotificationService; in-app popup handles visibility.
   final osSub = NotificationService.foregroundStream.listen((notif) {
     if (token != null) {
       ref.read(notificationsProvider.notifier).addFromSocket(notif);
     }
+    ref.read(notificationToastProvider.notifier).show(notif);
   });
 
   SocketService.instance.connect(token);
@@ -52,14 +52,19 @@ final realtimeProvider = Provider<void>((ref) {
     if (data is! Map) return;
     final a = data['advisory'];
     if (a is! Map) return;
-    final desc = a['description']?.toString() ?? '';
-    NotificationService.showRaw(
-      id:       a['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title:    '[${(a['severity'] as String? ?? 'ADVISORY').toUpperCase()}] ${a['title'] ?? 'Advisory'}',
-      body:     desc.length > 120 ? desc.substring(0, 120) : desc,
-      type:     'advisory',
-      severity: a['severity']?.toString(),
-    );
+    final desc     = a['description']?.toString() ?? '';
+    final id       = a['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final severity = a['severity']?.toString() ?? '';
+    final title    = '[${severity.isEmpty ? 'ADVISORY' : severity.toUpperCase()}] ${a['title'] ?? 'Advisory'}';
+    final body     = desc.length > 120 ? '${desc.substring(0, 120)}…' : desc;
+    ref.read(notificationToastProvider.notifier).show(AppNotification(
+      id:        id,
+      title:     title,
+      body:      body,
+      type:      'advisory',
+      priority:  severity == 'critical' ? 'high' : 'normal',
+      receivedAt: DateTime.now(),
+    ));
   }
 
   void onAdvisoryChange(dynamic _) => ref.invalidate(advisoriesProvider);
@@ -91,7 +96,7 @@ final realtimeProvider = Provider<void>((ref) {
       final notif = AppNotification.fromSocket(Map<String, dynamic>.from(data));
       if (NotificationService.shouldSkipDuplicate(notif.id)) return;
       ref.read(notificationsProvider.notifier).addFromSocket(notif);
-      NotificationService.show(notif);
+      ref.read(notificationToastProvider.notifier).show(notif);
     } else {
       ref.read(notificationsProvider.notifier).refresh();
     }

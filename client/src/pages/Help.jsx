@@ -82,6 +82,10 @@ const FAQ_SECTIONS = [
         q: 'How do I notify users about a new advisory?',
         a: 'When creating or updating an advisory, toggle the "Send Notification" option. This will push a real-time alert to all mobile app users via Firebase Cloud Messaging. Critical advisories are recommended to always send notifications. You can also use the Notifications module to send targeted alerts to specific user groups.',
       },
+      {
+        q: 'Will other admins see a notification when I publish an advisory?',
+        a: 'Yes. All other admins currently logged in receive a real-time toast alert in the top-right corner of their browser the moment a new advisory is published. Critical advisories appear as a red alert; standard advisories use a yellow warning style. You will not see this toast for advisories you publish yourself — your confirmation comes from the save action. Admins who are offline will see the advisory when they next log in.',
+      },
     ],
   },
   {
@@ -99,7 +103,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: 'How do I get notified of new incidents?',
-        a: 'The system uses real-time Socket.IO connections. When an incident is reported:\n\n1. All admins with Emergency Center access receive an immediate in-app notification\n2. The emergency counter on the sidebar updates in real-time\n3. A push notification is sent to assigned emergency officers\n4. The incident appears at the top of the Emergency Center list\n\nMake sure your browser notifications are enabled for the best experience.',
+        a: 'The system uses real-time Socket.IO connections. When an incident is reported:\n\n1. A toast alert appears instantly in the top-right corner of your screen showing the incident type (e.g. "New incident: Medical Emergency")\n2. The emergency counter on the sidebar updates in real-time\n3. A push notification is sent to assigned emergency officers\n4. The incident appears at the top of the Emergency Center list\n\nKeep the admin portal open in an active browser tab to receive instant toast alerts.',
       },
       {
         q: 'Can I assign incidents to specific officers?',
